@@ -1,0 +1,70 @@
+Comment: $0000
+Tout commence par un saut à l'adresse $1000 pour éviter la zone des RST (et un peu plus).
+Pourquoi $1000 ? Bonne question. Il faudrait vérifier sur d'autres machines Z80.
+
+Label: $1000, Start
+Comment: $1000
+Démarrage complet de la machine.
+Vérifier pourquoi c'est appelé depuis $2282
+
+Comment: $100a
+Copie de la ROM sur toute la mémoire adressable
+Equivalent C-style de : memcpy($4000, $0000, $C000)
+
+Comment: $100c
+À la fin de LDIR, HL == $C000, DE == $0000, BC == $0000
+
+Comment: $100e
+À présent, HL == $4000, DE == $0000, BC == $C000
+
+Comment: $1010
+Début de la comparaison octet par octet de la mémoire
+
+Comment: $1015
+Si le contenu de (HL) et (DE) est différent, on saut en $101B
+
+Comment: $1017
+Si le contenu de (HL) et (DE) est identique et que BC est > 0, on loop
+
+Comment: $101a
+L'instruction ne sert à rien d'autre qu'à gagner un peu d'espace lorsque BC == 0 et que la boucle est terminée.
+Le contenu de A est écrasé un peu plus loin.
+
+Comment: $101b
+HL est décrémenté pour retrouver la dernière addresse testée (CPI augmente HL).
+HL contient donc la première adresse invalide de l'espace mémoire en écriture.
+Cette adresse est mise dans SP et stockée en $4895
+
+Comment: $1020
+Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
+Equivelent C-style de : memset($47D0, $1E, $C9)
+
+Comment: $102b
+Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
+
+Comment: $1042
+L'adresse $47EE reçoit un JP $0069 (la NMI).
+
+Comment: $104b
+IX prend la valeur $47FA qui est la base de la zone de données graphiques
+
+Comment: $104F
+$1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
+HL pointe sur la taille de la séquence à envoyer au EF9345.
+
+Label: $02EF, SendSeqEF
+Comment: $02EF/above
+Entrée: HL pointe sur la séquence de données à envoyer. Le premier octet de la séquence est sa longueur en octet.
+
+Label: $0286, WaitRdyEF
+Comment: $0286/above
+$20 est envoyé sur le port $8F puis on attend que le le bit de
+poids fort sur le port $CF soit à 0.
+
+
+Label: $4895, Première adresse RAM invalide
+Label: $47D0, ?
+Label: $47F1, ?
+Label: $47F4, ?
+Label: $47F7, ?
+Label: $47FA, Début de la zone de données graphiques pour la communication avec le EF9345
