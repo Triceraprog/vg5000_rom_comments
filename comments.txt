@@ -62,9 +62,14 @@ $20 est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
 
 
-Label: $4895, Première adresse RAM invalide
-Label: $47D0, ?
-Label: $47F1, ?
-Label: $47F4, ?
-Label: $47F7, ?
-Label: $47FA, Début de la zone de données graphiques pour la communication avec le EF9345
+Label: $4895, LastValidRAM
+Comment: $4895
+Première adresse RAM invalide
+
+// Label: $47D0, ?
+// Label: $47F1, ?
+// Label: $47F4, ?
+// Label: $47F7, ?
+Label: $47FA, GraphValues
+Comment: $47FA
+Début de la zone de données graphiques pour la communication avec le EF9345
