@@ -1,14 +1,17 @@
 Label: $0000, romStart
-Comment: $0000
+Comment: $0000/above
 Tout commence par un saut à l'adresse $1000 pour éviter la zone des RST (et un peu plus).
 Pourquoi $1000 ? Bonne question. Il faudrait vérifier sur d'autres machines Z80.
 
 Label: $02EF, SendSeqEF
 Comment: $02EF/above
-Entrée: HL pointe sur la séquence de données à envoyer. Le premier octet de la séquence est sa longueur en octet.
+Envoi d'une séquence à l'EF9345
+Entrée: HL pointe sur la séquence de données à envoyer.
+Le premier octet de la séquence est sa longueur en octet.
 
 Label: $0286, WaitRdyEF
 Comment: $0286/above
+Attente d'état « prêt » de l'EF9345
 $20 est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
 
