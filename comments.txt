@@ -3,6 +3,15 @@ Comment: $0000
 Tout commence par un saut à l'adresse $1000 pour éviter la zone des RST (et un peu plus).
 Pourquoi $1000 ? Bonne question. Il faudrait vérifier sur d'autres machines Z80.
 
+Label: $02EF, SendSeqEF
+Comment: $02EF/above
+Entrée: HL pointe sur la séquence de données à envoyer. Le premier octet de la séquence est sa longueur en octet.
+
+Label: $0286, WaitRdyEF
+Comment: $0286/above
+$20 est envoyé sur le port $8F puis on attend que le le bit de
+poids fort sur le port $CF soit à 0.
+
 Label: $1000, Start
 Comment: $1000
 Démarrage complet de la machine.
@@ -53,14 +62,15 @@ Comment: $104F
 $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
 HL pointe sur la taille de la séquence à envoyer au EF9345.
 
-Label: $02EF, SendSeqEF
-Comment: $02EF/above
-Entrée: HL pointe sur la séquence de données à envoyer. Le premier octet de la séquence est sa longueur en octet.
+Comment: $1055
+Initialisation de la variable EF...
 
-Label: $0286, WaitRdyEF
-Comment: $0286/above
-$20 est envoyé sur le port $8F puis on attend que le le bit de
-poids fort sur le port $CF soit à 0.
+Comment: $1059
+Initialisation de la variable EF...
+
+Comment: $105d
+Initialisation de la variable EF...
+
 
 
 Label: $4895, LastValidRAM
