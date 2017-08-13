@@ -1,3 +1,4 @@
+Label: $0000, romStart
 Comment: $0000
 Tout commence par un saut à l'adresse $1000 pour éviter la zone des RST (et un peu plus).
 Pourquoi $1000 ? Bonne question. Il faudrait vérifier sur d'autres machines Z80.
