@@ -67,6 +67,7 @@ Label: $4895, LastValidRAM
 Comment: $4895
 Première adresse RAM invalide
 
+// Label: $1179, InitEF
 // Label: $47D0, ?
 // Label: $47F1, ?
 // Label: $47F4, ?
