@@ -1,7 +1,14 @@
 Label: $0000, romStart
 Comment: $0000/above
-Tout commence par un saut à l'adresse $1000 pour éviter la zone des RST (et un peu plus).
-Pourquoi $1000 ? Bonne question. Il faudrait vérifier sur d'autres machines Z80.
+Tout commence par un saut à l'adresse $1000. Le choix de l'adresse $1000
+semble arbitraire. D'autres machines à base de Z80 font des sauts à d'autres
+adresses.
+;
+Comme les adresses suivantes sont les adresses de branchement des instructions
+RST du Z80, le code de démarrage doit se trouver plus loin. D'où le saut.
+;
+Juste après le saut se trouve, sous forme de chaîne de caractères, le numéro
+de version de la ROM.
 
 Label: $02EF, SendSeqEF
 Comment: $02EF/above
@@ -16,6 +23,25 @@ $20 est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
 
 Label: $1000, Start
+Comment: $1000/above
+C'est ici que commence l'intialisation complète de la machine.
+La première étape est de recopier le contenu de la ROM dans
+l'espace RAM adressable. Adressable ne signifie pas que de la RAM
+est effectivement branchée. Cela ne pose pas de problème au
+niveau hardware du VG5000 d'envoyer une demande d'écriture.
+;
+Le contenu de la mémoire est ensuite lu et comparé à la ROM.
+Tant que c'est identique, c'est qu'il y a quelque chose de branché
+qui répond correctement. Dès que c'est différent, c'est qu'on est
+sorti de la zone de la mémoire inscriptible disponible.
+;
+La dernière adresse valide est stockée dans $4895 et dans SP, le
+registre pointeur de pile (Stack Pointer)
+;
+On remarquera que si une ROM répond avec un contenu identique à
+la ROM à une adresse multiple de 16ko, l'initialisation va
+penser que c'est de la RAM accessible.
+
 Comment: $1000
 Démarrage complet de la machine.
 Vérifier pourquoi c'est appelé depuis $2282
@@ -50,9 +76,14 @@ HL est décrémenté pour retrouver la dernière addresse testée (CPI augmente 
 HL contient donc la première adresse invalide de l'espace mémoire en écriture.
 Cette adresse est mise dans SP et stockée en $4895
 
+Comment: $1020/above
+La seconde étape de l'initialisation consiste à remplir les vecteurs
+utilisateur par des instructions spécifiques. Ces vecteurs, situés
+en RAM...
+
 Comment: $1020
 Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
-Equivelent C-style de : memset($47D0, $1E, $C9)
+Equivalent C-style de : memset($47D0, $1E, $C9)
 
 Comment: $102b
 Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
