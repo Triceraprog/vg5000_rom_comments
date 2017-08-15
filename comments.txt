@@ -10,17 +10,177 @@ RST du Z80, le code de démarrage doit se trouver plus loin. D'où le saut.
 Juste après le saut se trouve, sous forme de chaîne de caractères, le numéro
 de version de la ROM.
 
+Label: $0255, ClearScreen
+Comment: $0255/above
+Fonction: Efface l'écran
+Efface tout d'abord la ligne 0
+Puis recopie le contenu mémoire de cette ligne sur le reste de l'écran
+
+Label: $0265, ClearLine
+Comment: $0265/above
+Fonction: Efface une ligne
+Entrées : A contient un numéro de ligne
+
+Comment: $026b
+Écriture de $80 à la première position de la ligne
+
+Comment: $026d
+Récupération des attributs par défaut
+
+Comment: $0271
+Écriture dans la position suivante des attributs par défaut
+
+Comment: $0276
+if bit(C,7) == 1 then A = 0 else A = $20
+Le bit 7 de C étant à 1 pour un caractère graphique, 0 pour texte
+
+Comment: $027d
+Boucle pour écrire dans les positions suivantes de la ligne alternativement A et C.
+Donc un espace pour le mode texte et 0 pour le mode graphique, suivi des attributs
+
+
+Label: $0291, xytoscreen
+Comment: $0291/above
+Fonction: renvoie l'adresse écran à partir des coordonnées X et Y
+Entrées : H contient y, L contient x
+Retour : HL contient $4000 + 80y + 2x
+
+Comment: $0291
+C contient x
+
+Comment: $0292
+L contient Y
+
+Comment: $0297
+HL = L * 8 (c'est-à-dire y * 8)
+
+Comment: $0299
+DE = HL = y * 8
+
+Comment: $029c
+HL = 32 * y + 8 * y = 40 * y
+
+Comment: $029d
+HL = 80 * y
+
+Comment: $029e
+C contient x
+
+Comment: $02a1
+HL = 80 * y + 2 * x
+
+Comment: $02a5
+HL = $4000 + 80 * y + 2 * x
+
+
 Label: $02EF, SendSeqEF
 Comment: $02EF/above
-Envoi d'une séquence à l'EF9345
+Fonction: Envoi d'une séquence à l'EF9345
 Entrée: HL pointe sur la séquence de données à envoyer.
 Le premier octet de la séquence est sa longueur en octet.
 
 Label: $0286, WaitRdyEF
 Comment: $0286/above
-Attente d'état « prêt » de l'EF9345
+Fonction: Attente d'état « prêt » de l'EF9345
 $20 est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
+
+Comment: $0a78
+Désactivation de l'affichage
+
+Label: $0d7c, SendToEF
+Comment: $0d7c/above
+Fonction: Envoi d'une donnée à l'EF9345
+Registre en entrée : DE
+Registre modifié : C
+D est envoyé sur le port $8F
+C est envoyé sur le port $CF
+
+Label: $0d85, DefineChar
+Comment: $0d85/above
+Fonction: Redéfinition d'un caractère
+Registres en entrée : HL et A
+Registres modifiés : AF, HL, BC, DE
+
+Comment: $0d85
+if bit(A, 7) == 0 then B = $C0 else B = $40
+
+Comment: $0d8d
+Le haut de la pile contient BC
+
+Comment: $0d8e
+Désactivation de l'affichage
+
+Comment: $0d98
+Envoi à l'EF9345 de $22,A (avec le bit 7 de A mis à 1)
+(A est envoyé à travers E)
+
+Comment: $0d9b
+Récupération de la valeur de BC dans AF
+
+Comment: $0d9c
+Remise du contenu de BC sur la pile
+
+Comment: $0d9d
+Inversion du bit 7 de A, qui est la valeur de B du début de la fonction ($C0 ou $40)
+
+Comment: $0da2
+Envoi à l'EF9345 de $21,A (A est envoyé à travers E)
+
+Comment: $0da9
+Envoi à l'EF9345 de $20,$03
+
+Comment: $0dae
+Récupération, à travers E, de la valeur de A en entrée de fonction (avec les trois lignes suivantes)
+
+Comment: $0db4
+A = (A >> 2) & $1F
+
+Comment: $0db7
+Envoi à l'EF9345 de $24,A (A est envoyé à travers E)
+
+Comment: $0dbd
+A = (A initial de la fonction) & $03
+
+Comment: $0dbf
+Récupération du contenu du BC initial ($C0 ou $40)
+
+Comment: $0dc0
+A = A | B
+
+Comment: $0dc2
+Envoi à l'EF9345 de $25,A (A est envoyé à travers E)
+
+Comment: $0dc9
+Envoi à l'EF9345 de $20,$34
+
+Comment: $0dcc
+Boucle extérieure, 10 itérations
+
+Comment: $0dce
+Récupère la valeur suivante de la redéfinition de caractère dans A
+
+Comment: $0dd0
+Boucle intérieure, 8 itérations
+
+Comment: $0dd4
+Inverse le contenu de A et C, bit à bit
+
+Comment: $0dd8
+La ligne de redéfinition lue dans (HL) est à présent inversée dans A
+
+Comment: $0ddd
+Envoi à l'EF9345 de $29,A (A est envoyé à travers E)
+
+Comment: $0dee
+Envoi à l'EF9345 de $25,A (A est envoyé à travers E)
+
+Comment: $0df3
+Réactivation de l'affichage
+
+Comment: $0de5
+Envoi sur $8F de $25 puis récupération sur $CF d'une valeur dans A.
+Puis A = A & $04
 
 Label: $1000, Start
 Comment: $1000/above
@@ -79,34 +239,131 @@ Cette adresse est mise dans SP et stockée en $4895
 Comment: $1020/above
 La seconde étape de l'initialisation consiste à remplir les vecteurs
 utilisateur par des instructions spécifiques. Ces vecteurs, situés
-en RAM...
+en RAM, permettent d'intervenir lors de certaines opérations avec
+du code écrit par l'utilisateur et donc de modifier le comportement
+du système.
 
 Comment: $1020
 Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
 Equivalent C-style de : memset($47D0, $1E, $C9)
 
+Code: $2250
+Label: $2250, SomeVector
 Comment: $102b
 Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
 
+Code: $0069
+Label: $0069, from47ee
 Comment: $1042
-L'adresse $47EE reçoit un JP $0069 (la NMI).
+L'adresse $47EE reçoit un JP $0069.
+
+Comment: $104b/above
+La troisième phase initialise le processeur graphique EF9345. Pour commencer,
+une séquence est envoyée au périphérique, puis quelques variables en RAM sont
+mises initialisées.
+;
+Attention, la valeur de IX doit rester constante. Le système de cette ROM
+considère que IX est en tout temps égal à $47FA et référence certaines
+variables par index par rapport à IX.
+;
+La séquence est
+$28,$81,$29,$00,$20,$82,$29,$6e,$20,$83
+$29,$f7,$20,$84,$29,$13,$20,$87,$29,$08
+$26,$08,$27,$00,$28,$02
+;
+Envoyés par pairs sur les ports $8f, $cf
+;
+Regarder ce que cela donne en EF9345
 
 Comment: $104b
-IX prend la valeur $47FA qui est la base de la zone de données graphiques
+IX prend la valeur $47FA qui est la base de la zone de données graphiques.
+
+Label: $1179, InitEfSeq
+Label: $1194, InitValues
+Label: $1202, AfterInit
+Comment: $1179
+Séquence d'intialisation de l'EF9345 au démarrage.
 
 Comment: $104F
 $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
 HL pointe sur la taille de la séquence à envoyer au EF9345.
 
 Comment: $1055
-Initialisation de la variable EF...
+Initialisation de la variable $47FA : compteur d'interruptions à 5
 
 Comment: $1059
-Initialisation de la variable EF...
+Initialisation de la variable $47FB : besoin de rafraichissement à faux
 
 Comment: $105d
-Initialisation de la variable EF...
+Initialisation de la variable $47FA : utilisation des majuscules
 
+Comment: $1063/above
+Les interruptions sont réactivées pour la suite de l'initialisation.
+
+Comment: $1067
+Numéro de la première ligne du BASIC ?
+
+Comment: $106a
+Couleur du pourtour et aspect du curseur
+
+Comment: $107a
+Copie les valeurs initiales des différentes variables du système en RAM
+
+Label: $3278,initscreen
+Comment: $3278/above
+Réinitialisation du curseur, d'attributs
+Redéfinition de deux caractères: $20 et $7F
+Efface l'écran, remise en colonne 1
+
+Label: $3dc0,initscreen1
+Label: $3292,initscreen2
+
+Comment: $3278
+Deux accès à $47FD pour set les bits 4 et 6
+
+Comment: $327c
+Test du bit zéro sur $47FE (majuscules/minuscules)
+
+Comment: $3286
+Changement de l'aspect du curseur si minuscules
+
+Comment: $3297
+Initialisation des attributs utilisés pour l'effacement de l'écran
+
+Comment: $32a0
+Mise à 1 de la colonne du curseur
+
+Comment: $32a3
+Force l'affichage à l'interruption suivante
+
+Comment: $32ab
+Et attend l'affichage
+
+
+Label: $35c5, resetcursor
+Comment: $35c5/above
+La fonction réinitialise les bits 2 et 7 de $4871.
+A priori : coupe le scrolling et ligne non entrée sous BASIC
+;
+Puis réinitialise quelques valeurs d'affichage
+
+Comment: $35cd
+$4804 à 0 : pas de redéfinition de caractères
+
+Comment: $35d1
+$4002 à 0 : couleur d'encre et fond graphique à zero, texte
+
+Comment: $35d5
+$47FB à 1 : force un affichage
+
+Comment: $35d9
+$47FC à 0 : équivalent de DISPLAY 10
+
+Comment: $35dd
+Changement du pourtour et aspect du curseur
+
+Label: $35fe, char7f
+Label: $35f4, char20
 
 
 Label: $4895, LastValidRAM
@@ -114,10 +371,11 @@ Comment: $4895
 Première adresse RAM invalide
 
 // Label: $1179, InitEF
-// Label: $47D0, ?
+Label: $47D0, VectorBase
 // Label: $47F1, ?
 // Label: $47F4, ?
 // Label: $47F7, ?
 Label: $47FA, GraphValues
+Label: $4871, DisplayCtrl
 Comment: $47FA
 Début de la zone de données graphiques pour la communication avec le EF9345
