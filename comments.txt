@@ -34,13 +34,15 @@ Comment: $1010
 Début de la comparaison octet par octet de la mémoire
 
 Comment: $1015
-Si le contenu de (HL) et (DE) est différent, on saut en $101B
+Si le contenu de (HL) et (DE) est différent, on saute en $101B
 
 Comment: $1017
-Si le contenu de (HL) et (DE) est identique et que BC est > 0, on loop
+Si le contenu de (HL) et (DE) est identique
+et que BC est > 0, on loop
 
-Comment: $101a
-L'instruction ne sert à rien d'autre qu'à gagner un peu d'espace lorsque BC == 0 et que la boucle est terminée.
+Comment: $101a/above
+L'instruction partielle suivante ne sert à rien d'autre qu'à gagner un peu
+d'espace lorsque BC == 0 et que la boucle est terminée.
 Le contenu de A est écrasé un peu plus loin.
 
 Comment: $101b
