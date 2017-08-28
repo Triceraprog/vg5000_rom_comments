@@ -339,6 +339,45 @@ Sort 0 sur le port $AF, pour le son/k7
 Comment: $1084
 Modification de l'adresse du hook "nmihk"
 
+Comment: $1093/above
+Calcul des bornes de pile, memsize et place disponible
+
+Comment: $1096
+hl <- sp - 2 (sp == (stktop))
+
+
+Comment: $109b
+hl < $03e8 ? (comment serait-ce possible ?)
+
+Comment: $109e
+de <- $ffce (-50)
+
+Comment: $10a5
+Calcul final du haut de la pile comme étant (memsize) - 50
+
+Comment: $10ab
+Récupération du haut de la pile
+
+Comment: $10b1
+hl <- (stktop) - 17
+
+Comment: $10ba
+hl = hl - de, soit ((stktop) - 17 - end_vars)
+Autrement dit, la taille disponible entre la fin des variables internes et la pile -17.
+
+Comment: $10bb
+Cette taille disponible est poussée dans la pile.
+
+Comment: $10bc/above
+Affichage du texte de démarrage. VG5000 + numéro de version
+
+Comment: $10bc
+Texte en double hauteur, double largeur
+
+Label: $1148, vg5000_txt
+Label: $1163, version_txt
+
+
 Label: $3c3c, sendchar_te
 Label: $3be1, sendchar_pt
 Label: $1d97, sendchar_k7
@@ -346,6 +385,11 @@ Label: $1d97, sendchar_k7
 ////////////////////
 
 //-----------------
+Label: $2527, read_quotes
+Comment: $2527/above
+Fonction: lecture appelée à l'ouverture du guillemets lors d'un out_str...
+... entre autre.
+
 Label: $2efe,resetstack
 Comment: $2efe/above
 Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
@@ -623,6 +667,41 @@ Changement du pourtour et aspect du curseur
 Label: $35fe, char7f
 Label: $35f4, char20
 
+Label: $36aa, out_str
+Comment: $36aa/above
+Fonction: Affichage d'une chaîne à l'écran
+Entrée: HL pointe sur la chaîne de caractère terminée par un 0
+
+Label: $366c, out_str_prc
+Comment: $366c/above
+Fonction: traite la chaîne de caractères à afficher avec extention des variables.
+
+Comment: $366c
+Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
+
+Comment: $3674
+Récupération du caractère dans a
+
+Comment: $3675
+Incrémentation du compteur de caractères affichés
+
+Comment: $3677
+Si le caractère est 0 (fin de chaîne)
+
+Comment: $367a
+Si le caractère est $22 (=34, guillemets)
+
+Label: $367f, out_str_2
+
+Comment: $367d
+Tant que l'on traite des caractères normaux
+
+Comment: $3681
+Traitement spécifique pour les guillemets
+
+Comment: $3670
+Sauve la valeur courante de hl (pointe sur ... )
+
 //------------
 Label: $3c14, resetprt
 Comment: $3c14/above
@@ -706,6 +785,9 @@ Comment: $4895
 Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
 
 Label: $4919, endbuf
+Label: $491f, memsiz
+Comment: $491f
+Plus haute mémoire disponible (pour le BASIC ?)
 
 Label: $4921, temppt
 Label: $4923, tempst
