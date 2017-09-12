@@ -18,15 +18,10 @@ Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
+$0069/from47ee/code:L'adresse $47EE reçoit un JP $0069.
+
 $008f/playsnd/code
 $0a87/playimpl
-
-$24ea/playret/code
-$247A/code
-
-$3bd0/SendCharImp/above
-Fonction : envoie d'un caractère sur le périphérique sélectionné
-Entrée : le caractère est contenu dans A
 
 $0255/ClearScreen/above
 Fonction: Efface l'écran
@@ -76,6 +71,8 @@ poids fort sur le port $CF soit à 0.
 
 $0a78:Désactivation de l'affichage
 
+$0ca7/snd_emit
+
 $0d7c/SendToEF/above
 Fonction: Envoi d'une donnée à l'EF9345
 Registre en entrée : DE
@@ -120,6 +117,10 @@ $0df3:Réactivation de l'affichage
 $0de5
 Envoi sur $8F de $25 puis récupération sur $CF d'une valeur dans A (Read R5)
 Puis A = A + $04
+
+/////////////////////////////////////////
+////////////////// 1000 /////////////////
+/////////////////////////////////////////
 
 $1000/Start/above
 C'est ici que commence l'intialisation complète de la machine.
@@ -177,9 +178,6 @@ $1020
 Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
 Equivalent C-style de : memset($47D0, $1E, $C9)
 
-$2250/SomeVector/code:Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
-$0069/from47ee/code:L'adresse $47EE reçoit un JP $0069.
-
 $104b/above
 La troisième phase initialise le processeur graphique EF9345. Pour commencer,
 une séquence est envoyée au périphérique, puis quelques variables en RAM sont
@@ -201,9 +199,6 @@ La séquence est
 Envoyés par pairs sur les ports $8f, $cf
 
 $104b:IX prend la valeur $47FA qui est la base de la zone de données graphiques.
-$1179/InitEfSeq:Séquence d'intialisation de l'EF9345 au démarrage.
-$1194/InitValues
-$1202/AfterInit
 
 $104F
 -> $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
@@ -236,11 +231,23 @@ $10bc:Texte en double hauteur, double largeur
 
 $1148/vg5000_txt
 $1163/version_txt
-$3c3c/sendchar_te
-$3be1/sendchar_pt
+$1179/InitEfSeq:Séquence d'intialisation de l'EF9345 au démarrage.
+$1194/InitValues
+$1202/AfterInit
 $1d97/sendchar_k7
 
+
 ////////////////////
+
+
+/////////////////////////////////////////
+////////////////// 2000 /////////////////
+/////////////////////////////////////////
+
+$2250/SomeVector/code:Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
+
+$24ea/playret/code
+$247A/code
 
 //-----------------
 $2527/read_quotes/above
@@ -263,21 +270,46 @@ $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
 
-//-------------
+/////////////////////////////////////////
+////////////////// 3000 /////////////////
+/////////////////////////////////////////
+
+////////////////// 3200 /////////////////
 $3278/initscreen/above
 Réinitialisation du curseur, d'attributs
 Redéfinition de deux caractères: $20 et $7F
 Efface l'écran, remise en colonne 1
 
-$3dc0/initscreen1
 $3292/initscreen2
 $3278:Deux accès à $47FD pour set les bits 4 et 6
 $327c:Test du bit zéro sur $47FE (majuscules\minuscules)
 $3286:Changement de l'aspect du curseur si minuscules
 $3297:Initialisation des attributs utilisés pour l'effacement de l'écran
+
+$329d/cur_home
 $32a0:Curseur mis en haut à droite de l'écran
 $32a3:Force l'affichage à l'interruption suivante
 $32ab:Et attend l'affichage
+
+$331f:La pile contient, en haut, $33c5, puis AF (qui contient le caractère)
+
+$3349/above
+Partial instruction trick en cascade.
+Les 6 labels suivants chargent A avec une certaine valeur.
+Puis exécutent une série de LD HL avec des valeurs inutiles
+Pour finalement arriver sur 'sdchar_pass'
+;
+Cela agit comme un remapping des caractères qui étaient normalement non affichables.
+
+$3349/sd_a_ff
+$334c/sd_a_0d
+$334f/sd_a_08
+$3352/sd_a_04
+$3355/sd_a_1f
+$3358/sd_a_03
+
+$335b:$33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
+
 $331a/sendchar_t2
 $3328:A est compris entre 128 et 160. La mise à 0 du bit 7 revient à soustraire 128
 $332c:A est inférieur ou égal à 128.
@@ -325,6 +357,10 @@ Code: $33B9
 
 $33BC/code:Fin de la table d'indirection. Caractère 31.
 
+$33cd/code/above
+Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
+Le rafraichissement de l'écran est demandé et la pile et les registres remis en ordre.
+
 $33d4/carreturn/above
 Fonction: traitement Carriage Return
 Traitement de l'affichage du caractère 13 (et 3)
@@ -338,18 +374,28 @@ Et c'est fini.
 $33ed:Le curseur est mis sur la colonne 1 et on enchaîne sur `line_down`
 $33fd:Si le scrolling est désactivé, on saute
 $341a:Si le scrolling est désactivé, on saute
-$35f3/jump_ret:Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
+
+
 $3442/col_right/above
 Fonction : La position du curseur est avancée de 1 vers la droite
 Traitement de l'affichage du caractere 7
 
+$3448:Si le curseur est en position 39, on saute
 $344f/line_below
 $344b/col_r_end
 
 $3452:On ne fait rien si le curseur est en bas à droite de l'écran.
+
 $33f0/line_down/above
 Fonction: amène le curseur une ligne plus bas
 Traitement de l'affichage du caractere 10
+
+
+////////////////// 3400 /////////////////
+
+$340e/line_up/above
+Fonction: amène le curseur une ligne plus haut
+Traitement de l'affichage du caractere 9
 
 $342b/col_left/above
 Fonction : La position du curseur est avancée de 1 vers la gauche
@@ -364,9 +410,11 @@ $343a:On ne fait rien si la ligne du curseur est à zéro
 $3434/col_l_end
 $343e:Curseur à la dernière colonne
 
-$340e/line_up/above
-Fonction: amène le curseur une ligne plus haut
-Traitement de l'affichage du caractere 9
+////////////////// 3300 /////////////////
+
+$359f/clr_scr_btm
+Fonction : Efface toutes les lignes à partir de la ligne courante jusqu'en bas de l'écran
+Traitement de l'affichage du caractère 31
 
 $35ad/scroll_up/above
 Fonction: monte le contenu de l'écran d'une ligne par recopie de la mémoire
@@ -376,37 +424,6 @@ $35b9/scroll_down/above
 Fonction: descend le contenu de l'écran d'une ligne par recopie de la mémoire
 La nouvelle ligne a toujours l'ancien contenu
 
-$329d/cur_home
-$3448:Si le curseur est en position 39, on saute
-$331f:La pile contient, en haut, $33c5, puis AF (qui contient le caractère)
-$35e6/honk
-$0ca7/snd_emit
-
-$3349/above
-Partial instruction trick en cascade.
-Les 6 labels suivants chargent A avec une certaine valeur.
-Puis exécutent une série de LD HL avec des valeurs inutiles
-Pour finalement arriver sur 'sdchar_pass'
-;
-Cela agit comme un remapping des caractères qui étaient normalement non affichables.
-
-$3349/sd_a_ff
-$334c/sd_a_0d
-$334f/sd_a_08
-$3352/sd_a_04
-$3355/sd_a_1f
-$3358/sd_a_03
-
-$33cd/code/above
-Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
-Le rafraichissement de l'écran est demandé et la pile et les registres remis en ordre.
-
-$335b:$33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
-$359f/clr_scr_btm
-Fonction : Efface toutes les lignes à partir de la ligne courante jusqu'en bas de l'écran
-Traitement de l'affichage du caractère 31
-
-//-----------------
 $35c5/resetcursor/above
 La fonction réinitialise les bits 2 et 7 de $4871.
 A priori : coupe le scrolling et ligne non entrée sous BASIC
@@ -417,9 +434,14 @@ $35cd:$4804 à 0 : pas de redéfinition de caractères
 $35d1:$4002 à 0 : couleur d'encre et fond graphique à zero, texte
 $35d5:$47FB à 1 : force un affichage
 $35d9:$47FC à 0 : équivalent de DISPLAY 10
+$35e6/honk
+$35f3/jump_ret:Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
 
 $35fe/char7f
 $35f4/char20
+
+
+////////////////// 3600 /////////////////
 
 $36aa/out_str/above
 Fonction: Affichage d'une chaîne à l'écran
@@ -440,7 +462,12 @@ $367d:Tant que l'on traite des caractères normaux
 $3681:Traitement spécifique pour les guillemets
 $3670:Sauve la valeur courante de hl (pointe sur ... )
 
+$3bd0/SendCharImp/above
+Fonction : envoie d'un caractère sur le périphérique sélectionné
+Entrée : le caractère est contenu dans A
+
 //------------
+$3be1/sendchar_pt
 $3c14/resetprt/above:Fonction: Mise à zéro de l'état de l'imprimante
 $3c16:Sélectionne l'imprimante pour l'affichage
 $3c20:Récupération et mise à zéro du Bit 7 du status de l'imprimante
@@ -450,7 +477,7 @@ $3c29:Appel si le bit 7 du status était 1, ou bien si la ligne de l'imprimante 
 $3c31:Clear du picflg sauf le bit 6 (signal de curseur en fin de page)
 $3c35:Sélection du terminal comme sortie des caractères
 $3c38:Mise à zéro de l'état de l'imprimante.
-$3c3c:Récupération de AF qui contient prtflg
+$3c3c/sendchar_te:Récupération de AF qui contient prtflg
 
 $3c57/crdo/above
 Fonction : Envoi d'un retour chariot sur la sortie de caractère actuel
@@ -465,6 +492,9 @@ $3c63/crdo_prt/above
 Fonction : Retour chariot à la ligne suivante sur l'imprimante
 
 $3c6a:Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
+
+$3dc0/initscreen1
+
 
 
 // Label: $1179, InitEF
