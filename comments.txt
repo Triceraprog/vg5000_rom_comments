@@ -21,6 +21,15 @@ Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
+Code: $008f
+Label: $008f, playsnd
+Label: $0a87, playimpl
+
+Code: $24ea
+Label: $24ea, playret
+
+Code: $247A
+
 Label: $3bd0, SendCharImp
 Comment: $3bd0/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
@@ -98,7 +107,7 @@ Le premier octet de la séquence est sa longueur en octet.
 Label: $0286, WaitRdyEF
 Comment: $0286/above
 Fonction: Attente d'état « prêt » de l'EF9345
-$20 est envoyé sur le port $8F puis on attend que le le bit de
+'$20' est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
 
 Comment: $0a78
@@ -283,13 +292,13 @@ considère que IX est en tout temps égal à $47FA et référence certaines
 variables par index par rapport à IX.
 ;
 La séquence est
-$28,$81 -> Écriture de quelque chose dans le TGS
-$29,$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
-$20,$82,$29,$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur
-$20,$83,$29,$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, Insert mode : Active Area, Flash ON, Format court pour le 40 Char
-$20,$84,$29,$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
-$20,$87,$29,$08 -> ROR = $08 (Z=0, Y=8)
-$26,$08,$27,$00,$28,$02 -> R6=$08, R7=$00, KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ??)
+ $28,$81 -> Écriture de quelque chose dans le TGS
+ $29,$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
+ $20,$82,$29,$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur
+ $20,$83,$29,$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, Insert mode : Active Area, Flash ON, Format court pour le 40 Char
+ $20,$84,$29,$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
+ $20,$87,$29,$08 -> ROR = $08 (Z=0, Y=8)
+ $26,$08,$27,$00,$28,$02 -> R6=$08, R7=$00, KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ??)
 ;
 Envoyés par pairs sur les ports $8f, $cf
 ;
@@ -305,7 +314,7 @@ Comment: $1179
 Séquence d'intialisation de l'EF9345 au démarrage.
 
 Comment: $104F
-$1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
+ $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
 HL pointe sur la taille de la séquence à envoyer au EF9345.
 
 Comment: $1055
@@ -632,8 +641,7 @@ Comment: $33cd/above
 Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
 Le rafraichissement de l'écran est demandé et la pile et les registres remis en ordre.
 
-Comment: $335b
-$33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
+$335b:$33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
 
 Label: $359f, clr_scr_btm
 Comment: $359f
@@ -649,20 +657,11 @@ A priori : coupe le scrolling et ligne non entrée sous BASIC
 ;
 Puis réinitialise quelques valeurs d'affichage
 
-Comment: $35cd
-$4804 à 0 : pas de redéfinition de caractères
-
-Comment: $35d1
-$4002 à 0 : couleur d'encre et fond graphique à zero, texte
-
-Comment: $35d5
-$47FB à 1 : force un affichage
-
-Comment: $35d9
-$47FC à 0 : équivalent de DISPLAY 10
-
-Comment: $35dd
-Changement du pourtour et aspect du curseur
+$35cd:$4804 à 0 : pas de redéfinition de caractères
+$35d1:$4002 à 0 : couleur d'encre et fond graphique à zero, texte
+$35d5:$47FB à 1 : force un affichage
+$35d9:$47FC à 0 : équivalent de DISPLAY 10
+$35dd:Changement du pourtour et aspect du curseur
 
 Label: $35fe, char7f
 Label: $35f4, char20
