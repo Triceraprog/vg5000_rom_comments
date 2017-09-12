@@ -1,5 +1,4 @@
-Label: $0000, romStart
-Comment: $0000/above
+$0000/romStart/above
 Tout commence par un saut à l'adresse $1000. Le choix de l'adresse $1000
 semble arbitraire. D'autres machines à base de Z80 font des sauts à d'autres
 adresses.
@@ -10,205 +9,119 @@ RST du Z80, le code de démarrage doit se trouver plus loin. D'où le saut.
 Juste après le saut se trouve, sous forme de chaîne de caractères, le numéro
 de version de la ROM.
 
-Label: $0018, SendChar
-Comment: $0018/above
+$0018/SendChar/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
 Entrée : le caractère est contenu dans A
 
-Label: $0020, hl_de_cmp
-Comment: $0020/above
+$0020/hl_de_cmp/above
 Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
-Code: $008f
-Label: $008f, playsnd
-Label: $0a87, playimpl
+$008f/playsnd/code
+$0a87/playimpl
 
-Code: $24ea
-Label: $24ea, playret
+$24ea/playret/code
+$247A/code
 
-Code: $247A
-
-Label: $3bd0, SendCharImp
-Comment: $3bd0/above
+$3bd0/SendCharImp/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
 Entrée : le caractère est contenu dans A
 
-Label: $0255, ClearScreen
-Comment: $0255/above
+$0255/ClearScreen/above
 Fonction: Efface l'écran
 Efface tout d'abord la ligne 0
 Puis recopie le contenu mémoire de cette ligne sur le reste de l'écran
 
-Label: $0265, ClearLine
-Comment: $0265/above
+$0265/ClearLine/above
 Fonction: Efface une ligne
 Entrées : A contient un numéro de ligne
 
-Comment: $026b
-Écriture de $80 à la première position de la ligne
+$026b:Écriture de $80 à la première position de la ligne
+$026d:Récupération des attributs par défaut
+$0271:Écriture dans la position suivante des attributs par défaut
 
-Comment: $026d
-Récupération des attributs par défaut
-
-Comment: $0271
-Écriture dans la position suivante des attributs par défaut
-
-Comment: $0276
+$0276
 if bit(C,7) == 1 then A = 0 else A = $20
 Le bit 7 de C étant à 1 pour un caractère graphique, 0 pour texte
 
-Comment: $027d
+$027d
 Boucle pour écrire dans les positions suivantes de la ligne alternativement A et C.
 Donc un espace pour le mode texte et 0 pour le mode graphique, suivi des attributs
 
-
-Label: $0291, xytoscreen
-Comment: $0291/above
+$0291/xytoscreen/above
 Fonction: renvoie l'adresse écran à partir des coordonnées X et Y
 Entrées : H contient y, L contient x
 Retour : HL contient $4000 + 80y + 2x
 
-Comment: $0291
-C contient x
+$0291:C contient x
+$0292:L contient Y
+$0297:HL = L * 8 (c'est-à-dire y * 8)
+$0299:DE = HL = y * 8
+$029c:HL = 32 * y + 8 * y = 40 * y
+$029d:HL = 80 * y
+$029e:C contient x
+$02a1:HL = 80 * y + 2 * x
+$02a5:HL = $4000 + 80 * y + 2 * x
 
-Comment: $0292
-L contient Y
-
-Comment: $0297
-HL = L * 8 (c'est-à-dire y * 8)
-
-Comment: $0299
-DE = HL = y * 8
-
-Comment: $029c
-HL = 32 * y + 8 * y = 40 * y
-
-Comment: $029d
-HL = 80 * y
-
-Comment: $029e
-C contient x
-
-Comment: $02a1
-HL = 80 * y + 2 * x
-
-Comment: $02a5
-HL = $4000 + 80 * y + 2 * x
-
-
-Label: $02EF, SendSeqEF
-Comment: $02EF/above
+$02EF/SendSeqEF/above
 Fonction: Envoi d'une séquence à l'EF9345
 Entrée: HL pointe sur la séquence de données à envoyer.
 Le premier octet de la séquence est sa longueur en octet.
 
-Label: $0286, WaitRdyEF
-Comment: $0286/above
+$0286/WaitRdyEF/above
 Fonction: Attente d'état « prêt » de l'EF9345
 '$20' est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
 
-Comment: $0a78
-Désactivation de l'affichage
+$0a78:Désactivation de l'affichage
 
-Label: $0d7c, SendToEF
-Comment: $0d7c/above
+$0d7c/SendToEF/above
 Fonction: Envoi d'une donnée à l'EF9345
 Registre en entrée : DE
 Registre modifié : C
 D est envoyé sur le port $8F
 C est envoyé sur le port $CF
 
-Label: $0d85, DefineChar
-Comment: $0d85/above
+$0d85/DefineChar/above
 Fonction: Redéfinition d'un caractère
 Registres en entrée : HL et A
 Registres modifiés : AF, HL, BC, DE
 
-Comment: $0d85
-if bit(A, 7) == 0 then B = $C0 else B = $40
-
-Comment: $0d8d
-Le haut de la pile contient BC
-
-Comment: $0d8e
-Désactivation de l'affichage
-
-Comment: $0d98
+$0d85:if bit(A, 7) == 0 then B = $C0 else B = $40
+$0d8d:Le haut de la pile contient BC
+$0d8e:Désactivation de l'affichage
+$0d98
 Envoi à l'EF9345 de $22,A (avec le bit 7 de A mis à 1) (R2=A)
 (A est envoyé à travers E)
 
-Comment: $0d9b
-Récupération de la valeur de BC dans AF
+$0d9b:Récupération de la valeur de BC dans AF
+$0d9c:Remise du contenu de BC sur la pile
+$0d9d:Inversion du bit 7 de A, qui est la valeur de B du début de la fonction ($C0 ou $40)
+$0da2:Envoi à l'EF9345 de $21,A (A est envoyé à travers E) (R1=A)
+$0da9:Envoi à l'EF9345 de $20,$03 (R0=3 -> KRG+Inc)
+$0dae:Récupération, à travers E, de la valeur de A en entrée de fonction (avec les trois lignes suivantes)
+$0db4:A = (A >> 2) & $1F
+$0db7:Envoi à l'EF9345 de $24,A (A est envoyé à travers E) (R4=A)
+$0dbd:A = (A initial de la fonction) & $03
+$0dbf:Récupération du contenu du BC initial ($C0 ou $40)
+$0dc0:A = A | B
+$0dc2:Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
+$0dc9:Envoi à l'EF9345 de $20,$34 (R0=OCT Write AP NoInc, écrit R1 en mémoire désigné par R4 R5)
+$0dcc:Boucle extérieure, 10 itérations
+$0dce:Récupère la valeur suivante de la redéfinition de caractère dans A
+$0dd0:Boucle intérieure, 8 itérations
+$0dd4:Inverse le contenu de A et C, bit à bit
+$0dd8:La ligne de redéfinition lue dans (HL) est à présent inversée dans A
+$0ddd:Envoi à l'EF9345 de $29,A (A est envoyé à travers E) (R1=A + Execute)
+$0dee:Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
+$0df3:Réactivation de l'affichage
 
-Comment: $0d9c
-Remise du contenu de BC sur la pile
-
-Comment: $0d9d
-Inversion du bit 7 de A, qui est la valeur de B du début de la fonction ($C0 ou $40)
-
-Comment: $0da2
-Envoi à l'EF9345 de $21,A (A est envoyé à travers E) (R1=A)
-
-Comment: $0da9
-Envoi à l'EF9345 de $20,$03 (R0=3 -> KRG+Inc)
-
-Comment: $0dae
-Récupération, à travers E, de la valeur de A en entrée de fonction (avec les trois lignes suivantes)
-
-Comment: $0db4
-A = (A >> 2) & $1F
-
-Comment: $0db7
-Envoi à l'EF9345 de $24,A (A est envoyé à travers E) (R4=A)
-
-Comment: $0dbd
-A = (A initial de la fonction) & $03
-
-Comment: $0dbf
-Récupération du contenu du BC initial ($C0 ou $40)
-
-Comment: $0dc0
-A = A | B
-
-Comment: $0dc2
-Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
-
-Comment: $0dc9
-Envoi à l'EF9345 de $20,$34 (R0=OCT Write AP NoInc, écrit R1 en mémoire désigné par R4 R5)
-
-Comment: $0dcc
-Boucle extérieure, 10 itérations
-
-Comment: $0dce
-Récupère la valeur suivante de la redéfinition de caractère dans A
-
-Comment: $0dd0
-Boucle intérieure, 8 itérations
-
-Comment: $0dd4
-Inverse le contenu de A et C, bit à bit
-
-Comment: $0dd8
-La ligne de redéfinition lue dans (HL) est à présent inversée dans A
-
-Comment: $0ddd
-Envoi à l'EF9345 de $29,A (A est envoyé à travers E) (R1=A + Execute)
-
-Comment: $0dee
-Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
-
-Comment: $0df3
-Réactivation de l'affichage
-
-Comment: $0de5
+$0de5
 Envoi sur $8F de $25 puis récupération sur $CF d'une valeur dans A (Read R5)
 Puis A = A + $04
 
-Label: $1000, Start
-Comment: $1000/above
+$1000/Start/above
 C'est ici que commence l'intialisation complète de la machine.
 La première étape est de recopier le contenu de la ROM dans
 l'espace RAM adressable. Adressable ne signifie pas que de la RAM
@@ -227,62 +140,47 @@ On remarquera que si une ROM répond avec un contenu identique à
 la ROM à une adresse multiple de 16ko, l'initialisation va
 penser que c'est de la RAM accessible.
 
-Comment: $1000
+$1000
 Démarrage complet de la machine.
 Vérifier pourquoi c'est appelé depuis $2282
 
-Comment: $100a
+$100a
 Copie de la ROM sur toute la mémoire adressable
 Equivalent C-style de : memcpy($4000, $0000, $C000)
 
-Comment: $100c
-À la fin de LDIR, HL == $C000, DE == $0000, BC == $0000
-
-Comment: $100e
-À présent, HL == $4000, DE == $0000, BC == $C000
-
-Comment: $1010
-Début de la comparaison octet par octet de la mémoire
-
-Comment: $1015
-Si le contenu de (HL) et (DE) est différent, on saute en $101B
-
-Comment: $1017
+$100c:À la fin de LDIR, HL == $C000, DE == $0000, BC == $0000
+$100e:À présent, HL == $4000, DE == $0000, BC == $C000
+$1010:Début de la comparaison octet par octet de la mémoire
+$1015:Si le contenu de (HL) et (DE) est différent, on saute en $101B
+$1017
 Si le contenu de (HL) et (DE) est identique
 et que BC est > 0, on loop
 
-Comment: $101a/above
+$101a/above
 L'instruction partielle suivante ne sert à rien d'autre qu'à gagner un peu
 d'espace lorsque BC == 0 et que la boucle est terminée.
 Le contenu de A est écrasé un peu plus loin.
 
-Comment: $101b
+$101b
 HL est décrémenté pour retrouver la dernière addresse testée (CPI augmente HL).
 HL contient donc la première adresse invalide de l'espace mémoire en écriture.
 Cette adresse est mise dans SP et stockée en $4895
 
-Comment: $1020/above
+$1020/above
 La seconde étape de l'initialisation consiste à remplir les vecteurs
 utilisateur par des instructions spécifiques. Ces vecteurs, situés
 en RAM, permettent d'intervenir lors de certaines opérations avec
 du code écrit par l'utilisateur et donc de modifier le comportement
 du système.
 
-Comment: $1020
+$1020
 Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
 Equivalent C-style de : memset($47D0, $1E, $C9)
 
-Code: $2250
-Label: $2250, SomeVector
-Comment: $102b
-Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
+$2250/SomeVector/code:Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
+$0069/from47ee/code:L'adresse $47EE reçoit un JP $0069.
 
-Code: $0069
-Label: $0069, from47ee
-Comment: $1042
-L'adresse $47EE reçoit un JP $0069.
-
-Comment: $104b/above
+$104b/above
 La troisième phase initialise le processeur graphique EF9345. Pour commencer,
 une séquence est envoyée au périphérique, puis quelques variables en RAM sont
 mises initialisées.
@@ -301,201 +199,98 @@ La séquence est
  $26,$08,$27,$00,$28,$02 -> R6=$08, R7=$00, KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ??)
 ;
 Envoyés par pairs sur les ports $8f, $cf
-;
-Regarder ce que cela donne en EF9345
 
-Comment: $104b
-IX prend la valeur $47FA qui est la base de la zone de données graphiques.
+$104b:IX prend la valeur $47FA qui est la base de la zone de données graphiques.
+$1179/InitEfSeq:Séquence d'intialisation de l'EF9345 au démarrage.
+$1194/InitValues
+$1202/AfterInit
 
-Label: $1179, InitEfSeq
-Label: $1194, InitValues
-Label: $1202, AfterInit
-Comment: $1179
-Séquence d'intialisation de l'EF9345 au démarrage.
-
-Comment: $104F
- $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
+$104F
+-> $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
 HL pointe sur la taille de la séquence à envoyer au EF9345.
 
-Comment: $1055
-Initialisation de la variable $47FA : compteur d'interruptions à 5
-
-Comment: $1059
-Initialisation de la variable $47FB : besoin de rafraichissement à faux
-
-Comment: $105d
-Initialisation de la variable $47FA : utilisation des majuscules
-
-Comment: $1063/above
-Les interruptions sont réactivées pour la suite de l'initialisation.
-
-Comment: $1067
-Numéro de la première ligne du BASIC ?
-
-Comment: $106a
-Couleur du pourtour et aspect du curseur
-
-Comment: $107a
-Copie les valeurs initiales des différentes variables du système en RAM
-
-
-Comment: $107d
-Sort 0 sur le port $EF, censé être non utilisé
-
-Comment: $107d
-Sort 0 sur le port $AF, pour le son/k7
-
-Comment: $1084
-Modification de l'adresse du hook "nmihk"
-
-Comment: $1093/above
-Calcul des bornes de pile, memsize et place disponible
-
-Comment: $1096
-hl <- sp - 2 (sp == (stktop))
-
-
-Comment: $109b
-hl < $03e8 ? (comment serait-ce possible ?)
-
-Comment: $109e
-de <- $ffce (-50)
-
-Comment: $10a5
-Calcul final du haut de la pile comme étant (memsize) - 50
-
-Comment: $10ab
-Récupération du haut de la pile
-
-Comment: $10b1
-hl <- (stktop) - 17
-
-Comment: $10ba
+$1055:Initialisation de la variable $47FA : compteur d'interruptions à 5
+$1059:Initialisation de la variable $47FB : besoin de rafraichissement à faux
+$105d:Initialisation de la variable $47FA : utilisation des majuscules
+$1063/above:Les interruptions sont réactivées pour la suite de l'initialisation.
+$1067:Numéro de la première ligne du BASIC ?
+$106a:Couleur du pourtour et aspect du curseur
+$107a:Copie les valeurs initiales des différentes variables du système en RAM
+$107d:Envoi 0 sur le port $EF, censé être non utilisé
+$107d:Envoi 0 sur le port $AF, pour le son-k7
+$1084:Modification de l'adresse du hook "nmihk"
+$1093/above:Calcul des bornes de pile, memsize et place disponible
+$1096:hl <- sp - 2 (sp == (stktop))
+$109b:hl < $03e8 ? (comment serait-ce possible ?)
+$109e:de <- $ffce (-50)
+$10a5:Calcul final du haut de la pile comme étant (memsize) - 50
+$10ab:Récupération du haut de la pile
+$10b1:hl <- (stktop) - 17
+$10ba
 hl = hl - de, soit ((stktop) - 17 - end_vars)
 Autrement dit, la taille disponible entre la fin des variables internes et la pile -17.
 
-Comment: $10bb
-Cette taille disponible est poussée dans la pile.
+$10bb:Cette taille disponible est poussée dans la pile.
+$10bc/above:Affichage du texte de démarrage. VG5000 + numéro de version
+$10bc:Texte en double hauteur, double largeur
 
-Comment: $10bc/above
-Affichage du texte de démarrage. VG5000 + numéro de version
-
-Comment: $10bc
-Texte en double hauteur, double largeur
-
-Label: $1148, vg5000_txt
-Label: $1163, version_txt
-
-
-Label: $3c3c, sendchar_te
-Label: $3be1, sendchar_pt
-Label: $1d97, sendchar_k7
+$1148/vg5000_txt
+$1163/version_txt
+$3c3c/sendchar_te
+$3be1/sendchar_pt
+$1d97/sendchar_k7
 
 ////////////////////
 
 //-----------------
-Label: $2527, read_quotes
-Comment: $2527/above
+$2527/read_quotes/above
 Fonction: lecture appelée à l'ouverture du guillemets lors d'un out_str...
 ... entre autre.
 
-Label: $2efe,resetstack
-Comment: $2efe/above
+$2efe/resetstack/above
 Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
 Retour : HL contient le code de l'instruction en cours ?
 ;
 Un meilleur nom: interpreter_reset ?
 
-Comment: $2efe
-Récupération de l'adresse de retour
-
-Comment: $2eff
-Réinitialisation de la pile (SP) à la dernière addresse RAM valide
-
-Comment: $2f06
-Le pointeur sur la zone temporaire de descripteur est initialisé
-
-Comment: $2f0f
-Mise à zéro de `oldtxt`
-
-Comment: $2f12
-Mise à zéro du buffer `subflg` (utilisé pour FOR)
-
-Comment: $2f15
-Mise à zéro du buffer `prmnam` (nom du paramètre actif)
-
-Comment: $2f18
-Met 0 sur la pile
-
-Comment: $2f19
-Remet l'adresse de retour sur la pile avant le RET
-
-Comment: $2f1a
-HL contient la valeur de `temp` (code d'une instruction)
+$2efe:Récupération de l'adresse de retour
+$2eff:Réinitialisation de la pile (SP) à la dernière addresse RAM valide
+$2f06:Le pointeur sur la zone temporaire de descripteur est initialisé
+$2f0f:Mise à zéro de `oldtxt`
+$2f12:Mise à zéro du buffer `subflg` (utilisé pour FOR)
+$2f15:Mise à zéro du buffer `prmnam` (nom du paramètre actif)
+$2f18:Met 0 sur la pile
+$2f19:Remet l'adresse de retour sur la pile avant le RET
+$2f1a:HL contient la valeur de `temp` (code d'une instruction)
 
 //-------------
-Label: $3278,initscreen
-Comment: $3278/above
+$3278/initscreen/above
 Réinitialisation du curseur, d'attributs
 Redéfinition de deux caractères: $20 et $7F
 Efface l'écran, remise en colonne 1
 
-Label: $3dc0,initscreen1
-Label: $3292,initscreen2
+$3dc0/initscreen1
+$3292/initscreen2
+$3278:Deux accès à $47FD pour set les bits 4 et 6
+$327c:Test du bit zéro sur $47FE (majuscules\minuscules)
+$3286:Changement de l'aspect du curseur si minuscules
+$3297:Initialisation des attributs utilisés pour l'effacement de l'écran
+$32a0:Curseur mis en haut à droite de l'écran
+$32a3:Force l'affichage à l'interruption suivante
+$32ab:Et attend l'affichage
+$331a/sendchar_t2
+$3328:A est compris entre 128 et 160. La mise à 0 du bit 7 revient à soustraire 128
+$332c:A est inférieur ou égal à 128.
+$332e:On vérifie s'il est supérieur à 32
+$3334:Saut si on est en train d'utiliser les caractères utilisateurs
+$333a:Saut si c'est un caractère graphique
+$333c:Arrivé ici si le caractère était dans [128,160[ (ajusté en [0, 32[ ou un caractère redéfini de numéro inférieur strictement à 32.
+$332c/sdchar_bl80
+$335a/sdchar_pass
+$3342:E = A * 3 (A contient le caractère)
+$3348:Branchement sur la table de redirection qui commence en $3362
 
-Comment: $3278
-Deux accès à $47FD pour set les bits 4 et 6
-
-Comment: $327c
-Test du bit zéro sur $47FE (majuscules/minuscules)
-
-Comment: $3286
-Changement de l'aspect du curseur si minuscules
-
-Comment: $3297
-Initialisation des attributs utilisés pour l'effacement de l'écran
-
-Comment: $32a0
-Curseur mis en haut à droite de l'écran
-
-Comment: $32a3
-Force l'affichage à l'interruption suivante
-
-Comment: $32ab
-Et attend l'affichage
-
-Label: $331a, sendchar_t2
-Comment:
-
-Comment: $3328
-A est compris entre 128 et 160. La mise à 0 du bit 7 revient à soustraire 128
-
-Comment: $332c
-A est inférieur ou égal à 128.
-
-Comment: $332e
-On vérifie s'il est supérieur à 32
-
-Comment: $3334
-Saut si on est en train d'utiliser les caractères utilisateurs
-
-Comment: $333a
-Saut si c'est un caractère graphique
-
-Comment: $333c
-Arrivé ici si le caractère était dans [128,160[ (ajusté en [0, 32[ ou un caractère redéfini de numéro inférieur strictement à 32.
-
-Label: $332c, sdchar_bl80
-Label: $335a, sdchar_pass
-
-Comment: $3342
-E = A * 3 (A contient le caractère)
-
-Comment: $3348
-Branchement sur la table de redirection qui commence en $3362
-
-Label: $3362, sdchar_ind
-Code: $3362
+$3362/sdchar_ind/code
 Code: $3365
 Code: $3368
 Code: $336B
@@ -528,100 +323,66 @@ Code: $33B3
 Code: $33B6
 Code: $33B9
 
-Code: $33BC
-Comment: $33BC
-Fin de la table d'indirection. Caractère 31.
+$33BC/code:Fin de la table d'indirection. Caractère 31.
 
-Label: $33d4, carreturn
-Comment: $33d4/above
+$33d4/carreturn/above
 Fonction: traitement Carriage Return
 Traitement de l'affichage du caractère 13 (et 3)
 
-Comment: $33da
-Saut si 'x' est différent de 1
-
-Comment: $33e1
-Saut si 'continuation permitted' est à 0
-
-Comment: $33e3
+$33da:Saut si 'x' est différent de 1
+$33e1:Saut si 'continuation permitted' est à 0
+$33e3
 Si le curseur est sur la colonne 1 et 'continuation permitted' est à 1, alors la colonne 0 est mise à $80 (attributs par défaut pour l'EF9345)
 Et c'est fini.
 
-Comment: $33ed
-Le curseur est mis sur la colonne 1 et on enchaîne sur `line_down`
-
-Comment: $33fd
-Si le scrolling est désactivé, on saute
-
-Comment: $341a
-Si le scrolling est désactivé, on saute
-
-Label: $35f3, jump_ret
-Comment: $35f3
-Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
-
-Label: $3442, col_right
-Comment: $3442/above
+$33ed:Le curseur est mis sur la colonne 1 et on enchaîne sur `line_down`
+$33fd:Si le scrolling est désactivé, on saute
+$341a:Si le scrolling est désactivé, on saute
+$35f3/jump_ret:Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
+$3442/col_right/above
 Fonction : La position du curseur est avancée de 1 vers la droite
 Traitement de l'affichage du caractere 7
 
-Label: $344f, line_below
-Comment: $3452
-On ne fait rien si le curseur est en bas à droite de l'écran.
+$344f/line_below
+$344b/col_r_end
 
-Label: $344b, col_r_end
-
-Label: $33f0, line_down
-Comment: $33f0/above
+$3452:On ne fait rien si le curseur est en bas à droite de l'écran.
+$33f0/line_down/above
 Fonction: amène le curseur une ligne plus bas
 Traitement de l'affichage du caractere 10
 
-Label: $342b, col_left
-Comment: $342b/above
+$342b/col_left/above
 Fonction : La position du curseur est avancée de 1 vers la gauche
 Traitement de l'affichage du caractere 8
 
-Comment: $342b
-xcursor est suivi de ycursor. Ce qui fait que H contient 'y' et L contient 'x'
+$342b:xcursor est suivi de ycursor. Ce qui fait que H contient 'y' et L contient 'x'
+$3431:Saut si la colonne du curseur est inférieur strictement à 2
 
-Comment: $3431
-Saut si la colonne du curseur est inférieur strictement à 2
+$3438/line_above
+$343a:On ne fait rien si la ligne du curseur est à zéro
 
-Label: $3438,line_above
-Comment: $343a
-On ne fait rien si la ligne du curseur est à zéro
+$3434/col_l_end
+$343e:Curseur à la dernière colonne
 
-Label: $3434, col_l_end
-Comment: $343e
-Curseur à la dernière colonne
-
-Label: $340e, line_up
-Comment: $340e/above
+$340e/line_up/above
 Fonction: amène le curseur une ligne plus haut
 Traitement de l'affichage du caractere 9
 
-Label: $35ad, scroll_up
-Comment: $35ad/above
+$35ad/scroll_up/above
 Fonction: monte le contenu de l'écran d'une ligne par recopie de la mémoire
 La nouvelle ligne a toujours l'ancien contenu
 
-Label: $35b9, scroll_down
-Comment: $35b9/above
+$35b9/scroll_down/above
 Fonction: descend le contenu de l'écran d'une ligne par recopie de la mémoire
 La nouvelle ligne a toujours l'ancien contenu
 
-Label: $329d, cur_home
+$329d/cur_home
+$3448:Si le curseur est en position 39, on saute
+$331f:La pile contient, en haut, $33c5, puis AF (qui contient le caractère)
+$35e6/honk
+$0ca7/snd_emit
 
-Comment: $3448
-Si le curseur est en position 39, on saute
-
-Comment: $331f
-La pile contient, en haut, $33c5, puis AF (qui contient le caractère)
-
-Label: $35e6, honk
-Label: $0ca7, snd_emit
-
-Comment: $3349/above
+$3349/above
 Partial instruction trick en cascade.
 Les 6 labels suivants chargent A avec une certaine valeur.
 Puis exécutent une série de LD HL avec des valeurs inutiles
@@ -629,29 +390,24 @@ Pour finalement arriver sur 'sdchar_pass'
 ;
 Cela agit comme un remapping des caractères qui étaient normalement non affichables.
 
-Label: $3349, sd_a_ff
-Label: $334c, sd_a_0d
-Label: $334f, sd_a_08
-Label: $3352, sd_a_04
-Label: $3355, sd_a_1f
-Label: $3358, sd_a_03
+$3349/sd_a_ff
+$334c/sd_a_0d
+$334f/sd_a_08
+$3352/sd_a_04
+$3355/sd_a_1f
+$3358/sd_a_03
 
-Code: $33cd
-Comment: $33cd/above
+$33cd/code/above
 Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
 Le rafraichissement de l'écran est demandé et la pile et les registres remis en ordre.
 
 $335b:$33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
-
-Label: $359f, clr_scr_btm
-Comment: $359f
+$359f/clr_scr_btm
 Fonction : Efface toutes les lignes à partir de la ligne courante jusqu'en bas de l'écran
 Traitement de l'affichage du caractère 31
 
-
 //-----------------
-Label: $35c5, resetcursor
-Comment: $35c5/above
+$35c5/resetcursor/above
 La fonction réinitialise les bits 2 et 7 de $4871.
 A priori : coupe le scrolling et ligne non entrée sous BASIC
 ;
@@ -661,138 +417,78 @@ $35cd:$4804 à 0 : pas de redéfinition de caractères
 $35d1:$4002 à 0 : couleur d'encre et fond graphique à zero, texte
 $35d5:$47FB à 1 : force un affichage
 $35d9:$47FC à 0 : équivalent de DISPLAY 10
-$35dd:Changement du pourtour et aspect du curseur
 
-Label: $35fe, char7f
-Label: $35f4, char20
+$35fe/char7f
+$35f4/char20
 
-Label: $36aa, out_str
-Comment: $36aa/above
+$36aa/out_str/above
 Fonction: Affichage d'une chaîne à l'écran
 Entrée: HL pointe sur la chaîne de caractère terminée par un 0
 
-Label: $366c, out_str_prc
-Comment: $366c/above
+$366c/out_str_prc/above
 Fonction: traite la chaîne de caractères à afficher avec extention des variables.
 
-Comment: $366c
-Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
+$366c:Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
+$3674:Récupération du caractère dans a
+$3675:Incrémentation du compteur de caractères affichés
+$3677:Si le caractère est 0 (fin de chaîne)
+$367a:Si le caractère est $22 (=34, guillemets)
 
-Comment: $3674
-Récupération du caractère dans a
+$367f/out_str_2
 
-Comment: $3675
-Incrémentation du compteur de caractères affichés
-
-Comment: $3677
-Si le caractère est 0 (fin de chaîne)
-
-Comment: $367a
-Si le caractère est $22 (=34, guillemets)
-
-Label: $367f, out_str_2
-
-Comment: $367d
-Tant que l'on traite des caractères normaux
-
-Comment: $3681
-Traitement spécifique pour les guillemets
-
-Comment: $3670
-Sauve la valeur courante de hl (pointe sur ... )
+$367d:Tant que l'on traite des caractères normaux
+$3681:Traitement spécifique pour les guillemets
+$3670:Sauve la valeur courante de hl (pointe sur ... )
 
 //------------
-Label: $3c14, resetprt
-Comment: $3c14/above
-Fonction: Mise à zéro de l'état de l'imprimante
+$3c14/resetprt/above:Fonction: Mise à zéro de l'état de l'imprimante
+$3c16:Sélectionne l'imprimante pour l'affichage
+$3c20:Récupération et mise à zéro du Bit 7 du status de l'imprimante
+$3c25:Si le bit était à 0, récupération du numéro de ligne de l'imprimante dans a
+$3c28:Permet de mettre à jour les flags de F
+$3c29:Appel si le bit 7 du status était 1, ou bien si la ligne de l'imprimante n'est pas 0
+$3c31:Clear du picflg sauf le bit 6 (signal de curseur en fin de page)
+$3c35:Sélection du terminal comme sortie des caractères
+$3c38:Mise à zéro de l'état de l'imprimante.
+$3c3c:Récupération de AF qui contient prtflg
 
-Comment: $3c16
-Sélectionne l'imprimante pour l'affichage
-
-Comment: $3c20
-Récupération et mise à zéro du Bit 7 du status de l'imprimante
-
-Comment: $3c25
-Si le bit était à 0, récupération du numéro de ligne de l'imprimante dans a
-
-Comment: $3c28
-Permet de mettre à jour les flags de F
-
-Comment: $3c29
-Appel si le bit 7 du status était 1, ou bien si la ligne de l'imprimante n'est pas 0
-
-Comment: $3c31
-Clear du picflg sauf le bit 6 (signal de curseur en fin de page)
-
-Comment: $3c35
-Sélection du terminal comme sortie des caractères
-
-Comment: $3c38
-Mise à zéro de l'état de l'imprimante.
-
-Comment: $3c3c
-Récupération de AF qui contient prtflg
-
-// Label: $3c57
-Label: $3c57,crdo
-Comment: $3c57/above
+$3c57/crdo/above
 Fonction : Envoi d'un retour chariot sur la sortie de caractère actuel
 
-Comment: $3c5e
-Saut si la sortie de caractère se faire sur le terminal
+$3c5e:Saut si la sortie de caractère se faire sur le terminal
+$3c61:Saut si la sortie de caractère n'est pas l'imprimante (donc la k7)
 
-Comment: $3c61
-Saut si la sortie de caractère n'est pas l'imprimante (donc la k7)
+$3c72/crdo_term
+$3c6e/crdo_k7
 
-Label: $3c72, crdo_term
-Label: $3c6e, crdo_k7
-
-Label: $3c63, crdo_prt
-Comment: $3c63/above
+$3c63/crdo_prt/above
 Fonction : Retour chariot à la ligne suivante sur l'imprimante
 
-Comment: $3c6a
-Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
+$3c6a:Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
 
 
 // Label: $1179, InitEF
-Label: $47D0, VectorBase
+$47D0/VectorBase
 
 // Hooks
-Label: $47E2, outhk
-Label: $47E5, crdhk
-Label: $47EE, nmihook
-Label: $47F1, lpenhook
-Label: $47F4, diskhook
-Label: $47F7, modemhook
+$47E2/outhk
+$47E5/crdhk
+$47EE/nmihook
+$47F1/lpenhook
+$47F4/diskhook
+$47F7/modemhook
 
 //
-Label: $47FA, GraphValues
-Label: $4805, xcursor
-Label: $4806, ycursor
-Label: $486F, prtflg
-Comment: $486f
-Selectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
-
-Label: $4871, DisplayCtrl
-Label: $4874, prtstt
-Commnent: $4874
-État de l'imprimante
-
-Label: $4895, stktop
-Comment: $4895
-Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
-
-Label: $4919, endbuf
-Label: $491f, memsiz
-Comment: $491f
-Plus haute mémoire disponible (pour le BASIC ?)
-
-Label: $4921, temppt
-Label: $4923, tempst
-Comment: $47FA
-Début de la zone de données graphiques pour la communication avec le EF9345
-
-Label: $49fb, end_vars
-Comment: $49fb
-Adresse juste après la dernière des variables système.
+$47FA/GraphValues
+$4805/xcursor
+$4806/ycursor
+$486F/prtflg:Selectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
+$4871/DisplayCtrl
+$4874/prtstt:État de l'imprimante
+$4895/stktop:Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
+$4919/endbuf
+$491f/memsiz:Plus haute mémoire disponible (pour le BASIC ?)
+$4921/temppt
+$4923/tempst
+$47FA:Début de la zone de données graphiques pour la communication avec le EF9345
+$49fb/end_vars:Adresse juste après la dernière des variables système.
