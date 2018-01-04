@@ -9,6 +9,11 @@ RST du Z80, le code de démarrage doit se trouver plus loin. D'où le saut.
 Juste après le saut se trouve, sous forme de chaîne de caractères, le numéro
 de version de la ROM.
 
+$0010/GetChar/above
+Incrémente HL et met le contenu (HL) dans A.
+Si le caractère est supérieur à $3a (: donc les chiffres ?), retourne immédiatement, sinon...
+
+
 $0018/SendChar/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
 Entrée : le caractère est contenu dans A
@@ -18,7 +23,14 @@ Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
-$0069/from47ee/code:L'adresse $47EE reçoit un JP $0069.
+$0038/irq/above
+Fonction : traitement de l'interruption
+Sur la machine, cette interruption est dédiée à l'affichage.
+Mais un vecteur est disponible.
+
+$0069/resetlang/code:L'adresse $47EE reçoit un JP $0069.
+$006b:Messages en anglais
+$0071:Table de transcription du clavier
 
 $008f/playsnd/code
 $0a87/playimpl
@@ -58,6 +70,23 @@ $029d:HL = 80 * y
 $029e:C contient x
 $02a1:HL = 80 * y + 2 * x
 $02a5:HL = $4000 + 80 * y + 2 * x
+
+$02a7/scankeyb/above
+Fonction : scanne le clavier
+En commençant par le port $87 jusqu'au port $80
+La valeur obtenu est dans A. Le carry flag est à 1 si ?
+
+$02aa:lecture de l'entrée
+$02ac:le port envoie $ff lorsqu'il n'y a pas de signal
+$02b1:boucle sur les ports
+
+$02e4/predval
+$02e4:récupération de la valeur précédente du clavier
+$02e7:set carry flag
+$02e8:si l'ancienne valeur était zéro, saute à la fin pour retour
+$02ea:sinon, on enregistre la nouvelle valeur
+$02ed:et le carry flag est enlevé
+
 
 $02EF/SendSeqEF/above
 Fonction: Envoi d'une séquence à l'EF9345
@@ -233,7 +262,9 @@ $1148/vg5000_txt
 $1163/version_txt
 $1179/InitEfSeq:Séquence d'intialisation de l'EF9345 au démarrage.
 $1194/InitValues
-$1202/AfterInit
+$1202/AfterInit:Le mapping français ?
+$12b9/keybeng
+
 $1d97/sendchar_k7
 
 
@@ -244,15 +275,241 @@ $1d97/sendchar_k7
 ////////////////// 2000 /////////////////
 /////////////////////////////////////////
 
+$2000/instructions
+$209d/prekeywords
+$209e/keywords
+$21fd/keywstop
+$21fe/mysteryatnow
+
+$2214/ok_str
+$2219/ok_str_next
+
+$2293:Affiche Ok!
+
 $2250/SomeVector/code:Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
 
+$228d/init_next/above
+Suite de l'initialisation
+
+$2299/monitorloop
+$2299:Ligne courante du BASIC à -1
+$22a3:Saute si hors du mode AUTO
+$22a5:Ligne courante du mode AUTO dans HL
+$22ae/stoploop/above
+Boucle de traitement du BASIC
+
+$22b3/above
+Lorsqu'on arrive ici, CR a été appuyée.
+HL pointe sur l'adresse précédente le buffer en entrée, qui se termine par 0.
+(Ce buffer est tout le temps basbuf en entrée normale ?)
+
+$22b1:Lorsque basic loop sort avec Carry (touche STOP), on boucle immédiatement.
+$22b3:Acquisition d'un nouveau caractère depuis HL dans A
+$22b6:Si le caractère était zéro, le traitement est terminé
+
+$22bd:Si le flag d'exécution BASIC est à 1, branchement en 0 pour un reset de la machine.
+
+$22c7:En fin de tokenisation, A == 0, donc B prend 0 aussi
+$22c9:Récupération du AF de $22b8
+$22ca:Quand est-ce que le Carry est set ?
+
+$22d3:Incrément du mode AUTO. DE contenait la ligne courante, HL contient la ligne suivante.
+
+$236b/tokenisation/above
+Fonction : effectue la tokenisation du buffer d'entrée
+
+$236c:Activation ou désactivation de la tokenisation (à vérifier)
+$2374/analyze
+$2374:Récupération dans A du caractère à traiter
+$2377:Est-ce un espace ?
+$237a:B contient le caractère aussi
+$237d:Sont-ce des guillemets ?
+$2381:Est-ce NUL ?
+$2387:Préparation du test de flag de tokenisation
+$2388:A est à nouveau le caractère à l'étude
+$2389:Si le flag de tokenisation est vrai
+$2390:Est-ce que le caractère est '?' ? A est préchargé avec $94 dans ce cas.
+$2393:A est à nouveau le caractère à l'étude
+$2398:Est-ce DLE (Data Link Escape) ? A est préchargé avec $AF dans ce cas.
+$239b:A est à nouveau le caractère à l'étude
+$239e:Est-ce inférieur à '0' ?
+$23a2:Est-ce inférieur à '<' ?
+
+$23a5/specialchr
+$23a6:DE contient le début du buffer des mots clés du BASIC -1 (car le traitement commence par augmenter le pointeur)
+$23aa:BC contient $244b
+$23ad:BC est sauvé sur la pile, ce qui provoquera la sortie à cette adresse si le token n'est pas trouvé
+$23ae:B contient $7F et sera incrémenté avec chaque token étudié. Le premier token a donc pour numéro $80
+$23b0:A est à nouveau le caractère à l'étude
+$23b3:Est-ce inférieur à 'a' ?
+$23b7:Est-ce supérieur à 'z' ?
+$23b9:Passage en majuscule
+$23bb:Mise dans le buffer de la lettre passée en majuscule
+$23bc/notlowerchr
+$23bc:C contient le caractère à traiter
+$23bd:HL pointe sur le buffer de keywords
+$23be/nextkeyword
+$23c0:Boucle jusqu'au premier caractère avec un bit de poids fort à 1 (cela indique le début d'un mot)
+$23c3:Augmenter l'index de mot-clé
+$23c5:A contient le premier caractère de la table des mots clé, sur 7 bits
+$23c7:Si égal à NUL, alors la fin du buffer est atteinte, on sort
+$23c9:Si le caractère à traiter et celui du mot-clé sont différent, on cherche le mot clé suivant
+$23cb:Le pointeur sur le mot clé à traité est mis dans DE. HL contient à nouveau l'adresse du buffer en traitement.
+$23cd/strcmpkw
+$23d0:Puisqu'on atteint un nouveau marqueur de mot clé, c'est que le match a été fait correctement.
+$23d3:C contient le caractère courant dans le buffer des mots clé
+$23d4:A contient le caractère du buffer d'entrée à traiter
+
+$23e5:Passage en majuscule (voir $23b9) ?
+
+$23ed/foundkeyw
+
+$244b/tokennotfound/above
+Arrivée ici lorsque la tokenisation échoue
+
+$244b:HL pointe à nouveau sur le buffer en entrée
+$244c:Récupération du caractère dans A
+$244d:Nettoyage de la pile
+$244e:DE pointe sur la partie tokenizée ?
+
+$244f/ifspc
+
+$2450:Recopie du caractère actuel (ou du token ?) dans la partie tokenisée
+
+$2457:Avec la soustraction précédente, cela fait que l'on compare le caractère à $83
+$245e:Avec la soustraction précédente, cela fait que l'on compare le caractère à $8E
+
+$246b/ifquote
+$2471/ifnul/above
+Arrive ici lorsque la chaîne a été complètement parsée.
+
+$2471:HL est placé juste avant le buffer de traitement
+$2474:DE pointe sur la fin du buffer tokenizé. Comme A contient 0, le buffer est terminé par trois 0.
+$2479:Fin de la fonction de tokenisation
+
 $24ea/playret/code
-$247A/code
+$247A/inst_for/code
 
 //-----------------
-$2527/read_quotes/above
-Fonction: lecture appelée à l'ouverture du guillemets lors d'un out_str...
-... entre autre.
+$2509/exectokens
+$2509:Récupère le première token du buffer
+$250e:Retourne en $24ea si le caractère du buffer est NUL (quand ?)
+$250f:Les tokens sont tous supérieurs à $80
+$2511:Si la soustraction a provoqué un Carry, alors ce n'était pas un token
+$2516:Si le token est supérieur à $32
+$2519:Le token est multiplié par 2
+$251a:puis stocké dans C
+$251b:B est à 0, donc BC contient le numéro de token * 2
+$251d:Sauvegarde de HL dans DE
+$251e:HL est chargé avec la table des adresses d'instructions
+$2521:HL contient le pointeur adresse d'execution de l'instruction tokenisée
+$2524:BC contient l'adresse d'execution de l'instruction tokenisée
+$2525:L'adresse est mise sur la pile
+$2526:Récupération de l'adresse en cours du buffer tokenisé (cf. $251d)
+
+
+$2527/skipch/above
+Fonction: recupère le caractère suivant du pointeur HL
+Retourne immédiatement si le caractère est superieur à $3a,
+sinon, fallthrough dans getchnxt
+La fonction est à la suite du décodage de token, ce qui permet d'avancer le pointeur directement.
+
+
+$252c/getchnxt/above
+Suite du traitement de getch.
+A contient le caractère lu dans le buffer, qui est inférieur ou égal à $3a
+
+$252e:Se positionne sur le premier caractère qui n'est pas un espace
+
+$2543:Ce RET branchera sur l'instruction à exécuter si un token a été décodé
+
+$256c/shiftout
+$2570:Si le caractère actuel du buffer n'est pas $OE (shift out), branchement
+$257d:Traitement de quel cas?
+
+$2610/nottoken/above
+Appelé lorsque le buffer tokenisé ne contenait pas un token.
+(mais pas que... appelé par FOR aussi. Traitement général des erreurs ?)
+
+$269b/inst_list/code
+
+$2ae4:Saute en fin de fonction si aucun caractère n'a été entré
+
+$2ad4/acquirekey/above
+Fonction: décode une touche du clavier et l'affiche à l'écran à la position du curseur.
+Attends un refresh (HALT) puis scrute le clavier.
+Si rien n'a été appuyé, sort immédiatement.
+Sinon, traitement.
+
+$2adf:Attente d'une interruption
+
+$2ae8:Son lorsqu'un caractère est reçu
+$2afb:Bit pour indiquer que la ligne est entrée en BASIC
+$2aff:Si le bit de signe était 1 dans le caractère lu
+$2b02:Comparaison de la touche avec ENTREE
+$2b07/acquirekeyn3/above
+Suite (2) du traitement de l'entrée
+
+$2b2d/exitacquire
+$2b2e/endacquirek
+$2b32/bufferstart/above
+Fonction : lorsque le bit 1 de $4871 est à 0, arrive ici pour analyse
+À l'air de se positionner sur le premier caractère interessant à décoder
+
+
+$2b32:Coordoonées de la ligne BASIC à décoder
+$2b35:A contient la ligne
+$2b36:Comparaison avec 24 (le nombre de lignes)
+$2b3e:Lecture du caractère en colonne 0 de la ligne suivante
+$2b44/ifabove24
+$2b45:Comparaison de la colonne avec 40 (colonne max)
+$2b4d:Comparaison de la colonne avec 40 (colonne max)
+$2b52/ifbelow40
+$2b53:Stockage des nouvelles coordonnées (ajustées comment?)
+$2b5a:B contient le caractère aux coordonnées
+$2b5b:DE contient les coordoonées
+$2b5d:A contient le caractère aux coordonnées
+$2b5e:Not carry de quoi ?
+$2b62:Si ce n'est pas un espace
+$2b75/ifabove40
+$2bac/specialchars
+
+$2be0/ifcr:Récupération des coordonnées du curseur
+
+$2be9:Comparaison à $80, la caractère de début de ligne
+
+$2be3:Décrémentation de X
+$2be4:Sauvegarde des coordonnées modifiées du curseur
+$2be8:Récupération des coordonnées
+
+
+$2b23/acquirekeyn7/above
+Suite (6) du traitement de l'entrée
+
+
+$2b24:Force un affichage
+$2b2d:A est effacée en traitement normal de touche (et déjà 0 si pas de touche entrée)
+$2b2e:Nettoyage de fin de fonction
+$2c14:Peek du caractère en colonne 0
+$2c1e:Boucle sur la remontée des Y
+$2c18:Test sur $84, qui est le marquage de continuité des lignes
+$2c20/notcontinous:Coordonnées placées en début de la première ligne
+$2c23:Test de INPUT activé
+$2c2c:Recupération des coordonnées de début d'entrée
+$2c33:DE contient les cooronnees de début d'entrée. HL l'adresse mémoire
+$2c35:Comparaison de X avec la colonne 40
+$2c4b/ifinput
+$2c4e:Enregistrement du premier caractère de la ligne ($80 en mode direct)
+$2c56:Set du flag pour "ligne entrée en BASIC"
+$2c5d:Placement des coordonnées sur le caractère en colonne précédente (donc 0?)
+$2c60/screenstart
+$2c63/iftab
+$2c89/iflinef
+$2caf/ifformf
+
+$2bf1:Recheche des quels caractères?
+$2bf3:Boucle sur la recherche
+$2bf5/linestart
 
 $2efe/resetstack/above
 Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
@@ -269,6 +526,8 @@ $2f15:Mise à zéro du buffer `prmnam` (nom du paramètre actif)
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
+$2f3a/inst_end/code
+$2fe4/inst_next/code
 
 /////////////////////////////////////////
 ////////////////// 3000 /////////////////
@@ -290,6 +549,9 @@ $329d/cur_home
 $32a0:Curseur mis en haut à droite de l'écran
 $32a3:Force l'affichage à l'interruption suivante
 $32ab:Et attend l'affichage
+
+$32b7/deckeyb/above
+Fonction : décode le clavier
 
 $331f:La pile contient, en haut, $33c5, puis AF (qui contient le caractère)
 
@@ -412,6 +674,10 @@ $343e:Curseur à la dernière colonne
 
 ////////////////// 3300 /////////////////
 
+$3578/peekchar/above
+Fonction : récupère le caractère à l'écran aux coordonnées HL dans A
+HL est modifié. A contient le caractère. A est comparé à $84.
+
 $359f/clr_scr_btm
 Fonction : Efface toutes les lignes à partir de la ligne courante jusqu'en bas de l'écran
 Traitement de l'affichage du caractère 31
@@ -478,6 +744,14 @@ $3c31:Clear du picflg sauf le bit 6 (signal de curseur en fin de page)
 $3c35:Sélection du terminal comme sortie des caractères
 $3c38:Mise à zéro de l'état de l'imprimante.
 $3c3c/sendchar_te:Récupération de AF qui contient prtflg
+$3c4a/putnulatend/above
+Fonction: met un caractère NUL à la fin de la chaîne précédent le pointeur HL actuel, en ignorant les espaces.
+À la fin de la fonction, HL contient $4897
+
+$3c4e:Recale le pointeur HL sur le derniere caractère non espace ($20) avant le CR ($0D)
+$3c50:HL pointe donc à présent juste après le dernier caractère de la ligne à traiter
+$3c52:Place un $0 à la fin de la chaîne
+$3c56:Ayant été appelé par jp, ce RET va sortir de la boucle de traitement de basicloop (et se retrouver en $22b1)
 
 $3c57/crdo/above
 Fonction : Envoi d'un retour chariot sur la sortie de caractère actuel
@@ -486,6 +760,14 @@ $3c5e:Saut si la sortie de caractère se faire sur le terminal
 $3c61:Saut si la sortie de caractère n'est pas l'imprimante (donc la k7)
 
 $3c72/crdo_term
+$3c7f/specialkey:Est-ce que la touche RUN-STOP est appuyée ?
+$3c84:Est-ce que la touche SHIFT est appuyée ?
+$3c89:Est-ce que l'on basexec est à 0 ? (ce qui signifie quoi ?)
+$3c8d:Dans ces trois conditions, traitement spécifique.
+$3c8e:$f2 dans "Scrutation clavier"
+$3c92:Réinitialisation du drapeau de répétition des touches
+$3c96:Réinitialisation du compteur de répétition des touches
+$3c9a:Set Carry, pour provoquer la boucle immédiate du BASIC
 $3c6e/crdo_k7
 
 $3c63/crdo_prt/above
@@ -493,8 +775,53 @@ Fonction : Retour chariot à la ligne suivante sur l'imprimante
 
 $3c6a:Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
 
-$3dc0/initscreen1
+$3ca2/BasicLoop/above
+Fonction: Interpréteur Basic
+Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
 
+$3ca8/basloopcnt
+
+$3cae:Traitement si inputsel ne désigne pas un clavier (!= 0)
+
+$3cb5/keyloop/above
+Fonction : Traitement du moniteur pour une entrée par le clavier
+
+$3cbe:Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
+$3cc0:La touche STOP a été appuyée. Carry est à 1.
+
+$3cc1/decodebasic/above
+Fonction : décode la ligne en BASIC ?
+
+$3cc7:Remise du caractère dans le buffer sur 7 bits
+$3ccb:Comparaison de HL avec $4918
+$3ccf:HL est à présent sur?
+
+$3d9a/auto/above
+Traitement appelé lorsque le mode AUTO est activé
+
+$3daa:Traitement d'un overflow sur AUTO ?
+$3db9/stopauto:Stop le traitement de AUTO
+
+$3dc0/initscreen1
+$3de1/decodenext
+$3de1:Saute si Carry set. Quand? Le saut incrémente HL puis branche en $3ca8, comme l'instruction suivante.
+$3dfb/acquirekeyn4/above
+Suite (3) du traitement de l'entrée
+
+$3dff:Si le caractère d'entrée était ACK
+
+$3e02:Test du flag INPUT actif
+$3e07/acquirekeyn6
+
+$3e0a/acquirekeyn5
+
+$3e0a:Test de Unit Separator
+$3e0c:Si différent, branche
+
+$3e2d/acquirekeyn2/above
+Suite (1) du traitement de l'entrée
+
+$3e35:Si on est en basexec == 1
 
 
 // Label: $1179, InitEF
@@ -503,6 +830,7 @@ $47D0/VectorBase
 // Hooks
 $47E2/outhk
 $47E5/crdhk
+$47E8/crhook
 $47EE/nmihook
 $47F1/lpenhook
 $47F4/diskhook
@@ -510,13 +838,28 @@ $47F7/modemhook
 
 //
 $47FA/GraphValues
+$47FF/keybvalue:précédente valeur du clavier
 $4805/xcursor
 $4806/ycursor
+$480b/linecoords:Coordonnées de la prochaine ligne à interpréter
+$480d/execmode:programme ($82) ou direct ($80)
 $486F/prtflg:Selectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
+$4870/inputsel:Entrée des caractères sur clavier (0) ou cassette (255)
 $4871/DisplayCtrl
 $4874/prtstt:État de l'imprimante
+$4884/autoflg:Etat courant de la commande AUTO
+$4885/autoline:Ligne courante de la commande AUTO
+$4887/autostep:Incrément du mode AUTO
+$4889/basexec:Execution de la boucle BASIC
+$488c/basline:Ligne courante du BASIC
+$4890/msglang:Messages en anglais (1) ou francais (0)
+$4891/keybtrans:Table de transcription du clavier
 $4895/stktop:Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
+$4897/beforebasbuf:Zone précédent la zone de tokenisation. Mis dans HL après avoir mis NUL en fin de chaîne à traiter.
+$4898/basbuf:Buffer d'entrée pour le BASIC
+$4919/basbufend:Fin du buffer
 $4919/endbuf
+$491c/tokenstop:Drapeau de suppression de la tokenisation
 $491f/memsiz:Plus haute mémoire disponible (pour le BASIC ?)
 $4921/temppt
 $4923/tempst
