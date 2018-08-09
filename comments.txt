@@ -9,31 +9,107 @@ RST du Z80, le code de démarrage doit se trouver plus loin. D'où le saut.
 Juste après le saut se trouve, sous forme de chaîne de caractères, le numéro
 de version de la ROM.
 
-$0010/GetChar/above
+$0008/chkchr/above
+Vérification que le caractère pointé par HL est égal au caractère qui suit exactement
+l'instruction RST 8 appelante. Si ce n'est pas le cas, affiche un message d'erreur de syntaxe.
+
+$0008:Enregistre le caractère pointé par HL
+$0009:Échange le contenu sur le haut de la pile (l'adresse de retour de RST) et HL
+$000a:Compare le contenu de l'adresse de retour et la valeur sauvée dans A
+$000b:Incrémente HL afin que l'adresse de retour saute le caractère suivant l'instruction appelante
+$000c:Remet la nouvelle adresse de retour en place sur la pile
+$000d:Si les deux caractères comparés étaient différent, saute en stx_err_prt ; sinon, passe dans chget
+
+
+$0010/chget/above
 Incrémente HL et met le contenu (HL) dans A.
-Si le caractère est supérieur à $3a (: donc les chiffres ?), retourne immédiatement, sinon...
+Si le caractère est supérieur à $3a (: donc juste après '9'), retourne immédiatement, sinon...
 
-
-$0018/SendChar/above
+$0018/outdo/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
 Entrée : le caractère est contenu dans A
 
-$0020/hl_de_cmp/above
+$001B/setext/code
+$001B/above
+Fonction : redéfinition d'un caractère
+Entrée :
+Registres modifiés :
+
+$0020/dcompr/above
 Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
-$0038/irq/above
-Fonction : traitement de l'interruption
-Sur la machine, cette interruption est dédiée à l'affichage.
-Mais un vecteur est disponible.
+$0030/usrrst
 
-$0069/resetlang/code:L'adresse $47EE reçoit un JP $0069.
+$0033/warmgo/above/code
+Reset
+
+$0038/irq/above
+Fonction : traitement de l'interruption.
+Sur la machine, cette interruption est dédiée à l'affichage.
+C'est aussi l'EF9345 qui provoque l'interruption.
+Mais un vecteur est disponible pour personnaliser les traitements dans l'irq.
+
+$0038:Appel au vecteur d'interruption
+$003c:Décrémente le compteur de temporisation d'affichage
+$003f:Si le compteur n'est pas tombé à zéro, on sort immédiatement (pas de rafraichissement)
+$0045:Remise du compteur à la valeur de référence
+$004c:Test puis mise à zéro du bit 0 du flag d'affichage
+$0050:Si le flag d'affichage était à zéro, on sort immédiatement (pas de rafraichissement)
+$0053:Début du rafraichissement de l'affichage
+$0056:Envoi à EF9345 de commandes (à décoder)
+
+$0066/nmi/code
+$0066/above
+Interruption non masquable.
+L'interruption est lancée par l'appui de la séquence Ctrl-Delta (cf. description plus
+complète).
+Le code saute immédiatement, au hook, qui a pour valeur par défaut un saut en 'test_reset'
+
+$0069/resetlang/code
+$0069/above
+Met le système en anglais.
+La seule entrée semble être la valeur que prend temporairemet nmihk pendant le boot.
+
 $006b:Messages en anglais
 $0071:Table de transcription du clavier
 
-$008f/playsnd/code
+$0080/retfun/code
+$0083/deint/code
+$0086/getbyt/code
+$0089/frmnum/code
+$008C/beep/code
+
+$008f/play/code
 $0a87/playimpl
+
+$0092/putahl/code
+$0095/putici/code
+$0098/getahl/code
+$009B/getici/code
+$009E/cls/code
+$00A1/cll/code
+$00a4/wait/code
+$00a7/fndadr/code
+$00aa/kbscan/code
+$00ad/regst/code
+$00b0/stkv/code
+$00b3/stkh/code
+$00b6/stka/code
+$00b9/break/code
+
+$00bc/disp_refrsh/above
+Rafraichissement de l'état de l'affichage sur l'EF9345 en fonction
+du contenu de la mémoire vidéo en RAM ($4000)
+
+$00bf:Séquence EF9345 à décoder
+$00e0/r_line0_lp
+$00ec:Boucle sur les 80 octets de la première ligne
+$00fd:24 lignes
+$00ff/r_line_loop
+
+$0186/skip_dsplay
 
 $0255/ClearScreen/above
 Fonction: Efface l'écran
@@ -98,6 +174,10 @@ Fonction: Attente d'état « prêt » de l'EF9345
 '$20' est envoyé sur le port $8F puis on attend que le le bit de
 poids fort sur le port $CF soit à 0.
 
+$035c/retfun_4
+
+$05aa/retfun_3
+
 $0a78:Désactivation de l'affichage
 
 $0ca7/snd_emit
@@ -109,10 +189,14 @@ Registre modifié : C
 D est envoyé sur le port $8F
 C est envoyé sur le port $CF
 
-$0d85/DefineChar/above
+$0d85/setext_impl/above
 Fonction: Redéfinition d'un caractère
 Registres en entrée : HL et A
 Registres modifiés : AF, HL, BC, DE
+
+$0d8d/setext_2
+$0dce/setext_lp2
+$0dd3/setext_lp3
 
 $0d85:if bit(A, 7) == 0 then B = $C0 else B = $40
 $0d8d:Le haut de la pile contient BC
@@ -143,9 +227,16 @@ $0ddd:Envoi à l'EF9345 de $29,A (A est envoyé à travers E) (R1=A + Execute)
 $0dee:Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
 $0df3:Réactivation de l'affichage
 
+$0df7:Fin de la fonction setext
+
 $0de5
 Envoi sur $8F de $25 puis récupération sur $CF d'une valeur dans A (Read R5)
 Puis A = A + $04
+
+$0ec3/stkh_impl
+$0ef9/stkv_impl
+
+$0eeb/stk_end:Fin des functions stkh et stkv
 
 /////////////////////////////////////////
 ////////////////// 1000 /////////////////
@@ -207,6 +298,8 @@ $1020
 Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
 Equivalent C-style de : memset($47D0, $1E, $C9)
 
+$1048:L'adresse $47EE reçoit un JP $0069.
+
 $104b/above
 La troisième phase initialise le processeur graphique EF9345. Pour commencer,
 une séquence est envoyée au périphérique, puis quelques variables en RAM sont
@@ -258,6 +351,14 @@ $10bb:Cette taille disponible est poussée dans la pile.
 $10bc/above:Affichage du texte de démarrage. VG5000 + numéro de version
 $10bc:Texte en double hauteur, double largeur
 
+$1118/test_reset/above
+Fonction : appelé par le vecteur nmihook ($47ee) qui par défaut est un jp $1118.
+Teste si CTRL est appuyé et si oui, effectue un reset.
+Plus exactement, pendant le boot, le vecteur est à JP $0069, puis à la fin du boot JP $1118
+
+$1122/reset/above
+Fonction: Effectue le reset à chaud
+
 $1148/vg5000_txt
 $1163/version_txt
 $1179/InitEfSeq:Séquence d'intialisation de l'EF9345 au démarrage.
@@ -283,6 +384,8 @@ $21fe/mysteryatnow
 
 $2214/ok_str
 $2219/ok_str_next
+$2238/stx_err_prt
+
 
 $2293:Affiche Ok!
 
@@ -396,7 +499,7 @@ $2509:Récupère le première token du buffer
 $250e:Retourne en $24ea si le caractère du buffer est NUL (quand ?)
 $250f:Les tokens sont tous supérieurs à $80
 $2511:Si la soustraction a provoqué un Carry, alors ce n'était pas un token
-$2516:Si le token est supérieur à $32
+$2516:Si le token est supérieur à $32 (les 50 premiers token sont des instructions, suivent les fonctions dont les 16 premieres n'ont pas d'adresse)
 $2519:Le token est multiplié par 2
 $251a:puis stocké dans C
 $251b:B est à 0, donc BC contient le numéro de token * 2
@@ -411,17 +514,27 @@ $2526:Récupération de l'adresse en cours du buffer tokenisé (cf. $251d)
 $2527/skipch/above
 Fonction: recupère le caractère suivant du pointeur HL
 Retourne immédiatement si le caractère est superieur à $3a,
-sinon, fallthrough dans getchnxt
+sinon, fallthrough dans chget_2
 La fonction est à la suite du décodage de token, ce qui permet d'avancer le pointeur directement.
 
 
-$252c/getchnxt/above
-Suite du traitement de getch.
+$252c/chget_2/above
+Suite du traitement de chget.
 A contient le caractère lu dans le buffer, qui est inférieur ou égal à $3a
 
-$252e:Se positionne sur le premier caractère qui n'est pas un espace
+$252e:Se positionne sur le premier caractère qui n'est pas un espace et est inférieur ou égal à '9'
+$2530:Si le caractère est supérieur à ' ', saut plus loin
+$2534:Saute si le caractère est entre 0F et 1F (une partie des caractères de contrôle)
+$2538:Saute si le caractère est inférieur à 0D (une autre partie des caractères de contrôle, dont 0)
+$253a:Reste les cas 0D et 0E ?
 
-$2543:Ce RET branchera sur l'instruction à exécuter si un token a été décodé
+$2542/chget_3
+$2543:Ce RET branchera sur l'instruction à exécuter si un token a été décodé. Si appel depuis RST, retourne normalement avec le flag Z si A était à NUL.
+
+$2544/chget_4
+$2544:Compare avec '0'
+$2546:Inverse la retenue. Donc le flag C sera mis si le caractère est supérieur ou égal à '0' (donc un chiffre).
+$2548:Manipulation de A pour mettre le flags en fonction de la valeur du caractère (comment exactement ?)
 
 $256c/shiftout
 $2570:Si le caractère actuel du buffer n'est pas $OE (shift out), branchement
@@ -431,7 +544,13 @@ $2610/nottoken/above
 Appelé lorsque le buffer tokenisé ne contenait pas un token.
 (mais pas que... appelé par FOR aussi. Traitement général des erreurs ?)
 
-$269b/inst_list/code
+$29f0/retfun_2:B contient la valeur de la fonction, A contient 0, quand appelé depuis retfun_impl
+$29f6:Place 0 dans la globale valtyp, ce qui signifie que la valeur est numérique
+
+$2a0f/retfun_impl
+$2a0f/above
+Function : met en place la valeur de retour d'une fonction
+Prerequis : valeur dans A (?)
 
 $2ae4:Saute en fin de fonction si aucun caractère n'a été entré
 
@@ -526,8 +645,6 @@ $2f15:Mise à zéro du buffer `prmnam` (nom du paramètre actif)
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
-$2f3a/inst_end/code
-$2fe4/inst_next/code
 
 /////////////////////////////////////////
 ////////////////// 3000 /////////////////
@@ -728,7 +845,7 @@ $367d:Tant que l'on traite des caractères normaux
 $3681:Traitement spécifique pour les guillemets
 $3670:Sauve la valeur courante de hl (pointe sur ... )
 
-$3bd0/SendCharImp/above
+$3bd0/outdo_impl/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
 Entrée : le caractère est contenu dans A
 
@@ -824,44 +941,211 @@ Suite (1) du traitement de l'entrée
 $3e35:Si on est en basexec == 1
 
 
+$4000/screen
+
 // Label: $1179, InitEF
-$47D0/VectorBase
 
 // Hooks
+$47D0/inthk
+$47D3/calhk
+$47D6/sonhk
+$47D9/plyhk
+$47DC/rsthk
+$47DF/prthk
 $47E2/outhk
 $47E5/crdhk
-$47E8/crhook
-$47EE/nmihook
-$47F1/lpenhook
-$47F4/diskhook
-$47F7/modemhook
+$47E8/inlhk
+$47EB/inphk
 
-//
-$47FA/GraphValues
-$47FF/keybvalue:précédente valeur du clavier
+// Hook vectors
+$47EE/nmihk
+$47F1/lpnhk
+$47F4/dskhk
+$47F7/modhk
+
+// Screen communication flags
+$47FA/intdiv
+$47FB/intact
+$47FC/intrat
+$47FD/cursor
+$47FE/fklock
+$47FF/crchar:valeur scannée du clavier la plus récente
+$4800/reptim
+$4801/repena
+$4802/attcar
+$4803/attbak
+$4804/extenf
 $4805/xcursor
 $4806/ycursor
-$480b/linecoords:Coordonnées de la prochaine ligne à interpréter
-$480d/execmode:programme ($82) ou direct ($80)
+
+// Text Editor
+$4807/prelin
+$4809/homeln
+$480B/retadr:Coordonnées de la prochaine ligne à interpréter
+$480D/entstt:programme ($82) ou direct ($80)
+
+// Sound System
+$480e/sonsav
+
+// Cassette
+$4810/ft:Table de fichier
+$4826/low
+$4828/high
+$482a/handler
+$482e/lowlim
+$482f/winwid
+
+// BIINIT
+$4830/ramlow
+// $4833/usrloc
+$4836/fdivc
+$4845/rndcnt
+$486e/lptpos
 $486F/prtflg:Selectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
-$4870/inputsel:Entrée des caractères sur clavier (0) ou cassette (255)
-$4871/DisplayCtrl
+$4870/getflg:Entrée des caractères sur clavier (0) ou cassette (255)
+$4871/picflg
+$4872/cascom
+$4873/rawprt
 $4874/prtstt:État de l'imprimante
+$4875/prtcom
+$4876/prtint
+$4878/prtxlt
+
+// Text Editor
+$487a/contbl
 $4884/autoflg:Etat courant de la commande AUTO
 $4885/autoline:Ligne courante de la commande AUTO
 $4887/autostep:Incrément du mode AUTO
-$4889/basexec:Execution de la boucle BASIC
-$488c/basline:Ligne courante du BASIC
-$4890/msglang:Messages en anglais (1) ou francais (0)
-$4891/keybtrans:Table de transcription du clavier
+$4889/allflg:Execution de la boucle BASIC (0 to execute BASIC control loop)
+$488a/linlen
+$488b/clmlst
+
+// Basic
+$488c/curlin:Ligne courante du BASIC
+$488e/txttab
+$4890/frgglg:Messages en anglais (1) ou francais (0)
+$4891/kbdtbl:Table de transcription du clavier
+$4893/tmpsav
+$4894/octsav
 $4895/stktop:Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
-$4897/beforebasbuf:Zone précédent la zone de tokenisation. Mis dans HL après avoir mis NUL en fin de chaîne à traiter.
+
+// BINTRP
+$4897/bufmin:Zone précédent la zone de tokenisation. Mis dans HL après avoir mis NUL en fin de chaîne à traiter.
 $4898/basbuf:Buffer d'entrée pour le BASIC
 $4919/basbufend:Fin du buffer
-$4919/endbuf
-$491c/tokenstop:Drapeau de suppression de la tokenisation
+// $4919/endbuf
+$491a/dimflg
+$491b/valtyp:(0 = numeric, 1=string)
+$491c/dores:Drapeau de suppression de la tokenisation
+$491d/contxt
 $491f/memsiz:Plus haute mémoire disponible (pour le BASIC ?)
 $4921/temppt
 $4923/tempst
+$499b/dsctmp
+$49c3/fretop
 $47FA:Début de la zone de données graphiques pour la communication avec le EF9345
 $49fb/end_vars:Adresse juste après la dernière des variables système.
+$49c5/temp3
+$49c7/temp8
+$49c9/endfor
+$49cb/datlin
+$49cd/subflg
+$49ce/flginp
+$49cf/temp
+$49d1/ptrfrg
+$49d2/temp2
+$49d4/oldlin
+$49d6/oldtxt
+$49d8/vartab
+$49da/arytab
+$49dc/strend
+$49de/datptr
+$49ed/prmnam
+$49e2/prmval
+$49e6/faclo
+$49e9/fac
+$49eb/fbuffr
+$49f8/fmltt1
+$49f9/fmltt2
+
+
+// Generated instructions
+$2f3a/inst_end/code
+$247a/inst_for/code
+$2fe4/inst_next/code
+$25f3/inst_data/code
+$2760/inst_input/code
+$38d5/inst_dim/code
+$27a3/inst_read/code
+$2610/inst_let/code
+$25ba/inst_goto/code
+$259a/inst_run/code
+$2679/inst_if/code
+$2f1e/inst_restore/code
+$25a9/inst_gosub/code
+$25d6/inst_return/code
+$25f5/inst_rem/code
+$2f38/inst_stop/code
+$265e/inst_on/code
+$2694/inst_lprint/code
+$2a13/inst_def/code
+$2abb/inst_poke/code
+$269b/inst_print/code
+$2f6f/inst_cont/code
+$31a8/inst_list/code
+$31a3/inst_llist/code
+$2fa0/inst_clear/code
+$3058/inst_renum/code
+$316e/inst_auto/code
+$197e/inst_load/code
+$1945/inst_save/code
+$1a39/inst_cload/code
+$19ed/inst_csave/code
+$0fad/inst_call/code
+$0e51/inst_init/code
+$0c6a/inst_sound/code
+$0a75/inst_play/code
+$0df8/inst_tx/code
+$0e37/inst_gr/code
+$0f8e/inst_screen/code
+$0f98/inst_display/code
+$0fa4/inst_store/code
+$0ea8/inst_scroll/code
+$0eb1/inst_page/code
+$0f52/inst_delim/code
+$0ced/inst_sete/code
+$0e40/inst_et/code
+$0e49/inst_eg/code
+$0e83/inst_cursor/code
+$47f4/inst_disk/code
+$47f7/inst_modem/code
+$3dce/inst_new/code
+$05a4/inst_sgn/code
+$0660/inst_int/code
+$05b8/inst_abs/code
+$4833/inst_usr/code
+$38b1/inst_fre/code
+$29fc/inst_lpos/code
+$2a01/inst_pos/code
+$081d/inst_sqr/code
+$090d/inst_rnd/code
+$0434/inst_log/code
+$0874/inst_exp/code
+$097e/inst_cos/code
+$0984/inst_sin/code
+$0a17/inst_tan/code
+$0a2c/inst_atn/code
+$2ab4/inst_peek/code
+$37fb/inst_len/code
+$3636/inst_str/code
+$388d/inst_val/code
+$380a/inst_asc/code
+$0eba/inst_stickx/code
+$0ef0/inst_sticky/code
+$0f25/inst_action/code
+$0f49/inst_key/code
+$47f1/inst_lpen/code
+$381b/inst_chr/code
+$3829/inst_left/code
+$3858/inst_right/code
+$3861/inst_mid/code
