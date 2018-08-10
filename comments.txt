@@ -667,6 +667,11 @@ Fonction : affiche un message d'erreur
 Entrée : E contient le numéro de l'erreur
 L'erreur est ensuite cherché dans la table, donc chaque message est séparé des autres par un $00
 
+$2264/err_msg_fr
+$2266:Ajoute 2 à l'erreur et prends le multiple de 2 inférieur
+$226b:Saute si E est inférieur à $2b
+$226f/err_loop:E est le min entre E et $2a
+
 $228d/init_next/above
 Suite de l'initialisation
 
@@ -818,6 +823,39 @@ $256c/shiftout
 $2570:Si le caractère actuel du buffer n'est pas $OE (shift out), branchement
 $257d:Traitement de quel cas?
 
+$25ba/above
+Instrution : GOTO
+
+$25ba:DE contient l'argument (numéro de ligne)
+$252c:HL contient la ligne courante exécutée
+$25c5:C si DE supérieur à HL
+$25c7:Saute si le numéro de ligne du GOTO est au-delà de la ligne courante
+$25ca:Saute si le numéro de ligne du GOTO est avant la ligne courante
+$25d0:Retour en cas de ligne trouvée (HL pointe sur l'octet avant la ligne courante)
+$25d3:"Ligne non définie"
+
+$234d/goto_after
+$2347/goto_before/above
+Chercher la ligne de BASIC à exécuter, présent dans DE
+En sortie, si Carry Flag est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
+Si Carry Flag est reset, alors la ligne n'a pas été trouvée.
+
+$234a:HL contient la première adresse du listing BASIC
+$234d:Met la dernière ligne trouvée dans (prelin)
+$2352:HL dans BC
+$2356:A contient le OR des deux premier octets de la ligne actuelle (HL n'est pas touché)
+$2357:Retour immédiat si A est à 0 (fin des liens)
+$2359:Pointe HL deux octets plus loin
+$235d:Lecture de la valeur pointée par HL dans HL. C'est le numéro de la ligne.
+$235e:Comparaison de HL (numéro de ligne considérée) et DE (numéro de ligne recherchée)
+$2360:BC dans HL (le pointeur sur la ligne qui avait été sauvé)
+$2364:Lecture dans HL de la valeur pointées par HL. C'est le pointeur vers la ligne suivante.
+$2365:Inverse la retenue. Dans le cas Z, C n'est pas mis, et du coup le set, ce qui indique que la recherche a réussi.
+$2366:Retour immédiat si la ligne considérée était celle cherchée.
+$2367:Inverse la retenue. La remet donc à l'état du test précédent (dcompr)
+$2368:Retour immédiat si HL > DE dans le test de ligne (on a dépassé la ligne sans la trouver)
+$2369:Retour en début de recherche
+
 $2610/above
 Instruction : LET
 Appelé lorsque le buffer tokenisé ne contenait pas un token.
@@ -925,13 +963,23 @@ Met 0 dans les deux premiers octets de txttab (donc efface l'accès au listing)
 $2edc/reset_mem_2
 $2edc:appelé depuis l'instruction NEW
 
+$3d91/reset_mem_3
+$3d91:0 dans (autoflg)
+$3d94:0 dans les deux premiers octets de (txttab). Cela coupe le premier lien du listing BASIC.
+$2ee0/reset_mem_4
+$2ee1:txttab+2 dans (vartab)
+$2ee7:HL pointe sur l'octet avant txttab
+$2ee8:HL est mis de côté
+$2eeb:HL prend la valeur de memsiz
+$2eee:fretop est donc mis à memsiz, cela signifie que toute la mémoire est disponible.
+$2ef5:(vartab) est placé dans (arytab) et (strend). Autrement dit, élimine toutes les variables, les tableaux et les chaînes.
 
 $2ebb/func_2ebb/above
 Entrée : HL, C
 
 $2ec2:Ajoute deux fois l'entrée C à strend
 
-$2ed5:"Opérande mal adaptée" (?)
+$2ed5:"Sortie de mémoire"
 
 $2efe/resetstack/above
 Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
@@ -944,7 +992,7 @@ $2eff:Réinitialisation de la pile (SP) à la dernière addresse RAM valide
 $2f06:Le pointeur sur la zone temporaire de descripteur est initialisé
 $2f0f:Mise à zéro de `oldtxt`
 $2f12:Mise à zéro du buffer `subflg` (utilisé pour FOR)
-$2f15:Mise à zéro du buffer `prmnam` (nom du paramètre actif)
+$2f15:Mise à zéro de 
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
@@ -1151,6 +1199,17 @@ $367f/out_str_2
 $367d:Tant que l'on traite des caractères normaux
 $3681:Traitement spécifique pour les guillemets
 $3670:Sauve la valeur courante de hl (pointe sur ... )
+
+$38b1/above
+Instruction : FRE()
+Entrée : (valtyp)
+
+$38b4:DE contient l'adresse de (strend)
+$38b8:HL contient l'adresse de la pile
+$38bd:Saute si (valtyp) est à 0 (nombre)
+
+$29ea/inst_fre_2
+$38ca:HL contient (fretop) et DE contient (stktop)
 
 $3bd0/outdo_impl/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
