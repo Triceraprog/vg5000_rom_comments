@@ -36,7 +36,7 @@ Fonction : redéfinition d'un caractère
 Entrée :
 Registres modifiés :
 
-$0020/dcompr/above
+$0020/de_compare/above
 Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
@@ -634,6 +634,9 @@ $1371/keyseng_c7
 $1379/errors_fr
 $153f/errors_eng
 
+$1763/txt_arret
+$176a/txt_break
+
 $1771/txt_in_fr
 $1776/txt_in_en
 $177b/txt_next
@@ -655,8 +658,21 @@ $21fd/keywstop
 $21fe/mysteryatnow
 
 $2214/ok_str
-$2219/ok_str_next
+$2219/marker_vrfy
+$221c:HL pointe 4 octet plus haut que le haut de la pile (skip l'adresse de retour de cette fonction et de celle appelante, l'instruction)
+$221f:Compare au token de FOR
+$2221:Si différent, retourne immédiatement
 $2238/stx_err_prt
+
+$223b/divbyzero:Affiche une erreur "Division par Zéro".
+$223e/missfor:Affiche une erreur "NEXT sans FOR"
+$2241/redim:Affiche une erreur "Tableau redimensionné"
+$2244/undeffn:Affiche une erreur "Fonction utilisateur non définie"
+$2247/overflow:Affiche une erreur "Dépassement de capacité"
+$224a/missing_op:Affiche une erreur "Opérande manquante"
+$224d/wrong_op:Affiche une erreur "Opérande mal adaptée"
+$2250:Affiche une erreur "Non reconnue"
+
 
 
 $2293:Affiche Ok!
@@ -672,15 +688,22 @@ $2266:Ajoute 2 à l'erreur et prends le multiple de 2 inférieur
 $226b:Saute si E est inférieur à $2b
 $226f/err_loop:E est le min entre E et $2a
 
-$228d/init_next/above
-Suite de l'initialisation
+$2278/disp_break/above
+Lorsqu'arrive directement ici, c'est pour afficher un arrêt d'exécution en ligne (curlin) (à vérifier)
+
+$228d/ok_loop/above
+Reset l'imprimante, remet le curseur en début de ligne et affiche "Ok".
+Puis tombe dans la boucle du moniteur.
 
 $2299/monitorloop
 $2299:Ligne courante du BASIC à -1
 $22a3:Saute si hors du mode AUTO
 $22a5:Ligne courante du mode AUTO dans HL
+$22ab/out_space:Affiche le caractère espace puis continue dans la boucle BASIC
 $22ae/stoploop/above
 Boucle de traitement du BASIC
+
+$22ad/out_loop:Affiche le caractère qui est dans A puis continue dans la boucle BASIC
 
 $22b3/above
 Lorsqu'on arrive ici, CR a été appuyée.
@@ -689,20 +712,26 @@ HL pointe sur l'adresse précédente le buffer en entrée, qui se termine par 0.
 
 $22b1:Lorsque basic loop sort avec Carry (touche STOP), on boucle immédiatement.
 $22b3:Acquisition d'un nouveau caractère depuis HL dans A
+$22b5:On ne test pas avec "or a" à cause du test de Carry plus loin en $22ca
 $22b6:Si le caractère était zéro, le traitement est terminé
 
-$22bd:Si le flag d'exécution BASIC est à 1, branchement en 0 pour un reset de la machine.
+$22bd:Si le flag d'exécution BASIC est différent de 0, branchement en 0 pour un reset de la machine. C'est le cas avec les programmes "protégés", dont l'arrêt provoque le RESET de la machine.
+$22c3:DE contient soit un numéro de ligne, soit 0.
 
 $22c7:En fin de tokenisation, A == 0, donc B prend 0 aussi
+$22c9:Récupération du numéro de ligne dans DE
 $22c9:Récupération du AF de $22b8
-$22ca:Quand est-ce que le Carry est set ?
+$22ca:Quand est-ce que le Carry est set ? Continuation de ligne ? Autre chose que $FF ?
 
 $22d3:Incrément du mode AUTO. DE contenait la ligne courante, HL contient la ligne suivante.
 
-$236b/tokenisation/above
+$236b/tokenize/above
 Fonction : effectue la tokenisation du buffer d'entrée
+Entrée : HL pointe vers le contenu à traiter
+(qui est normalement dans basbuf au moins en mode direct)
 
-$236c:Activation ou désactivation de la tokenisation (à vérifier)
+$236c:Le flag est à 0 pour signaler la tokenisation
+$2371:DE pointe sur le buffer de tokenisation
 $2374/analyze
 $2374:Récupération dans A du caractère à traiter
 $2377:Est-ce un espace ?
@@ -711,16 +740,19 @@ $237d:Sont-ce des guillemets ?
 $2381:Est-ce NUL ?
 $2387:Préparation du test de flag de tokenisation
 $2388:A est à nouveau le caractère à l'étude
-$2389:Si le flag de tokenisation est vrai
-$2390:Est-ce que le caractère est '?' ? A est préchargé avec $94 dans ce cas.
+$2389:Si on est hors tokenisation, on saute.
+$2390:Est-ce que le caractère est '?' ? A est préchargé avec $94 dans ce cas. Raccourci vers l'instruction PRINT.
 $2393:A est à nouveau le caractère à l'étude
-$2398:Est-ce DLE (Data Link Escape) ? A est préchargé avec $AF dans ce cas.
+$2398:Est-ce que le caractère est '…' ? A est préchargé avec $AF dans ce cas. Raccourci vers DISK (est-ce vraiment utilisé, DISK est vectorisée ?)
 $239b:A est à nouveau le caractère à l'étude
 $239e:Est-ce inférieur à '0' ?
-$23a2:Est-ce inférieur à '<' ?
+$23a2:Est-ce inférieur à '<' ? (les chiffres et ':' et ';' ne sont pas tokenisés)
 
 $23a5/specialchr
+$23a5:Ici, A contient tout caractère hors chiffre et ':; "?…\0'. Et le flag de tokenisation est à 0 (donc, actif). DE, qui contient le buffer de tokenisation, est sauvé sur la pile.
+
 $23a6:DE contient le début du buffer des mots clés du BASIC -1 (car le traitement commence par augmenter le pointeur)
+$23a9:Pourquoi sauve-t-on BC ?
 $23aa:BC contient $244b
 $23ad:BC est sauvé sur la pile, ce qui provoquera la sortie à cette adresse si le token n'est pas trouvé
 $23ae:B contient $7F et sera incrémenté avec chaque token étudié. Le premier token a donc pour numéro $80
@@ -731,37 +763,121 @@ $23b9:Passage en majuscule
 $23bb:Mise dans le buffer de la lettre passée en majuscule
 $23bc/notlowerchr
 $23bc:C contient le caractère à traiter
-$23bd:HL pointe sur le buffer de keywords
+$23bd:HL pointe sur le buffer de keywords - 1
 $23be/nextkeyword
 $23c0:Boucle jusqu'au premier caractère avec un bit de poids fort à 1 (cela indique le début d'un mot)
 $23c3:Augmenter l'index de mot-clé
-$23c5:A contient le premier caractère de la table des mots clé, sur 7 bits
-$23c7:Si égal à NUL, alors la fin du buffer est atteinte, on sort
+$23c5:A contient le premier caractère de la table des mots clé, sur 7 bits (nécessaire pour enlever le marqueur de début de mot)
+$23c7:Si égal à NUL, alors la fin du buffer est atteinte, on sort. Comme tokennotfound est actuellement en haut de pile, c'est vers là que l'on sort.
 $23c9:Si le caractère à traiter et celui du mot-clé sont différent, on cherche le mot clé suivant
 $23cb:Le pointeur sur le mot clé à traité est mis dans DE. HL contient à nouveau l'adresse du buffer en traitement.
 $23cd/strcmpkw
 $23d0:Puisqu'on atteint un nouveau marqueur de mot clé, c'est que le match a été fait correctement.
 $23d3:C contient le caractère courant dans le buffer des mots clé
 $23d4:A contient le caractère du buffer d'entrée à traiter
+$23d5:Marqueur pour ?
+$23d9:Marqueur pour ?
 
-$23e5:Passage en majuscule (voir $23b9) ?
+$23dd/marker_1:Lecture du caractère suivant pour l'oublier (le marqueur $8c ou $88)
+$23df/marker_2
+$23e0:Lecture d'un nouveau caractère.
+$23e7/notlower2
+
+$23e5:Passage en majuscule (voir $23b9), mais on ne vérifie pas le supérieur à 'z' cette fois. En effet, seuls les caractères alphabétiques matcherons un mot clé de toute façon.
+$23e8:Pour le moment, ça match, on continue.
+$23eb:Ça ne matche pas, on essaie le mot clé suivant après avoir récupéré le pointeur vers la chaîne à traiter depuis son début de mot…
 
 $23ed/foundkeyw
+$23ee:Pop de HL l'adresse du début du mot
+$23ef:Pop de l'adresse de retour 'tokennotfound'
+
+$23f0:A contient le token
+$23f3:Saut si le token est $88 (GOTO)
+$23f7:Saut si le token est $8c (GOSUB)
+$23fb:Saut si le token est $8b (RESTORE)
+$23ff:Saut si le token n'est pas $b6 (???)
+
+$2401/test_number:Vérifie s'il y a un paramètre nombre derrière l'instruction
+$2404:Ce qui suit n'est pas un nombre, on considère qu'il n'y a pas de paramètre.
+
+$2406:Sauvegarde du HL courant dans DE
+$2407:pop IY ?!!! (on doit en être à la sauvegarde de BC)
+$2409:Pop de la valeur de DE en $23a5, qui pointe sur le buffer de tokenisation
+
+$240a/dec_number
+$240a:On place le token dans le buffer de tokenisation.
+$240b:On récupère et on sauve DE, qui pointe sur la zone à parser.
+$240d:Échange des registres secondaires.
+$240e:Récupération dans HL de la zone à parser.
+$240f:Remise dans la pile de l'adresse de la zone à parser.
+$2410:Tentative de récupération d'un numéro de ligne.
+$2415:Si le numéro de ligne est 0 (ligne invalide), on sort.
+$2417:Récupération dans BC de la zone à parser (pour remettre la pile en état)
+$2418:Octet bas du numéro de ligne dans A (exx n'echange pas AF, on garde donc une partie de numéro de ligne, voir plus loin)
+$241a:Mise dans la pile dans l'adresse de décodage ajustée
+$241b:On repasse au registre primaires
+$241c:On récupère dans DE le pointeur à parser.
+$241a:On incrémente le pointeur de la zone de tokenisation
+$241e:On annote avec $0e pour indiquer qu'un paramètre suit.
+$2421:Placement de la première partie du numéro de ligne
+$2424:Récupération de la seconde partie du numéro de ligne
+$2426:La seconde partie du numéro de ligne est placée dans C
+$242b:Hein ???
+
+$242d/miss_line
+$242e:DE doit toujours être supérieur à HL, sinon, c'est qu'il n'y avait pas d'opérande lorsqu'une était attendue (vérifier)
+$2431:HL contient le buffer à parser, DE le buffer tokenisé en cours.
+$2432:Sauvegarde du pointeur de parsing en cours
+$2433:Lecture du caractère suivant.
+$2434:DE=buffer à parser, HL=buffer tokenisé
+$2435:Comparaison du dernier caractère lu avec $2ca (virgule ',')
+$2437:Si pas de virgule, c'est terminé
+$2439:Sinon, on place la deuxième partie du numéro de ligne dans le buffer tokenisé
+$243a:Puis passage à l'emplacement suivant dans le buffer tokenisé
+$243b:Mais que pointe iy ?
+$243d:C contient maintenance $2c (virgule), préparer pour être copié à la prochaine itération.
+$243f:Pop de l'adresse de parsing (pour balance)
+
+$2442/invalid_lin
+$2447/token_end
+$2447:DE recupère le pointeur de parsing final
+$2448:Sauvegarde du pointeur tokenisé
+$2449:Sauvegarde de IY... ?
 
 $244b/tokennotfound/above
-Arrivée ici lorsque la tokenisation échoue
+Arrivée ici que la tokenisation échoue ou réussie.
 
 $244b:HL pointe à nouveau sur le buffer en entrée
-$244c:Récupération du caractère dans A
-$244d:Nettoyage de la pile
-$244e:DE pointe sur la partie tokenizée ?
 
-$244f/ifspc
+$244c/tokencomplete
+$244c:Récupération du caractère dans A. Dans le cas où l'on a réussi la tokenisation, C contient le token. Dans le cas où l'on a décodé un numéro de ligne, C contient la deuxième partie (haute) du numéro.
+
+$244d:Nettoyage de la pile
+$244e:DE pointe sur la partie tokenizée
+
+$244f/no_token
 
 $2450:Recopie du caractère actuel (ou du token ?) dans la partie tokenisée
+$2451:Passage à l'adresse suivante dans le buffer tokenisé
+$2452:Pourquoi agumenter C ? (vérifier suivant arrivée par no_token ou autre cas)
+$2455:Saut si A est égal à ':'
 
 $2457:Avec la soustraction précédente, cela fait que l'on compare le caractère à $83
+$2459:Saut si le caractère n'est pas le marqueur $83 (qui est ?)
+
+$245b/is_colon:A est forcément égal à 0. On passe en tokenisation.
+
+$245e/not_83
 $245e:Avec la soustraction précédente, cela fait que l'on compare le caractère à $8E
+$2460:Saut si le caractère n'est pas le marqueur $8E (qui est ?) pour une nouvelle analyze de token
+
+$2464/trailing:Recopie le reste de la chaîne à traiter
+$2466:Sort si le caractère à parser est NUL
+$2469:Saute si le caractère nouveau est identique au précédent (qui a été soustrait !)
+$246c:Copie le caractère nouveau dans le buffer de tokenisation
+$246d:Augmente C (pourquoi ?)
+$246e:Augmenter le pointeur de buffer de tokenisation
+
 
 $246b/ifquote
 $2471/ifnul/above
@@ -771,16 +887,25 @@ $2471:HL est placé juste avant le buffer de traitement
 $2474:DE pointe sur la fin du buffer tokenizé. Comme A contient 0, le buffer est terminé par trois 0.
 $2479:Fin de la fonction de tokenisation
 
-$24ea/playret/code
+$24ea/end_of_inst/code
 $247A/inst_for/code
 
+$24f1:Comparaison avec ':'
+$24f6:HL doit pointer sur le NUL de fin de ligne ou bien ':'. Si ce n'est pas le cas, c'est une erreur de syntaxe (l'instruction n'a pas tout consommé)
+$24fd:Saut si on est sur la dernière ligne du programme
+
+$2504:HL contient le numéro de ligne, DE contient le pointeur sur le contenu de la ligne BASIC
+$2505:Enregistrement du numéro de la ligne courante
+$2508:Récupération dans HL du pointeur sur le contenu de la ligne BASIC
+
 //-----------------
-$2509/exectokens
+$2509/next_token
 $2509:Récupère le première token du buffer
-$250e:Retourne en $24ea si le caractère du buffer est NUL (quand ?)
+$250d:Met sur la pile une adresse de retour qui est "end_of_inst"
+$250e:Retourne en "end_of_inst" si le caractère du buffer est NUL, c'est-à-dire que le contenu de la ligne était vide, ce qui est le cas pour la dernière ligne.
 $250f:Les tokens sont tous supérieurs à $80
-$2511:Si la soustraction a provoqué un Carry, alors ce n'était pas un token
-$2516:Si le token est supérieur à $32 (les 50 premiers token sont des instructions, suivent les fonctions dont les 16 premieres n'ont pas d'adresse)
+$2511:Si la soustraction a provoqué un Carry, alors ce n'était pas un token. Exécute par défaut l'assignation de variable.
+$2516:Si le token est supérieur à $32 (les 50 premiers token sont des instructions, suivent les fonctions dont les 16 premieres n'ont pas d'adresse), affiche une Erreur de Syntaxe.
 $2519:Le token est multiplié par 2
 $251a:puis stocké dans C
 $251b:B est à 0, donc BC contient le numéro de token * 2
@@ -810,7 +935,7 @@ $2538:Saute si le caractère est inférieur à 0D (une autre partie des caractè
 $253a:Reste les cas 0D et 0E ?
 
 $2542/chget_3
-$2543:Ce RET branchera sur l'instruction à exécuter si un token a été décodé. Si appel depuis RST, retourne normalement avec le flag Z si A était à NUL.
+$2543:Ce RET branchera sur l'instruction à exécuter si un token a été décodé. Si appel depuis RST, retourne normalement avec le flag Z si A était à NUL. Cela signifie aussi que les exécution d'instruction arrivent avec Z=1 si le caractère lu après le token est NUL (modulo le recalage précédent)
 
 $2544/chget_4
 $2544:Compare avec '0'
@@ -819,9 +944,50 @@ $2548:Manipulation de A pour mettre le flags en fonction de la valeur du caract�
 
 $2552/deint_impl
 
-$256c/shiftout
+$256c/get_lin_num/above
+Fonction : sur la ligne pointée par HL, récupère le paramètre numérique sur 16 bits dans DE
+Sortie : le paramètre dans DE. Le dernier caractère pointé dans A.
+Le numéro de ligne maximum est limité par le test avec $1998 (6552). Ce nombre est multiplié par 10
+avant la dernière addition. Ce qui porte le numéro maximum de ligne à 65529. Au delà, le parsing
+sera étrange. Par exemple 65530 sera compris comme : ligne 6553, qui contient '0'.
+
+$256d/get_lin_nu2:Accès sans recalage de HL
+
 $2570:Si le caractère actuel du buffer n'est pas $OE (shift out), branchement
-$257d:Traitement de quel cas?
+$2575:Sinon, récupération du nombre entier sur 16 bits dans DE
+$2576:Puis lecture du caractère dans A
+
+$257d:Si le caractère n'était pas un chiffre, retour immédiat
+
+$2578/not_oe
+$2579:Initialise le résultat à 0
+
+$257c/num_decode:La boucle décode une valeur numérique depuis sa forme ASCII. Le nombre maximum est $1998 (6552)
+$2583:Comparaison de DE (résultat) avec HL ($1998 = 6552).
+$2584:Si DE est supérieur à HL, saut
+
+$2588:HL <- DE * 2
+$2589:HL <- DE * 4
+$258a:HL <- DE * 5
+$258b:HL <- DE * 10. Au final, HL contient le résultat précédent multiplié par 10.
+$258d:Transposition du caractère "chiffre" en sa valeur entre 0 et 9
+$2592:Ajout au résultat de la valeur de chiffre décodée.
+$2593:DE contient à présent le résultat précédent multiplié par 10 plus le nouveau chiffre.
+
+$2597/num_dec_end
+
+$25a9/above
+Instrution : GOSUB
+
+$25ae:Récupère l'adresse de retour dans BC
+$25b0:Sauve le pointeur d'exécution HL une fois, puis réserve un emplacement en haut de la pile (peu importe le contenu)
+$25b1:HL contient la ligne courante
+$25b4:Met le numéro de la ligne courante au sommet de la pile
+$25b7:Place un marqueur sur la pile ($8c, qui est le token d'exécution de GOSUB)
+$25b8:Ajuste la pile pour ne pas enregistrer la partie F de AF.
+$25b9:Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO. Instruction partagée avec RUN pour lancer un programme.
+
+$25b9/inst_run_2
 
 $25ba/above
 Instrution : GOTO
@@ -852,9 +1018,36 @@ $2360:BC dans HL (le pointeur sur la ligne qui avait été sauvé)
 $2364:Lecture dans HL de la valeur pointées par HL. C'est le pointeur vers la ligne suivante.
 $2365:Inverse la retenue. Dans le cas Z, C n'est pas mis, et du coup le set, ce qui indique que la recherche a réussi.
 $2366:Retour immédiat si la ligne considérée était celle cherchée.
-$2367:Inverse la retenue. La remet donc à l'état du test précédent (dcompr)
+$2367:Inverse la retenue. La remet donc à l'état du test précédent (de_compare)
 $2368:Retour immédiat si HL > DE dans le test de ligne (on a dépassé la ligne sans la trouver)
 $2369:Retour en début de recherche
+
+$25d6/above
+Instruction : RETURN
+
+$25d6:S'il y a des choses après le RETURN, retour immédiat. Return n'a pas de paramètre.
+$25dc:Ajuste la pile à la valeur calculée par marker_vrfy. Ce qui remet la pile avant le marqueur (au passage, on n'a plus l'adresse de retour de l'appel à l'instruction en cour)
+$25dd:Vérification du marqueur placé par GOSUB
+$25e1:S'il n'est pas là, lancement d'une erreur "RETURN sans GOSUB"
+$25e5:Récuération de l'adresse de la ligne appelante et sauvegarde dans (curlin)
+$25eb:Vérification que la valeur incrémentée de 1 n'est pas 0 sinon... ben rien. C'est louche. Visiblement, un test de la valeur de ligne FFFF qui a tourné court.
+$25f0:Remise en place en haut de pile de l'adresse de retour de l'instruction. Le POP HL récupère le pointeur d'exécution de la ligne qui avait le GOSUB. Puis quelques instructions nulles, pour arriver en 25f7.
+
+$25f9/rem_ex_lp
+$25fb:Swap le contenu de B et C. Donne $3a00 en venant de RETURN (ce qui signfie que l'on cherche un ':')
+$25fc/rem_loop
+
+$25fd:Vérifie la présence d'un argument (numérique sur 16 bits?)
+$2603:S'il y a un argument, saute le marqueur et la valeur
+$2604:Puis lit dans A la valeur suivante
+$2605/no_param
+$2606:Si la dernière valeur lue est zéro, retour immédiat.
+$2607:Compare avec le caractère spécifique cherché
+$2608:Retour immédiat si trouvé
+$2609:Sinon, on passe au caractère suivant
+$260c:Si c'est $22 ('"'), on loop sur l'échange du caractère recherché
+$260e:Sinon, on continue le parsing de la ligne
+
 
 $2610/above
 Instruction : LET
@@ -974,11 +1167,22 @@ $2eeb:HL prend la valeur de memsiz
 $2eee:fretop est donc mis à memsiz, cela signifie que toute la mémoire est disponible.
 $2ef5:(vartab) est placé dans (arytab) et (strend). Autrement dit, élimine toutes les variables, les tableaux et les chaînes.
 
-$2ebb/func_2ebb/above
-Entrée : HL, C
+$2ebb/stk_verify/above
+Entrée : C, le nombre d'octet que l'on voudrait mettre sur la pile
+S'il n'y a pas la place demandée sur la pile, provoque un message d'erreur.
+La place vérifiée semble être deux fois la place demandée avec une marge de $60 octets.
+Préserve HL.
+
+$2ec4/mem_verify/above
+Identique à stk_verify mais doit fournir HL en plus de C.
+HL désigne alors la valeur à comparer avec la pile.
 
 $2ec2:Ajoute deux fois l'entrée C à strend
+$2ecc:HL <- $FFA0 - HL (HL étant (strend) + 2 * C)
+$2ecd:S'il n'y a pas au moins $60 octets entre la valeur désirée et $FFFF, alors il n'y a plus de mémoire (oui, c'est en dur quelque soit la mémoire présente, c'est louche)
 
+$2ed1:Si HL + SP provoque une retenue, alors on revient, il y a assez de mémoire. Sinon, c'est qu'il y a moins de $60 octets entre la pile et (strend), il n'y a pas assez de mémoire.
+$2ed2/out_of_mem
 $2ed5:"Sortie de mémoire"
 
 $2efe/resetstack/above
@@ -996,6 +1200,18 @@ $2f15:Mise à zéro de
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
+
+$2f42/end_of_prog/above
+Traite la fin d'un programme
+
+$2f49:Si la dernière ligne était FFFF, alors le A est égal à 0, saut.
+$2f4b:Sauve la dernière ligne exécutée si elle avait un numéro
+$2f51:Sauve le dernier pointeur de token (?) concernant une ligne avec numéro.
+
+$2f54/no_line
+$2f5a:Récupére AF... sans intérêt, on le push juste après sans rien en faite.
+$2f68/break_fr
+$2f69:Comment est-ce que cela peut être NZ ?
 
 /////////////////////////////////////////
 ////////////////// 3000 /////////////////
@@ -1160,11 +1376,11 @@ $35b9/scroll_down/above
 Fonction: descend le contenu de l'écran d'une ligne par recopie de la mémoire
 La nouvelle ligne a toujours l'ancien contenu
 
-$35c5/resetcursor/above
+$35c5/reset_term/above
 La fonction réinitialise les bits 2 et 7 de $4871.
-A priori : coupe le scrolling et ligne non entrée sous BASIC
+Remet le scrolling (et ligne non entrée sous BASIC (?))
 ;
-Puis réinitialise quelques valeurs d'affichage
+Réinitialise quelques valeurs d'affichage
 
 $35cd:$4804 à 0 : pas de redéfinition de caractères
 $35d1:$4002 à 0 : couleur d'encre et fond graphique à zero, texte
@@ -1227,6 +1443,10 @@ $3c31:Clear du picflg sauf le bit 6 (signal de curseur en fin de page)
 $3c35:Sélection du terminal comme sortie des caractères
 $3c38:Mise à zéro de l'état de l'imprimante.
 $3c3c/sendchar_te:Récupération de AF qui contient prtflg
+$3c40/cursor_x0/above
+Remet le terminal en état. Puis, si le curseur n'était pas en
+première colonne, fait un saut à la ligne sur le terminal. Sinon, ressort.
+
 $3c4a/putnulatend/above
 Fonction: met un caractère NUL à la fin de la chaîne précédent le pointeur HL actuel, en ignorant les espaces.
 À la fin de la fonction, HL contient $4897
