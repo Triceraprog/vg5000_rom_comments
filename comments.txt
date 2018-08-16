@@ -41,6 +41,12 @@ Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
+$0028/above
+Renvoie $FF, $00 ou $01 en fonction du contenu du buffer flottant.
+Préserve HL
+
+$002c:Saute si fac[0] != 0
+
 $0030/usrrst
 
 $0033/warmgo/above/code
@@ -248,12 +254,50 @@ poids fort sur le port $CF soit à 0.
 $028a/wait_loop
 
 $035c/retfun_4
+$035c:En venant du traitement d'auto via retfun_3, A étant à zero, la rotation à gauche n'a pas généré de Carry
+$0360:HL <- EB. ?. B est forcé à 0 par retfun_3 et E contient la partie basse du numéro de ligne quand on arrive de auto via retfun_3
+$0361:A = 0
+
+$0362/rot_loop/above
+La partie ci-dessous prend C, D, H, L, A, B comme un buffer en rotation vers la gauche
+(octet par octet). A est un compteur (sauvé temporairement dans B pendant la rotation) auquel
+on soustrait 8 à chaque fois, jusqu'à attendre $e0 (ce qui fait 4 fois avec A = 0 au début)
+
+$0362:B <- A
+$0362:A <- C
+$0365:Saut si A != 0
+$0365:C <- D
+$0368:D <- H
+$0369:H <- L
+$036A:L <- A
+$036B:A <- B, une sorte de grande rotation entre les registres C, D, H, L, A, B
+$036e:Comparaison avec $e0...
+
 
 $0372/init_f_buf
+
+$37c:Si D H et L sont à zéro, alors on traite C (pour trouver le premier bit à 1 à partir des poids forts)
+$037d/bit_find
+$037d:Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C)
+$0383:C (avec son bit de poids fort à 1) est remis depuis A.
+$0393: EB <- HL
+$0395:Vérification du compteur, saute si arrivé à zéro.
+$039b:Addition dans fac[0] du compteur actuel.
+$039e:Saute si supérieur ou égal à 0 ?
+
+$059d:Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
+$059e/code:Appelé depuis une routine à caue de $060f
+$059f:Rotation à gauche via Carry
+$05a0:Soustraction de A avec A avec retenu.
+$05a1:Saute si la rotation avait débordée dans la retenue.
+$05a2:Sinon, augmente A de 1 (autrement, dit A = 1 puisque la soustraction avait donné 0)
 
 $05a5:Prépare le placement des valeurs $88,$80 dans le buffer de virgule flottante
 
 $05aa/retfun_3
+$05aa:Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro de ligne
+
+$05b2:Mets dans le buffer 'fac' les octets B et $80, B est assigné à 0. C est à 0 (depuis A) en venant du traitement d'auto.
 
 $05c2/fac_to_stck/above
 Function : Place le contenu de faclo et faclo+2 sur la pile
@@ -305,6 +349,22 @@ $0715/out_in/above
 Affiche à l'écran le texte " en "/" in " suivant la langue, suivi de... ?
 
 $0722/out_in_fr
+
+$0726/out_number/above
+Affiche à l'écran un nombre contenu dans HL
+$0726:DE contient une adresse de retour
+$0729:Sauvegarde de la valeur dans la pile pour un prochain RET
+$072a:Et échange de HL et DE (HL contient donc l'adresse du signe '#'. DE contient le numéro de ligne d'AUTO
+$072e:À l'appel, A = 0 et B = $98
+
+$0736:Place $20 dans fbuffr (un espace)
+$073b:Place $2d dans fbuffr (le signe '-') si le flag M est levé (résultat M dans le test des flottants)
+$073e:place $30 dans fbuffr[1] (le chiffre '0')
+$0740:Saut si le résultat était 0
+$0744:Saut si le résultat était < 0
+$074c:Aussi appelé (jp (hl))depuis $07fe
+
+$07ff/data_what:Probablement de la donnée
 
 $0a78:Désactivation de l'affichage
 
@@ -699,6 +759,11 @@ $2299/monitorloop
 $2299:Ligne courante du BASIC à -1
 $22a3:Saute si hors du mode AUTO
 $22a5:Ligne courante du mode AUTO dans HL
+
+$22ab/above
+Suivant si la ligne a déjà du contenu ou pas, le mode de numérotation automatique
+arrivera sur out_space ou out_loop, puis tombera dans la boucle de l'éditeur.
+
 $22ab/out_space:Affiche le caractère espace puis continue dans la boucle BASIC
 $22ae/stoploop/above
 Boucle de traitement du BASIC
@@ -710,25 +775,91 @@ Lorsqu'on arrive ici, CR a été appuyée.
 HL pointe sur l'adresse précédente le buffer en entrée, qui se termine par 0.
 (Ce buffer est tout le temps basbuf en entrée normale ?)
 
-$22b1:Lorsque basic loop sort avec Carry (touche STOP), on boucle immédiatement.
+$22b1:Lorsque monitor sort avec Carry (touche STOP), on boucle immédiatement.
 $22b3:Acquisition d'un nouveau caractère depuis HL dans A
-$22b5:On ne test pas avec "or a" à cause du test de Carry plus loin en $22ca
+$22b5:On ne test pas avec "or a" à cause du test de Carry plus loin en $22ca (vraiment ?)
 $22b6:Si le caractère était zéro, le traitement est terminé
 
 $22bd:Si le flag d'exécution BASIC est différent de 0, branchement en 0 pour un reset de la machine. C'est le cas avec les programmes "protégés", dont l'arrêt provoque le RESET de la machine.
 $22c3:DE contient soit un numéro de ligne, soit 0.
 
 $22c7:En fin de tokenisation, A == 0, donc B prend 0 aussi
-$22c9:Récupération du numéro de ligne dans DE
-$22c9:Récupération du AF de $22b8
-$22ca:Quand est-ce que le Carry est set ? Continuation de ligne ? Autre chose que $FF ?
+$22c8:Récupération du numéro de ligne dans DE
+$22c9:Récupération du AF de $22b8 (vraiment ? Ça n'a pas trop de sens pour lancer l'exécution immédiate)
+$22ca:Quand est-ce que le Carry est set ? Autre chose que $FF ?
 
-$22d3:Incrément du mode AUTO. DE contenait la ligne courante, HL contient la ligne suivante.
+$22cd:Push numéro de ligne
+$22ce:Push de C qui contient la taille du résultat de tokenisation (B = 0 depuis $22c7)
+$22cf:Push de l'adresse de tokenisation (un octet avant)
+
+$22d3:Incrément du mode AUTO. DE contenait la ligne décodée, HL contient la ligne suivante.
+
+$22d7/line_record:Récupération de l'adresse de tokenisation
+$22d8:Et du prochain token à décoder
+$22da:Préparation et sauvegarde d'un test sur le token récupéré
+$22de:Le numéro de ligne qui était dans DE (le numéro de la ligne en cours) a été trouvé.
+
+$22e2:Si le caractère récupéré était NUL, alors on sort vers le moniteur. En effet, si la ligne n'existait pas et qu'il n'y a rien à y encoder, on ne fait rien.
+$22e5:Pourquoi refaire un "or a,a" ici ?
+$22e6:BC contient l'adresse de la ligne trouvée.
+$22e7:Saut si on ne vient pas $22de directement. Autrement dit, si la ligne courante n'a pas été trouvée.
+
+$22e6/prev_found:Sauvegarde dans la pile de l'adresse de ligne précédente trouvée
+$22e9:DE=adresse de la ligne suivante à celle trouvée
+$22ea:HL=pointeur de la zone des variables
+$22ed/erase_line:Copie de la zone depuis la ligne suivante à celle trouvée jusqu'à l'adresse de la ligne trouvée. Autrement dit, on écrase la ligne courante. Ce qui invalide au passage tous les pointeurs de chaînage.
+$22f2:Boucle pour la copie
+$22f6:Ajustement de la nouvelle valeur de (vartab) (comme étant la dernière adresse recopiée dans le bloc précédent)
+
+$22f9/prev_nfound
+$22f9:Récupération de l'adresse initiale de la ligne trouvée (avant déplacement)
+$22fa:Récupération du résultat du test du token sauvé en $22e1 (fait en $22d9)
+$22fd:HL pointe sur l'adresse des variables
+$2300:Récupération dans HL de la taille de la tokenisation
+$2301:Récupération dans BC de l'adresse des variables (vartab)
+$2302:HL contient la nouvelle valeur voulue pour (vartab)
+$2303:Sauvegarde de cette valeur
+$2304:Déplacement du bloc text vers le haut de la mémoire pour faire la place nécessaire à la ligne qui arrive (avec vérification que HL n'a pas touché la stack, sinon, erreur)
+$2307:Récupération de la valeur voulue pour (vartab)
+$2308:Et mise à jour de (vartab)
+$230b:Récupération dans HL de l'adresse de la ligne
+$230c:Mise en place de la première partie de l'adresse de chaînage (nécessaire pour éviter que le chaînage ne soit NUL plus tard et confondre avec la fin de chaîne)
+$230d:DE récupère le numéro de ligne
+$2313:Placement du numéro de ligne, HL pointe sur le début du contenu de la ligne (qui n'est pas encore là)
+$2314:Sauvegarde du pointeur de contenu
+$2315:HL pointe sur le buffer de tokenisation
+
+$2318/cpy_line:Commence la copie du contenu de la ligne
+$231b:Cas spécial pour les valeurs numériques sur 16 bits
+$2321:La copie des deux octets des valeurs numériques
+
+$2325/cpy_not_num
+$2326:Continue la copie tant que la valeur n'est pas zéro. En sortie de boucle, la ligne a été insérée dans la partie texte.
+
+$2328/line_empty:Saut si la ligne est vide
+
+$232b:HL pointe sur (txttab)
+$232c:DE pointe sur (txttab)
+
+$232d/make_chain
+$232e:HL <- DE
+$2332:Si le chaînage est NUL, retour au moniteur (d'où l'intérêt de mettre une valeur temporaire dans le chaînage)
+$2335:HL pointe sur le numéro de ligne
+$2336/skip_2bytes
+$2337:Saut du numéro de ligne
+$2338/adv_1byte
+$2339:Copie dans A de la valeur et avancée du pointeur
+$233c:Si on est sur un marqueur de valeur numérique entière, on saute deux octets (en profitant du saut du numero de ligne)
+$233f:Si l'octet n'est pas NUL, on continue
+$2341:Fin de ligne. On reprend dans HL le pointeur de la ligne précédente (DE en début de boucle)
+$2344:Placement dans le chaînage de la ligne précédente du pointeur de ligne actuel
+
 
 $236b/tokenize/above
 Fonction : effectue la tokenisation du buffer d'entrée
 Entrée : HL pointe vers le contenu à traiter
 (qui est normalement dans basbuf au moins en mode direct)
+Sortie : C contient la taille du résultat de tokenisation en octets (?)
 
 $236c:Le flag est à 0 pour signaler la tokenisation
 $2371:DE pointe sur le buffer de tokenisation
@@ -899,7 +1030,7 @@ $2505:Enregistrement du numéro de la ligne courante
 $2508:Récupération dans HL du pointeur sur le contenu de la ligne BASIC
 
 //-----------------
-$2509/next_token
+$2509/exec_token
 $2509:Récupère le première token du buffer
 $250d:Met sur la pile une adresse de retour qui est "end_of_inst"
 $250e:Retourne en "end_of_inst" si le caractère du buffer est NUL, c'est-à-dire que le contenu de la ligne était vide, ce qui est le cas pour la dernière ligne.
@@ -1003,8 +1134,9 @@ $25d3:"Ligne non définie"
 $234d/goto_after
 $2347/goto_before/above
 Chercher la ligne de BASIC à exécuter, présent dans DE
-En sortie, si Carry Flag est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
-Si Carry Flag est reset, alors la ligne n'a pas été trouvée.
+En sortie, si Carry Flag est levé, alors BC contient le pointeur vers la ligne de BASIC trouvée.
+Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché
+HL contient la ligne suivante à celle pointée par BC.
 
 $234a:HL contient la première adresse du listing BASIC
 $234d:Met la dernière ligne trouvée dans (prelin)
@@ -1149,6 +1281,22 @@ $2bf1:Recheche des quels caractères?
 $2bf3:Boucle sur la recherche
 $2bf5/linestart
 
+$2ead/mem_move_ckk/above
+Fonction : vérify la mémoire
+Entrée : BC et HL deux pointeurs de mémoire (BC < HL), DE un pointeur de référence (DE < BC)
+Copie de DE à BC vers HL en descendant.
+
+$2eb0/mem_move
+
+$2eb0:Mise sur la pile de la taille
+$2eb2:Échange des valeurs de HL et BC
+$2eb3/cpy_loop
+$2eb3:Préparation de la comparaison entre HL et DE
+$2eb5:Copie de (HL) vers (BC)
+$2eb6:Retour si HL a atteind DE
+$2eb8:Décrément de HL et BC
+$2eb9:Boucle de la copie
+
 $2ed9/reset_mem/above
 Reset memoire ?
 Met 0 dans les deux premiers octets de txttab (donc efface l'accès au listing)
@@ -1161,6 +1309,7 @@ $3d91:0 dans (autoflg)
 $3d94:0 dans les deux premiers octets de (txttab). Cela coupe le premier lien du listing BASIC.
 $2ee0/reset_mem_4
 $2ee1:txttab+2 dans (vartab)
+$2ee4/reset_vars:Remet à zéro les pointeurs du modèle mémoire
 $2ee7:HL pointe sur l'octet avant txttab
 $2ee8:HL est mis de côté
 $2eeb:HL prend la valeur de memsiz
@@ -1174,8 +1323,7 @@ La place vérifiée semble être deux fois la place demandée avec une marge de 
 Préserve HL.
 
 $2ec4/mem_verify/above
-Identique à stk_verify mais doit fournir HL en plus de C.
-HL désigne alors la valeur à comparer avec la pile.
+Identique à stk_verify mais fourni HL pour comparer avec la pile.
 
 $2ec2:Ajoute deux fois l'entrée C à strend
 $2ecc:HL <- $FFA0 - HL (HL étant (strend) + 2 * C)
@@ -1395,7 +1543,7 @@ $35f4/char20
 
 ////////////////// 3600 /////////////////
 
-$36a9/sharp_char
+$36a9/sharp_char/code
 
 $36aa/out_str/above
 Fonction: Affichage d'une chaîne à l'écran
@@ -1488,11 +1636,11 @@ Fonction : Retour chariot à la ligne suivante sur l'imprimante
 
 $3c6a:Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
 
-$3ca2/BasicLoop/above
-Fonction: Interpréteur Basic
+$3ca2/monitor/above
+Fonction: Le Monitor
 Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
 
-$3ca8/basloopcnt
+$3ca8/monitor_cnt
 
 $3cae:Traitement si inputsel ne désigne pas un clavier (!= 0)
 
@@ -1511,9 +1659,23 @@ $3ccf:HL est à présent sur?
 
 $3d9a/auto/above
 Traitement appelé lorsque le mode AUTO est activé
+DE contient l'ancien numéro de ligne (ou le premier en début de AUTO)
+HL contient le nouveau numéro de ligne.
 
-$3daa:Traitement d'un overflow sur AUTO ?
+$3d9e:Récupération du numéro de ligne
+$3d9f:Recherche de la ligne (pointeur dans HL si résultat)
+$3da2:Continue par l'affiche d'un espace si la ligne n'a pas été trouvée
+$3da7:Sinon, affiche le caractère $a0 pour indiquer qu'il y a déjà du contenu.
+
+
+$3daa/after_auto
+$3daa:Traitement d'un overflow sur AUTO. Si HL est devenu trop grand, on arrête.
+$3dad:Préparation de la comparaison avec $fff9 (65529, plus haut numéro de ligne valide)
+$3db2:si HL (le numéro de ligne courant) est égal ou supérieur à $fff9, on arrête AUTO
+$3db4:Sinon, la nouvelle ligne auto est validée
 $3db9/stopauto:Stop le traitement de AUTO
+
+$3dbd/after_auto2
 
 $3dc0/initscreen1
 $3de1/decodenext
