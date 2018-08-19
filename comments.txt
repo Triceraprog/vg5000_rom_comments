@@ -33,7 +33,11 @@ Entrée : le caractère est contenu dans A
 $001B/setext/code
 $001B/above
 Fonction : redéfinition d'un caractère
+Change un caractère programmable dans la mémoire vidéo.
 Entrée :
+A contient le carractère à changer (sur 7 bits).
+A contient sur le bit 7 la nature de la palette (0 == Texte, 1 == Graphique)
+HL pointe sur le buffer de 10 octets avec les valeurs
 Registres modifiés :
 
 $0020/de_compare/above
@@ -1602,6 +1606,16 @@ $367f/out_str_2
 $367d:Tant que l'on traite des caractères normaux
 $3681:Traitement spécifique pour les guillemets
 $3670:Sauve la valeur courante de hl (pointe sur ... )
+
+$3aa9/k7write
+
+$3a81/k7sync
+
+$3af3/k7test
+
+$1e00/k7end/code
+
+$3b48/k7read
 
 $38b1/above
 Instruction : FRE()
