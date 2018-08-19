@@ -286,7 +286,7 @@ $039b:Addition dans fac[0] du compteur actuel.
 $039e:Saute si supérieur ou égal à 0 ?
 
 $059d:Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
-$059e/code:Appelé depuis une routine à caue de $060f
+$059e/code:Appelé depuis une routine à cause de $060f
 $059f:Rotation à gauche via Carry
 $05a0:Soustraction de A avec A avec retenu.
 $05a1:Saute si la rotation avait débordée dans la retenue.
@@ -1214,16 +1214,17 @@ Sinon, traitement.
 $2adf:Attente d'une interruption
 
 $2ae8:Son lorsqu'un caractère est reçu
-$2afb:Bit pour indiquer que la ligne est entrée en BASIC
+$2afb:Bit pour indiquer que la ligne est entrée en BASIC (quelque chose a été entré en tout cas et sera traité par le saut en $2adc)
 $2aff:Si le bit de signe était 1 dans le caractère lu
 $2b02:Comparaison de la touche avec ENTREE
 $2b07/acquirekeyn3/above
 Suite (2) du traitement de l'entrée
 
-$2b2d/exitacquire
+$2b2d/acquire_nul:Ici, la valeur acquise passe à zéro avant de sortir de la fonction
+
 $2b2e/endacquirek
 $2b32/bufferstart/above
-Fonction : lorsque le bit 1 de $4871 est à 0, arrive ici pour analyse
+Fonction : lorsque le bit 1 de $4871 est à 1, arrive ici pour analyse
 À l'air de se positionner sur le premier caractère interessant à décoder
 
 
@@ -1248,6 +1249,7 @@ $2be0/ifcr:Récupération des coordonnées du curseur
 
 $2be9:Comparaison à $80, la caractère de début de ligne
 
+$2be3/find_start_l
 $2be3:Décrémentation de X
 $2be4:Sauvegarde des coordonnées modifiées du curseur
 $2be8:Récupération des coordonnées
@@ -1256,30 +1258,67 @@ $2be8:Récupération des coordonnées
 $2b23/acquirekeyn7/above
 Suite (6) du traitement de l'entrée
 
+$2b24/acquire_sync:Attend le prochain affichage puis passe dans l'annulation de la valeur acquise et la sortie.
+
 
 $2b24:Force un affichage
 $2b2d:A est effacée en traitement normal de touche (et déjà 0 si pas de touche entrée)
 $2b2e:Nettoyage de fin de fonction
+
+$2ba7/acquired_cr
+
+$2bf1:Recheche du caractère de continuation ? ($B4)
+$2bf3:Boucle sur la recherche
+$2bf5/linestart
+$2bf7:Si on n'était pas sur la colonne 0, c'était une fausse alerte et non un vrai début de ligne, on continue à chercher.
+$2bfe:Si on n'est pas en mode auto, on continue le traitement de la ligne.
+$2c01:Sinon, le mode AUTO est annulé
+$2c04:L'adresse du curseur mis à jour
+$2c09:Le marqueur $84 (re)mis? en place
+$2c0a:Et la touche acquise sera validée comme étant $0D (sans traitement)
+
+
+$2c0d/find_cont:Traitement lors d'une continuation trouvée au début de la ligne
+$2c0f/find_start:Remonte de ligne en ligne jusqu'au premier marqueur de non continuité (et donc à la première ligne).
 $2c14:Peek du caractère en colonne 0
+$2c1b:Saute si on est arrivé en haut de l'écran (H est passé à $FF)
+$2c18:Test sur $84, qui est le marquage de continuité des lignes. Saut lorsqu'on ne le trouve plus. On est en tout début du ligne.
 $2c1e:Boucle sur la remontée des Y
-$2c18:Test sur $84, qui est le marquage de continuité des lignes
-$2c20/notcontinous:Coordonnées placées en début de la première ligne
+
+$2c20/found_start:Coordonnées placées en début de la première ligne
 $2c23:Test de INPUT activé
+$2c25:Traitement spécifique si le monitor était en train de traiter un INPUT
 $2c2c:Recupération des coordonnées de début d'entrée
-$2c33:DE contient les cooronnees de début d'entrée. HL l'adresse mémoire
+$2c33:DE contient les coordonnées de début d'entrée. HL l'adresse mémoire
 $2c35:Comparaison de X avec la colonne 40
 $2c4b/ifinput
 $2c4e:Enregistrement du premier caractère de la ligne ($80 en mode direct)
 $2c56:Set du flag pour "ligne entrée en BASIC"
 $2c5d:Placement des coordonnées sur le caractère en colonne précédente (donc 0?)
-$2c60/screenstart
+$2c60/screenstart:La fonction sortira avec pour valeur acquise NUL.
 $2c63/iftab
 $2c89/iflinef
 $2caf/ifformf
 
-$2bf1:Recheche des quels caractères?
-$2bf3:Boucle sur la recherche
-$2bf5/linestart
+
+$2d76/func_keys
+$2d78:Saute si la valeur est inferieure à $ba
+$2d7d:Saute si la valeur est supérieure ou égale à $fb
+
+$2d83/loop_accel:Recherche la valeur de la touche d'accélération dans le tableau
+des chaînes affichées par les touches accélératrices.
+$2d87/out_accel:Provoque l'affichage de la chaîne accélérée (raccourci BASIC)
+$2d8a:Lorsque le bit de poids fort est 1, alors la chaîne est terminée, on sort.
+$2d8d:Affichage du caractère de la chaîne en train d'être affichée.
+
+$2d91/ctrl_keys/above
+Traitement des touches de contrôle (des touches de contrôle ?)
+
+$2d9a:A est remplacé par la valeur trouvée dans la table d'indirection à 10 entrée en $487a (comment est-elle remplie ?)
+
+$2d9e/accel_keys
+
+
 
 $2ead/mem_move_ckk/above
 Fonction : vérify la mémoire
@@ -1695,6 +1734,8 @@ $3e0c:Si différent, branche
 
 $3e2d/acquirekeyn2/above
 Suite (1) du traitement de l'entrée
+
+$3e2d:Saut si la touche appuyée était ENTREE
 
 $3e35:Si on est en basexec == 1
 
