@@ -45,7 +45,7 @@ Fonction : comparaison de HL et DE
 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 En sortie, C sera positionné si HL < DE
 
-$0028/above
+$0028/getsign/above
 Renvoie $FF, $00 ou $01 en fonction du contenu du buffer flottant.
 Préserve HL
 
@@ -303,6 +303,12 @@ $05aa:Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro 
 
 $05b2:Mets dans le buffer 'fac' les octets B et $80, B est assigné à 0. C est à 0 (depuis A) en venant du traitement d'auto.
 
+$05b8/above
+Fonction BASIC : ABS()
+
+$05b9:Retour immédiat si le signe est positif
+$05ba/inv_sign:Change le signe de l'accumulateur FAC par son opposé
+
 $05c2/fac_to_stck/above
 Function : Place le contenu de faclo et faclo+2 sur la pile
 en préservant la valeur de retour pour RET.
@@ -388,11 +394,31 @@ $0a9e:Cas inférieur à 'A'
 $0b11/play_exit
 $0b12:provoque un rafraichissement 3 IRQ plus tard.
 
+$0c6d:Récupère le premier paramètre
+$0c73:Si le premier paramètre est 0, l'augmente de 1
+$0c74/snd_val_ok
+$0c76:Met la valeur du son dans DE'
+$0c79:Attente du son = 256 - A (plus la valeur du paramètre est haute, moins on attend)
+$0c7a:-val du son dans C'
+$0c7c:Vérification de la présence d'une virgule
+$0c7e:Récupère le deuxième paramètre
+$0c82:HL <- DE << 8 ; DE <- DE * A
+$0c87/de_d_16_lp
+$0c8c:DE est divisé par 16
+$0c8e:Et íncrémenté
+$0c93:Valeur par défaut du troisième paramètre
+$0c95:Saut si pas de troisième paramètre (pas de virgule)
+$0c98:Sinon, récupération dans A du troisième paramètre
+$0c9b/no_cycle
+$0c9c:Sauvegarde du troisième paramètre
+$0c9e:Première valeur du cycle = attente du son + troisième paramètre
+$0ca4:Deuxième valeur du cycle = attente du son - troisième paramètre
+
 $0ca7/snd_emit
 $0ca7/above
 Fonction : émet un son
 Durée dans DE
-SONSAV indique la phase
+SONSAV_1 et SONSAV_2 indiquent la phase (première et seconde)
 
 $0ca8/snd_dur_lp
 
@@ -402,6 +428,10 @@ $0cc1/snd_H_wait
 $0cca:Mise à état bas de la sortie son
 
 $0cd3:Fin de la procédure snd_emit
+
+$0cd4/de_mul_a/above
+Entrée : A, DE
+Sortie : HL = DE << 8 (autrement dit, H <- E) ; DE = DE * A ; A inchangé
 
 $0ce6/wait_69c
 $0ce6:Wait 69 cycles, call included
@@ -705,7 +735,18 @@ $1771/txt_in_fr
 $1776/txt_in_en
 $177b/txt_next
 
+$1aef/ok_clear:Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
+
 $1d97/sendchar_k7
+
+$1e89/fetch_next/above
+Va chercher une adresse stockée dans le compteur 'high' (normalement utilisé par les cassettes)
+L'incrémente et va y chercher la valeur en entrée.
+Si cette valeur est $03, alors termine l'action en revenant sur le clavier.
+Sinon, la valeur est retournée par A pour être décodée.
+
+
+$1e97:Replace le périphérique d'entrée sur le clavier
 
 
 ////////////////////
@@ -1197,6 +1238,8 @@ $282c:Lecture du prochain caractère (non blanc, numérique, essayer avec INIT A
 $28dd:Cas où le caractère est NUL
 $28e0:Cas où le caractère est un chiffre.
 
+$2966:Appel à une fonction pour évaluation ?
+
 $29f0/retfun_2:B contient la valeur de la fonction, A contient 0, quand appelé depuis retfun_impl
 $29f6:Place 0 dans la globale valtyp, ce qui signifie que la valeur est numérique
 
@@ -1205,14 +1248,19 @@ $2a0f/above
 Function : met en place la valeur de retour d'une fonction
 Prerequis : valeur dans A (?)
 
-$2aa5/getbyt_impl
+$2aa5/getbyt_impl/above
+Fonction : récupère un entier sur un octet depuis le buffer d'entrée
+Entrée : HL pointe sur la zone de texte
+Sortie : A contient l'entrée
 
 $2ae4:Saute en fin de fonction si aucun caractère n'a été entré
 
 $2ad4/acquirekey/above
 Fonction: décode une touche du clavier et l'affiche à l'écran à la position du curseur.
 Attends un refresh (HALT) puis scrute le clavier.
-Si rien n'a été appuyé, sort immédiatement.
+Si rien n'a été appuyé, sort immédiatement. A == 0
+Si la touche a été traitée, A == 0
+Quand est-ce que A != 0 ?
 Sinon, traitement.
 
 $2adf:Attente d'une interruption
@@ -1650,10 +1698,13 @@ première colonne, fait un saut à la ligne sur le terminal. Sinon, ressort.
 
 $3c4a/putnulatend/above
 Fonction: met un caractère NUL à la fin de la chaîne précédent le pointeur HL actuel, en ignorant les espaces.
-À la fin de la fonction, HL contient $4897
+À la fin de la fonction, HL contient $4897, c'est-a-dire juste avant le buffer de crunch de la ligne.
 
 $3c4e:Recale le pointeur HL sur le derniere caractère non espace ($20) avant le CR ($0D)
 $3c50:HL pointe donc à présent juste après le dernier caractère de la ligne à traiter
+$3c51/hl_oncrunch/above
+Met un zéro à l'emplacement pointé par HL puis fait pointer HL en début de buffer de crunch.
+
 $3c52:Place un $0 à la fin de la chaîne
 $3c56:Ayant été appelé par jp, ce RET va sortir de la boucle de traitement de basicloop (et se retrouver en $22b1)
 
@@ -1693,12 +1744,17 @@ $3ca2/monitor/above
 Fonction: Le Monitor
 Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
 
+$3ca4:Commence par un appel à l'input hook qui par défaut revient immédiatement.
+
 $3ca8/monitor_cnt
+$3cac:Saute si le périphérique d'entrée actuel est le clavier. En fait, non getflg ici indique si on est en train de décoder une entrée ou bien si on exécute un stream BASIC tokénisé.
 
 $3cae:Traitement si inputsel ne désigne pas un clavier (!= 0)
 
 $3cb5/keyloop/above
 Fonction : Traitement du moniteur pour une entrée par le clavier
+
+$3cb9:Saute si une touche a été appuyée et nécessite un traitement. La plupart des touches renvoient 0 dans A. Quelles touchent sortent avec A != 0 ? STOP par exemple.
 
 $3cbe:Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
 $3cc0:La touche STOP a été appuyée. Carry est à 1.
@@ -1706,9 +1762,12 @@ $3cc0:La touche STOP a été appuyée. Carry est à 1.
 $3cc1/decodebasic/above
 Fonction : décode la ligne en BASIC ?
 
-$3cc7:Remise du caractère dans le buffer sur 7 bits
-$3ccb:Comparaison de HL avec $4918
-$3ccf:HL est à présent sur?
+$3cc3:Saute si la touche était la touche entrée.
+
+$3cc7:Remise du caractère dans le buffer en s'assurant qu'il soit sur 7 bits
+$3ccb:Comparaison de HL avec $4918, qui est juste avant la fin du buffer de crunch. Mais comment est-ce que HL pourrait déborder ? Pas en entrée direct on dirait... Il est possible qu'on n'arrive là que via la lecture k7 ?
+$3ccf/hl_incbuf
+$3ccf:HL pointe sur la position suivante dans le buffer de crunch
 
 $3d9a/auto/above
 Traitement appelé lorsque le mode AUTO est activé
@@ -1732,7 +1791,12 @@ $3dbd/after_auto2
 
 $3dc0/initscreen1
 $3de1/decodenext
-$3de1:Saute si Carry set. Quand? Le saut incrémente HL puis branche en $3ca8, comme l'instruction suivante.
+$3de1:Si HL était avant la fin du buffer de crunch, on incrémente HL et on continue.
+$3de3:Si HL n'est pas égal non plus, c'est qu'il est supérieur à la fin du buffer de crunch, on loop directement sur le moniteur sans toucher à HL.
+$3de3:Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ?) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
+
+$3de9/ind_inchl:Saut intermédiaire pour aller incrémenter HL
+
 $3dfb/acquirekeyn4/above
 Suite (3) du traitement de l'entrée
 
@@ -1798,7 +1862,8 @@ $480B/retadr:Coordonnées de la prochaine ligne à interpréter
 $480D/entstt:programme ($82) ou direct ($80)
 
 // Sound System
-$480e/sonsav
+$480e/sonsav_hi
+$480f/sonsav_lo
 
 // Cassette
 $4810/ft:Table de fichier
@@ -1847,6 +1912,7 @@ $4895/stktop:Addresse de départ (maximale) pour la pile. Initialisée tout en h
 // BINTRP
 $4897/bufmin:Zone précédent la zone de tokenisation. Mis dans HL après avoir mis NUL en fin de chaîne à traiter.
 $4898/basbuf:Buffer d'entrée pour le BASIC
+$4918/basbufpre:Juste avant la fin du buffer
 $4919/basbufend:Fin du buffer
 // $4919/endbuf
 $491a/dimflg
