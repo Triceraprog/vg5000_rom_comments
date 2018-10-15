@@ -1230,13 +1230,73 @@ $2610/above
 Instruction : LET
 Appelé lorsque le buffer tokenisé ne contenait pas un token.
 
+$2614:Code $C1 pour la vérification du dessus. $C1 est l'opérateur '=', ici d'assignation. Une erreur de syntaxe est émise s'il n'est pas présent.
+$2615:Sauvegarde de la zone de la variable (deux octets après son identifiant)
+$2616:Récupération de son type
+$2619:Sauvegarde de son type
+$261a:Évaluation de l'expression.
+$261d:Récupération du type. HL pointe actuellement sur la suite du parsing.
+$261e:Récupération dans HL de l'adresse du contenu de la variable
+$261f:Cette adresse est sauvegardée dans (temp)
+$2622:Mise du type de la variable dans le Carry (1 si chaîne, 0 si numérique). A est à 0.
+$2623:Vérification de la compatibilité du type de l'expression et de la variable.
+$2626:Saut en cas de variable numérique
+
+$2657/set_num_var
+
 $284d/frnum_impl/above
 Fonction :
+
+$2852/type_eq_chk/above
+Fonction: vérifie que deux types sont égaux
+Entrée: Carry flag pour l'un des deux types, (valtyp) pour le second
+Sortie: Retour en cas de parité paire, c'est-à-dire si Carry et (valtype) sont égaux.
+Sinon, branche sur "Opérande mal adapté"
+
+$285f/paren_expr/above
+Fonction appelée récursivement par l'évaluation commencée par read_expr.
+Commence par vérifier la présence d'une parenthèse ouvrante puis continue l'évaluation.
+Il n'y a pas de partial instruction en $2860, c'est uniquement le paramètre de chkchr
+
+$2861/read_expr/above
+Leture d'une expression ???
+
+$2867:Vérification qu'il est possible de mettre 1 octet (C) sur la pile
+$286d:Sauvegarde de l'adresse de parsing courante
+$2870:Récupération de l'adresse de parsing courante
+$2873:Récupération de la valeur de DE pushée en début de fonction
+$2877:Saut si A >= $78 ???
+$287b:Sauvegarde de l'adresse de parsing courante
+$287e:$b9 est le token pour '+', qui est aussi le premier token qui n'est pas une instruction
+$2880:Retour si ce qui est parsé est avant le '+', donc ne faisant plus partie de l'expression
+$2881:$c3 est le code de SGN, la première fonction prédéfinie. ???? que se passe-t-il pour la suite de l'évaluation ????
+
+$28d8/parse_value/above
+Fonction: parse une valeur depuis HL+1. Cette valeur peut être numérique, alphanum ou bien une fonction
+prédéfinie ou utilisateur.
 
 $28d9:Type numérique
 $282c:Lecture du prochain caractère (non blanc, numérique, essayer avec INIT ABC ?)
 $28dd:Cas où le caractère est NUL
 $28e0:Cas où le caractère est un chiffre.
+$28e3:Caractère '&'
+$28e5:Saut si sur le point de parser un nombre en hexa
+$28eb:Saut si la valeur est entre A et Z
+$28ed:Token pour '+'
+$28f1:Caractère '.'
+$28f6:Token pour '-'
+$28fa:Caractère '"'
+$28ff:Token pour 'NOT'
+$2904:Token pour 'FN'
+$2909:Token pour 'SGN', la première des fonctions
+$290d:Cas de la sous-expression entre parenthèses.
+$2911:Caractère ')' pour le check du-dessus. Donc erreur de syntaxe si une variable fermante n'est pas trouvée.
+
+$2913/str_to_min
+$2924/str_to_var
+$2935/str_to_func
+$29d3/str_to_not
+$2a41/str_to_fn
 
 $2966:Appel à une fonction pour évaluation ?
 
@@ -1452,6 +1512,12 @@ $2f5a:Récupére AF... sans intérêt, on le push juste après sans rien en fait
 $2f68/break_fr
 $2f69:Comment est-ce que cela peut être NZ ?
 
+$2f98/a_to_z/above
+Vérification que le caractère pointé par HL est entre A et Z inclus.
+Dans le cas contraire, lève le drapeau de retenu.
+
+$2f99/a_to_z_2:Appelé ici lorsque A contient déjà la caractère à vérifier
+
 /////////////////////////////////////////
 ////////////////// 3000 /////////////////
 /////////////////////////////////////////
@@ -1634,26 +1700,46 @@ $35f4/char20
 
 ////////////////// 3600 /////////////////
 
-$36a9/sharp_char/code
-
-$36aa/out_str/above
-Fonction: Affichage d'une chaîne à l'écran
-Entrée: HL pointe sur la chaîne de caractère terminée par un 0
+$3660/len_in_buf/above
+Fonction: met la longueur de chaîne puis rien puis DE (pointeur de chaîne) dans dsctmp
+Entrée: C contient un nombre de caractères (longueur de chaîne), DE ?
+Sortie: HL pointe sur le buffer temporaire de chaîne, dsctmp
 
 $366c/out_str_prc/above
 Fonction: traite la chaîne de caractères à afficher avec extention des variables.
 
 $366c:Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
+$366d/str_to_str
+$3670:Sauve la valeur courante de HL, la mémoire à parser entre guillemets
+$3673/loop_str
 $3674:Récupération du caractère dans a
-$3675:Incrémentation du compteur de caractères affichés
+$3675:Incrémentation du compteur de caractères parsés (longueur totale de la chaîne)
 $3677:Si le caractère est 0 (fin de chaîne)
 $367a:Si le caractère est $22 (=34, guillemets)
 
 $367f/out_str_2
 
 $367d:Tant que l'on traite des caractères normaux
-$3681:Traitement spécifique pour les guillemets
-$3670:Sauve la valeur courante de hl (pointe sur ... )
+$3681:Traitement spécifique pour les guillemets (saute jusqu'au prochain caractère intéressant ?)
+$3684:Récupération du pointeur du début de la chaîne dans HL
+$3686:DE contient le début de la chaîne +1 (dont après les guillemets)
+$3687:A <- longueur de la chaîne
+$368e:HL récupere le pointeur actuel de traitement de la chaine
+$3691:Cette valeur est aussi mise dans (faclo)
+$3696:La valeur courante est une chaîne de caractères
+$3699:Copie les 4 premiers octets de dsctmp vers HL, qui pointe vers temppt,faclo
+$369c:Comparaison avec DE, qui est dsctmp et agit donc comme gardien de fin de buffer (après tempst) (où est initialisé temppt à part au reset de stack ???)
+$369d:Mise à jour du pointeur vers le buffer tempst
+$36a0:Récupération du pointeur de parsing
+$36a1:Lecture du prochain caractère
+$36a2:Retour s'il reste de la place dans le buffer tempst
+$36a6:Lancement de l'erreur "Formule chaine trop complexe"
+
+$36a9/sharp_char/code
+
+$36aa/out_str/above
+Fonction: Affichage d'une chaîne à l'écran
+Entrée: HL pointe sur la chaîne de caractère terminée par un 0
 
 $3aa9/k7write
 
@@ -1673,8 +1759,86 @@ $38b4:DE contient l'adresse de (strend)
 $38b8:HL contient l'adresse de la pile
 $38bd:Saute si (valtyp) est à 0 (nombre)
 
-$29ea/inst_fre_2
 $38ca:HL contient (fretop) et DE contient (stktop)
+
+$38d5/above
+Instruction : DIM
+
+$38da/defvar:Saut depuis LET pour définir une variable
+$38da/above
+Fonction qui parse le nom de la variable et initialise l'espace nécessaire après arytab, en poussant
+l'existant. Puis inscrit l'identifiant. Si la variable existe, se contente de la retourner.
+En entrée: HL pointe sur la zone de parsing.
+En sortie: DE pointe sur la zone après l'identifiant et HL sur la zone de parsing.
+Vérifier ce qu'il se passe avec un tableau, deux caractères, diff entre num et char et variable déjà existante.
+
+$38db:En fonction de l'arrivée par DIM ou LET, met 0 (LET) ou $AF ? (DIM) dans dimflg
+$38de:Récupération du premier caractère de la variable dans C
+$38e2:Si le nom de variable ne commence par par une lettre majuscule entre A et Z, c'est une erreur de syntaxe (rappel : tout ce qui est parsé hors chaîne de caractère est passé en majuscules)
+$38e7:valtyp à 0 par défaut (valeur numérique)
+$38ea:Lit le caractère suivant
+$38eb:Saute si le caractère lu est un chiffre
+$38f0:Saute si le caractère lu n'est pas entre A et Z (donc si ni chiffre ni A à Z l'identifiant est terminé)
+$38f2/idnum_trail
+$38f3/idtrail_skp
+$38f4:Avance la lecture de l'identifiant tant que l'on trouve des chiffres
+$38f9:Avance la lecture de l'identifiant tant que l'on trouve des lettres
+$38fb/id_end:Le nom de l'identifiant a été lu. On vérifie son qualificatif en '$'
+$38fd:Si '$' n'est pas présent, on saute. La valeur est bien numérique.
+$38ff:Sinon, la variable est de type chaîne de caractères
+$3900:Ce qui est indiqué dans valtyp
+$3903:A <= $80 et Carry à 1
+$3904:??? quand est-ce que B est différent de 0 ?
+$3905:B <- B + A ($80)
+$3906:Lecture du caractère suivant le '$'
+$3907/num_vrble:Traitement de subflg ???
+$390b:Saut si subflg était égal à 1
+$390e:Saut si subflg était supérieur à 1
+$3914:Saut si le caractère suivant est une parenthèse ouvrante (pour le dimensionnement des tableaux)
+$3918:Reset de subflg
+$391b:Push de la position actuelle du pointeur de parsing
+$391d:DE <- BC
+
+$3925:Saute si le pointeur prmnam et le contenu actuel de DE sont identiques (avec DE mis à prmval juste avant)
+$392c:HL est à (vartab) et DE est à (arytab). L'espace de stockage des variables est entre les deux (HL < ou égal à DE)
+$392f/next_var
+$3930:Saut si HL et DE sont égaux, c'est-à-dire (vartab) == (arytab) (donc pas de variable définie)
+
+$3933:À cet endroit, HL < DE et l'espace entre les deux contient des variables. BC contient l'identifiant de la variable en train d'être parsée.
+$3934:Comparaison du premier caractère de la variable avec le premier caractère de la variable pointée
+$3935:Incrémente HL avant le saut potentiel
+$3936:Saut si les caractères étaient différents (dont pas la bonne variable)
+$393a:Comparaison des seconds caractères
+$393b/var_diff:Incrémente pour la deuxième fois HL, qui pointe après l'identifiant.
+$393c:Saute si le second caractère était identique à celui pointé. On a donc retrouvé la variable et on saute à la fin de la fonction
+$3942:La variable n'a pas été trouvée, on saute les 4 prochains octets pour aller vers la suivante (ou terminer en atteignant DE=(arytab))
+
+$3946/no_var_yet
+$3947:Récupération dans HL dans la valeur de retour du CALL (2613 si appelé par LET)
+$3948:Push de DE qui contient arytab
+$394c:Comparaison de l'adresse de retour avec $2927 (quelle instruction ???)
+$3948:Pop de DE qui contient maintenant arytab
+$394e:Saut si l'adresse de retour était $2927 (???). Attention, l'adresse de retour est toujours dans HL et le pointeur de parsing sur la pile
+$3951:Remise en place de l'adresse de retour et HL pointe sur le parsing.
+$3952:Sauve le pointeur de parsing
+$3953:Sauve BC, qui contient ???
+$395c:Récupération de strend dans HL (pointeur de fin de mémoire utilisable)
+$395b:Ajout de 6 à strend
+$395d:Sauvegarde de strend + 6
+$395e:Copie de DE,BC vers HL
+$3962:(strend) <- (strend) + 6
+$3966:HL <- BC
+$3967:(arytab) <- HL
+$396a/clean_mem
+$396e:Mise à zéro de la partie entre l'ancien (arytab) (DE) et le nouveau (HL). C'est-à-dire l'espace libérée pour la nouvelle variable.
+$3970:Que recupère DE ??? Les deux caractères significatifs de la variable ? ($80 pour le second si un seul caractère ?)
+$3974:(HL) <- DE et HL += 2
+$3975/var_found:DE pointe sur la mémoire après le nom de la variable
+$3976:HL pointe sur la zone de parsing
+
+$3983/dim_set
+
+$29ea/inst_fre_2
 
 $3bd0/outdo_impl/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
@@ -1941,7 +2105,7 @@ $49d8/vartab
 $49da/arytab
 $49dc/strend
 $49de/datptr
-$49ed/prmnam
+$49e0/prmnam
 $49e2/prmval
 $49e6/faclo
 $49e8/faclo_2
