@@ -331,6 +331,24 @@ Copie le contenu des 4 premiers octets pointés par DE vers ce que pointe HL
 
 $05ee/cpy_4_loop
 
+$0679/dim_compute/above
+Calcul la taille mémoire nécessaire pour stocker une dimension de tableau
+Entrées :
+BC == taille d'une dimension (ou index) du tableau
+DE == taille d'une entrée pour cette dimension (4 pour la première dimension, puis la taile d'une dimension pour les suivantes)
+Si une taille devient trop grande, lance une erreur Subscript Out of Range
+Retour :
+HL contient la taille nécessaire (ou le déplacement)
+DE == 0
+BC n'est pas touché
+
+
+$067e:Si BC == 0, retour immédiat
+$067f:Préparation d'une boucle de 16 itérations
+$0681:HL <- HL * 2
+$0687:DE <- DE * 2
+$068f:Boucle sur A (16 fois)
+
 $0692/str_to_num/above
 Function: transforme le texte pointé par HL en nombre
 
@@ -538,6 +556,9 @@ $0f3a:Vérification de l'appuie de la touche ESPACE
 
 $0f3e/stka_joy0
 $0f3a:Vérification de l'appuie sur la bouton action du joystick 0
+
+$1af8/mem_out_err
+$1afc:Affiche l'erreur "Out of Memory"
 
 $1ff3/stka_joy1
 $1ff3:Vérification de l'appuie sur la bouton action du joystick 1
@@ -776,7 +797,7 @@ $2244/undeffn:Affiche une erreur "Fonction utilisateur non définie"
 $2247/overflow:Affiche une erreur "Dépassement de capacité"
 $224a/missing_op:Affiche une erreur "Opérande manquante"
 $224d/wrong_op:Affiche une erreur "Opérande mal adaptée"
-$2250:Affiche une erreur "Non reconnue"
+$2250:Affiche une erreur "Device not supported"
 
 
 
@@ -1118,7 +1139,15 @@ $2544:Compare avec '0'
 $2546:Inverse la retenue. Donc le flag C sera mis si le caractère est supérieur ou égal à '0' (donc un chiffre).
 $2548:Manipulation de A pour mettre le flags en fonction de la valeur du caractère (comment exactement ?)
 
+$254a/num_read/above
+Lecture d'un nombre depuis une chaine pointée par HL.
+Quelle différence avec str_to_num ???
+Sortie dans DE ???
+
 $2552/deint_impl
+
+$2567/ill_call
+$2569:Affichage "Illegal function call"
 
 $256c/get_lin_num/above
 Fonction : sur la ligne pointée par HL, récupère le paramètre numérique sur 16 bits dans DE
@@ -1174,7 +1203,7 @@ $25c5:C si DE supérieur à HL
 $25c7:Saute si le numéro de ligne du GOTO est au-delà de la ligne courante
 $25ca:Saute si le numéro de ligne du GOTO est avant la ligne courante
 $25d0:Retour en cas de ligne trouvée (HL pointe sur l'octet avant la ligne courante)
-$25d3:"Ligne non définie"
+$25d3:Erreur "Undefined line number"
 
 $234d/goto_after
 $2347/goto_before/above
@@ -1205,7 +1234,7 @@ Instruction : RETURN
 $25d6:S'il y a des choses après le RETURN, retour immédiat. Return n'a pas de paramètre.
 $25dc:Ajuste la pile à la valeur calculée par marker_vrfy. Ce qui remet la pile avant le marqueur (au passage, on n'a plus l'adresse de retour de l'appel à l'instruction en cour)
 $25dd:Vérification du marqueur placé par GOSUB
-$25e1:S'il n'est pas là, lancement d'une erreur "RETURN sans GOSUB"
+$25e1:S'il n'est pas là, lancement d'une erreur "RETURN without GOSUB"
 $25e5:Récuération de l'adresse de la ligne appelante et sauvegarde dans (curlin)
 $25eb:Vérification que la valeur incrémentée de 1 n'est pas 0 sinon... ben rien. C'est louche. Visiblement, un test de la valeur de ligne FFFF qui a tourné court.
 $25f0:Remise en place en haut de pile de l'adresse de retour de l'instruction. Le POP HL récupère le pointeur d'exécution de la ligne qui avait le GOSUB. Puis quelques instructions nulles, pour arriver en 25f7.
@@ -1243,6 +1272,8 @@ $2623:Vérification de la compatibilité du type de l'expression et de la variab
 $2626:Saut en cas de variable numérique
 
 $2657/set_num_var
+
+$283b:Sors avec "Out of DATA"
 
 $284d/frnum_impl/above
 Fonction :
@@ -1307,6 +1338,8 @@ $2a0f/retfun_impl
 $2a0f/above
 Function : met en place la valeur de retour d'une fonction
 Prerequis : valeur dans A (?)
+
+$2a92:Sors avec "Illegal direct"
 
 $2aa5/getbyt_impl/above
 Fonction : récupère un entier sur un octet depuis le buffer d'entrée
@@ -1468,7 +1501,7 @@ $2eee:fretop est donc mis à memsiz, cela signifie que toute la mémoire est dis
 $2ef5:(vartab) est placé dans (arytab) et (strend). Autrement dit, élimine toutes les variables, les tableaux et les chaînes.
 
 $2ebb/stk_verify/above
-Entrée : C, le nombre d'octet que l'on voudrait mettre sur la pile
+Entrée : C, le nombre de mots de 2 octets que l'on voudrait mettre sur la pile
 S'il n'y a pas la place demandée sur la pile, provoque un message d'erreur.
 La place vérifiée semble être deux fois la place demandée avec une marge de $60 octets.
 Préserve HL.
@@ -1482,7 +1515,7 @@ $2ecd:S'il n'y a pas au moins $60 octets entre la valeur désirée et $FFFF, alo
 
 $2ed1:Si HL + SP provoque une retenue, alors on revient, il y a assez de mémoire. Sinon, c'est qu'il y a moins de $60 octets entre la pile et (strend), il n'y a pas assez de mémoire.
 $2ed2/out_of_mem
-$2ed5:"Sortie de mémoire"
+$2ed5:"Out of Memory"
 
 $2efe/resetstack/above
 Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
@@ -1511,6 +1544,8 @@ $2f54/no_line
 $2f5a:Récupére AF... sans intérêt, on le push juste après sans rien en faite.
 $2f68/break_fr
 $2f69:Comment est-ce que cela peut être NZ ?
+
+$2f77:Sors avec l'erreur "Cannot continue"
 
 $2f98/a_to_z/above
 Vérification que le caractère pointé par HL est entre A et Z inclus.
@@ -1733,13 +1768,18 @@ $369d:Mise à jour du pointeur vers le buffer tempst
 $36a0:Récupération du pointeur de parsing
 $36a1:Lecture du prochain caractère
 $36a2:Retour s'il reste de la place dans le buffer tempst
-$36a6:Lancement de l'erreur "Formule chaine trop complexe"
+$36a6:Lancement de l'erreur "String formula too complex"
 
 $36a9/sharp_char/code
 
 $36aa/out_str/above
 Fonction: Affichage d'une chaîne à l'écran
 Entrée: HL pointe sur la chaîne de caractère terminée par un 0
+
+$36d6/out_str_mem
+$36da:Sors avec l'erreur "Out of string space"
+
+$379b:Sors avec "String too long"
 
 $3aa9/k7write
 
@@ -1761,18 +1801,33 @@ $38bd:Saute si (valtyp) est à 0 (nombre)
 
 $38ca:HL contient (fretop) et DE contient (stktop)
 
+$38d0/code/dim_cont/above
+L'appel est induit par le push en $38d8, lors de l'exécution de l'instruction DIM.
+
+$38d1:Si la zone de parsing contient 0, alors retour de l'instruction
+$38d3:Sinon, vérification que le caractère suivant est une virgule ($2C) qui induit une deuxième définition de tableau
+$38d4:Valeur pour le chkchr précédent
+
 $38d5/above
 Instruction : DIM
+Le format d'un tableau (stocké à partir de arytab) est le suivant:
++0/+1 : identifiant du tableau
++2/+3 : taille des données allouées pour le tableau (dimensions comprises)
++4    : nombre de dimensions
+paires suivantes : taille de chaque dimension
+puis la zone d'allocation de données (4 octets par indice)
 
 $38da/defvar:Saut depuis LET pour définir une variable
 $38da/above
-Fonction qui parse le nom de la variable et initialise l'espace nécessaire après arytab, en poussant
+Fonction qui parse le nom de la variable et initialise l'espace nécessaire après vartab, en poussant
 l'existant. Puis inscrit l'identifiant. Si la variable existe, se contente de la retourner.
 En entrée: HL pointe sur la zone de parsing.
 En sortie: DE pointe sur la zone après l'identifiant et HL sur la zone de parsing.
-Vérifier ce qu'il se passe avec un tableau, deux caractères, diff entre num et char et variable déjà existante.
+L'identifant est sur deux caractères. Si le type est alphanum, alors le second caractère a son bit de poids fort à 1.
+Une variable a 4 octets de valeur.
+Pour une chaine : taille, ??, pointeur sur la chaine (en fin de mémoire)
 
-$38db:En fonction de l'arrivée par DIM ou LET, met 0 (LET) ou $AF ? (DIM) dans dimflg
+$38db:En fonction de l'arrivée par DIM ou LET, met 0 (LET) ou $AF ou $FF ? (DIM) dans dimflg (différent de zéro en tout cas)
 $38de:Récupération du premier caractère de la variable dans C
 $38e2:Si le nom de variable ne commence par par une lettre majuscule entre A et Z, c'est une erreur de syntaxe (rappel : tout ce qui est parsé hors chaîne de caractère est passé en majuscules)
 $38e7:valtyp à 0 par défaut (valeur numérique)
@@ -1836,7 +1891,126 @@ $3974:(HL) <- DE et HL += 2
 $3975/var_found:DE pointe sur la mémoire après le nom de la variable
 $3976:HL pointe sur la zone de parsing
 
-$3983/dim_set
+$3983/dim_set/above
+HL pointe sur la zone de parsing
+
+$3983:Sauvegarde du pointeur de parsing
+$3987:Récupération dans HL du pointeur de parsing et mise sur la pile de (dimflag)
+$3988:Initialisation de D à 0 (A == 0 ici)
+$3989/loop_dim
+$3990:HL <- DE, la taille demandée du tableau
+$3991:Mise sur la pile de la dimension.
+$3992:Remise en place de la valeur qui était sur la pile (insertion de la dimension avant la valeur de la pile). Il s'agit de (dimflg)
+$3993:DE contient le (dimflag), HL le pointeur de parsing
+$3995:D contient la dimension actuelle
+$3996:Parsing
+$3999:Saut si la taille est suivie par une virgule
+$399c:Vérification de parenthèse fermante
+$399d:Code pour la parenthèses fermante
+$399e:À ce moment, la pile contient (dimflg),(dimension tableau)+,...???, D contient le nombre de dimensions du tableau, HL le pointeur de parsing. La valeur du pointeur de parsing est sauvée dans (temp2)
+$39a2:Remise en place de la valeur de (dimflg) venant de la pile (a-t-elle pu être modifiée ???)
+$39a7:Nettoyage de E puis mise de DE (D contient le nombre de dimensions du tableau) sur la pile
+$39a8:En arrivant par ici, les push hl et push af suivant saut ignorés.
+$39a9:On arrive ici par un jump conditionnel si lors d'une recherche de variable, (subflg) == 1
+$39aa:La pile contient (# de dimension),(tailles des dimensions)+
+$39ae:En arrivant par ici, le add hl,de suivant est ignoré
+$39af/dim_search
+
+$39b7:Premier caractère du nom du tableau (BC contient le nom du tableau courant)
+$39ba:Si le premier caractère est différent, on saute (c'est ok, pas de redimensionnement)
+$39bd:Comparaison du second caractère du nom du tableau (le test aura lieu en $39c3)
+
+$39be/dim_neq
+
+$39c2:Récupération dans DE de la taille mémoire du contenu du tableau (pour chaînage)
+$39c3:Si le nom de variable était différent, on boucle
+$39c5:Arrivé ici, cela signifie qu'une entrée de tableau a été trouvée avec le même nom
+$39c9:Si (dimflg) était différent de zéro, c'est que l'on cherche à redéfinir un tableau. Lancement de l'erreur
+$39cc:Arrivé ici, le tableau a été trouvé (et c'est donc un accès).
+$39cd:BC <- HL, qui pointe vers les attributs du tableau (debut+4)
+$39cf:Saut dans quel cas ???
+$39d2:Soustraction du type pour vérifier si c'est le même ???
+$39d6/out_range
+$39d6:Il n'y avait pas égalité, on lance une erreur.
+
+$39d9:Sortie avec l'erreur "Subscript out of range"
+
+$39dc/ary_at_end/above
+Arrive ici lorsque arytab == strend lors d'un dimensionnement de tableau.
+HL contient arytab
+BC contient le nom de la variable (du tableau)
+DE est initalisé à 4, qui est la taille d'un élément pour la première dimension
+
+$39df:Récupération de la dimension (dans A, F == 0 normalement, sauf ???)
+
+$39e0:Quelle est la nature du test précédente récupéré par AF ???
+$39e3:Place le nom de la variable dans la zone pointée par HL (zone arytab)
+$39e7:Place le nombre de dimensions dans C
+$39e8:Vérifie la place restante pour stocker le nombre de dimensions * 2 (ce qui ne semble pas suffisant, cela ne compte pas le nombre de dimension ni la taille)
+$39ed:Place le pointeur HL (4 octets après la variable) dans temp3
+$39f0:Place le nombre de dimensions du tableau dans la structure du tableau
+$39f1:HL pointe sur l'emplacement de la première dimension
+$39f5:Pour setter Carry. A priori, si accès sans DIM, le Carry flag est OFF (donc bit de poids fors de A est à 0 ?)
+$39f6:A contient le nombre de dimensions
+$39f7/multi_dim:Préparation de BC <- $000B pour le saut suivant. C'est la taille par défaut d'un tableau
+$39fc:BC contient la taille de la dimension traitée
+$39fd:En BASIC, la taille d'un tableau est d'une unité plus grande que celle spécifiée (à cause de l'indice 0). Ce BASIC n'a pas l'option pour démarrer les indices à 1.
+$39fe/default_dim
+$39ff:Sauvegarde de la dimension en cours sur la pile
+$3a01:BC est placé dans les deux octets de la spécification de la dimension des données du tableau
+$3a03:Sauvegarde sur la pile de la position suivante dans la structure du tableau
+$3a07:DE <- taille nécessaire pour les données de cette dimension
+$3a08:Récupération du pointeur sur les données du tableau
+$3a09:Récupération de la dimension en cours
+$3a0a:Dimension suivante (décroissante)
+$3a0d:Sauvegarde des flags (car A == 0 ici)
+
+$3a0f:BC <- DE (la taille du contenu du tableau à réserver)
+$3a10:HL contient la taille à réserver, DE contient le pointeur de contenu du tableau
+$3a11:Après l'addition, HL contient le pointeur de fin du contenu du tableau
+$3a12:Si HL a débordé, alors il n'y avait plus de mémoire pour sûr (dépassement de la plus haute adresse adressable)
+$3a15:Sinon, vérification par rapport à la mémoire installée
+$3a18:Si tout est bon, comme un nouveau tableau est toujours en dernier (on ne redimensionne pas les tableaux), mise à jour de (strend)
+$3a1b/dim_nullify
+$3a1c:Mise à zéro du contenu du tableau
+$3a1f:Mise à zéro du contenu du tableau en ramenant HL (pointeur sur la fin du contenu du tableau) vers DE (début du contenu du tableau)
+$3a21:Incrément du la taille mémoire du tableau
+$3a22:A priori, A == 0 donc mise à 0 de D
+$3a26:Récupération dans E du nombre de dimensions du tableau
+$3a29:HL <- 2 * (# de dimension) + BC(espace de tableau + 1)
+$3a2a:DE <- HL == taille nécessaire pour les données, les tailles des dimensions et le nombre de dimension
+$3a2c:Positionnement de HL à identifiant + 2, pour stocker la taille de mémoire allouée au tableau (hors identifiant)
+$3a30:Placement de la taille calculée à cet endroit
+$3a31:Récupération des anciens flags
+$3a32:Si le Carry Flag était set, alors on a fini. Sinon, il s'agit d'un accès au tableau (allocation par défaut lors d'un accès à un tableau non défini)
+
+$3a34/dim_access
+$3a34:En arrivant ici depuis $3a4e, a est égal à 0
+$3a35:Donc BC <- $00
+$3a36:HL est à identifiant+4. A <- nombre de dimensions du tableau
+$3a37:HL pointe sur le début des taille de dimensions du tableau
+$3a38:Le partial élimine le pop hl suivant
+$3a39/dimension_l
+$3a39:Récupération dans HL du pointeur vers la taille de la dimension courante (en première boucle, HL était initialisé par la partie précédente)
+$3a3c:Ce qui donne DE <- taille du tableau dans la dimension actuelle
+$3a3e:Les index sont sur la pile. Récupération de l'index dans HL (en partant de la droite)
+$3a3f:Sauvegarde du nombre de dimensions et flags
+$3a41:Saut si l'index demandé est au delà de la taille du tableau
+$3a44:Sauvegarde de l'index accédé sur la pile
+$3a45:BC contient le numéro d'index accédé par la dimension précédente
+$3a48:Récuépration dans DE de l'index accédé
+$3a49:HL contient le début de la zone due à l'indice de la dimension précédente. On y ajoute l'index de la dimension courante.
+$3a4a:Récupération de la valeur d'AF sauvegardée en $3a3f (contient la dimension en cours et les flags)
+$3a4b:Décroit A, la dimension en court
+$3a4d:BC <- HL
+$3a51:HL <- Index * 4, car chaque entrée du tableau prend 4 octets.
+$3a52:Récupération dans BC du pointeur des données du tableau mise sur la pile en $3a3e
+$3a53:HL <- addresse de la donnée cherchée
+$3a54:DE <- addresse de la donnée cherchée
+
+$3a55/end_dim
+$3a55:Récupération dans HL du pointeur de parsing
+$3a58:En cas de lecture du tableau, DE contient le pointeur vers l'entrée cherchée.
 
 $29ea/inst_fre_2
 
