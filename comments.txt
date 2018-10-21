@@ -308,6 +308,7 @@ Fonction BASIC : ABS()
 
 $05b9:Retour immédiat si le signe est positif
 $05ba/inv_sign:Change le signe de l'accumulateur FAC par son opposé
+$05be:Le signe est donc stocké dans le troisième octet de faclo, sur le bit de poids fort.
 
 $05c2/fac_to_stck/above
 Function : Place le contenu de faclo et faclo+2 sur la pile
@@ -1278,6 +1279,9 @@ $283b:Sors avec "Out of DATA"
 $284d/frnum_impl/above
 Fonction :
 
+$2851/type_eq_str/above
+Fonction: vérifie que le type évalué est une chaine de caractère
+
 $2852/type_eq_chk/above
 Fonction: vérifie que deux types sont égaux
 Entrée: Carry flag pour l'un des deux types, (valtyp) pour le second
@@ -1337,7 +1341,7 @@ $29f6:Place 0 dans la globale valtyp, ce qui signifie que la valeur est numériq
 $2a0f/retfun_impl
 $2a0f/above
 Function : met en place la valeur de retour d'une fonction
-Prerequis : valeur dans A (?)
+Prerequis : valeur dans A
 
 $2a92:Sors avec "Illegal direct"
 
@@ -1781,6 +1785,15 @@ $36da:Sors avec l'erreur "Out of string space"
 
 $379b:Sors avec "String too long"
 
+$37ec/bc_from_tmp/above
+Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (temppt)
+Si en remontant encore de deux adresse ou tombe sur DE, alors on met à jour (temppt) avec cette nouvelle addresse.
+Sinon, on retourne.
+Quoi qu'il arrive, avec BC
+
+$37dc:DE <- BC, l'adresse de la chaine de caractères
+$37de:C contient la taille de la chaine de caractères
+
 $3aa9/k7write
 
 $3a81/k7sync
@@ -1790,6 +1803,17 @@ $3af3/k7test
 $1e00/k7end/code
 
 $3b48/k7read
+
+$37ff/fetch_str
+$3802:A cet endroit, C contient la longueur de la chaine de caractères, mais on n'a pas l'air de s'en servir
+$3804:C'est une valeur numérique
+$3807:HL pointe vers la longueur de chaine, qui est donc mise dans A pour valeur de retour
+
+$3811:Saute si la longueur de la chaine est 0.
+$3818:DE <- pointeur sur la chaine
+$3819:A <- le premier caractère de la chaine, qui est aussi le résultat en numérique
+
+$3890:Saute si la longueur de la chaine est 0. Le résultat est alors 0.
 
 $38b1/above
 Instruction : FRE()
