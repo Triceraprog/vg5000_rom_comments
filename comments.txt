@@ -263,31 +263,69 @@ $0360:HL <- EB. ?. B est forcé à 0 par retfun_3 et E contient la partie basse 
 $0361:A = 0
 
 $0362/rot_loop/above
-La partie ci-dessous prend C, D, H, L, A, B comme un buffer en rotation vers la gauche
+La partie ci-dessous prend C, D, H, L, A comme un buffer en decalage vers la gauche
 (octet par octet). A est un compteur (sauvé temporairement dans B pendant la rotation) auquel
 on soustrait 8 à chaque fois, jusqu'à attendre $e0 (ce qui fait 4 fois avec A = 0 au début)
 
-$0362:B <- A
-$0362:A <- C
+$0362:B <- A (sauvegarde de A)
+$0363:A <- C (puis rotation depuis C)
+$0364:Si A est différent de 0, c'est que C (la partie la plus haute de la mantisse) était non nul
 $0365:Saut si A != 0
-$0365:C <- D
+$0367:C <- D, C et A était égaux à 0, on shift le tout vers la gauche (multiplication par 256)
 $0368:D <- H
 $0369:H <- L
-$036A:L <- A
-$036B:A <- B, une sorte de grande rotation entre les registres C, D, H, L, A, B
+$036A:L <- A, A est égal à 0 tant que la boucle est exécutée.
+$036B:A <- B, récupération temporaire dans A du compteur
 $036e:Comparaison avec $e0...
+$0370:Arrêt si le compteur est arrivé à 32. On a shifté de 32 bits au max
 
+$0372/clear_fac0
+$0373/load_fac0:Il n'y avait rien à normaliser dans la mantisse, force la valeur à 0.
 
-$0372/init_f_buf
-
-$37c:Si D H et L sont à zéro, alors on traite C (pour trouver le premier bit à 1 à partir des poids forts)
+$037a:Saute s'il y a quelque chose après le premier octet de la mantisse
+$37c:Sinon, on traite C pour trouver le premier bit de poids fort
 $037d/bit_find
-$037d:Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C)
+$037d:Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C). B est le résultat du nombre de shift de 8 effectué précédemment, en soustraction de $00.
+$0381:Bit à 1 trouvé. On remet B un cran avant.
+$0382:On remet aussi le nombre au cran d'avant (remettre le CY dans le nombre)
 $0383:C (avec son bit de poids fort à 1) est remis depuis A.
-$0393: EB <- HL
-$0395:Vérification du compteur, saute si arrivé à zéro.
-$039b:Addition dans fac[0] du compteur actuel.
-$039e:Saute si supérieur ou égal à 0 ?
+
+$0391:B contient le nombre de shift vers la gauche effectués pour la normalisation. C est normalisé.
+$0393: EB <- HL. Pour remettre le nombre dans BCDE
+$0395:Vérification du compteur, saute si arrivé à zéro (cas spécial où tout la mantisse a été shiftée ??)
+$039a:Ajout à l'exposant actuel du nombre flottant (B est négatif en complément à 2).
+$039b:Remise en place de l'exposant ajusté.
+$039e:Saut si l'exposant ajusté n'a pas débordé ou est à zéro (cas où l'on perd la précision ???)
+
+$03a4:Test du nombre le plus à droite de la mantisse ?
+$03a8:Récupération dans B de l'exposant
+$03aa:Récupération dans A du calcul temporaire
+$03ab:Récupération du bit de signe ?
+$03ae:???
+
+
+$03df/div_mant/above
+Division de la mantisse par le nombre A en entrée
+
+$03ea:La mantisse a été divisée par 256 (shift left de 8)
+
+$03e1/div_256_24b
+$03e1:Boucle sur A divisé par 8 (entier). Décale un nombre stocké dans CDE d'un vers la droite à chaque fois. B sert de récupération temporaire à droite du nombre.
+$03ec:La denière soustractiona fait passer A négatif, on y ajoute 9 (8 + 1 ?)
+$03ee:Sauvegarde de l'exposant restant dans A
+$03e1:Verifie si le résultat est 0 (pourquoi pas C ?)
+$03e2:Saute si différent de 0
+
+$03ec/end_256
+
+$03fd/fp_shift_r
+$03fd:Boucle sur L, qui est le reste de la division par 8 de A en entrée, et qui boucle en $040c
+$03fe:Annule le +1 du +9 (revient donc à +8)
+$03ff:Si on était tombé pile à zéro, retour immédiat
+
+$0400:Cette partie jusqu'au JR est un shift vers la droite de l'ensemble CDEB
+
+$0404:Grace au XOR A, le CY est à 0
 
 $059d:Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
 $059e/code:Appelé depuis une routine à cause de $060f
@@ -332,6 +370,38 @@ Copie le contenu des 4 premiers octets pointés par DE vers ce que pointe HL
 
 $05ee/cpy_4_loop
 
+$05fb:A gauche, set CY, A droite avec Carry revient a mettre le bit de poids fort (le signe) à 1. Le CY contient le bit de signe initial.
+$05fc:Place donc le nombre version négatif dans le buffer
+$0601:Mets dans (fac+1) le résultat : (signe initial inversé)(1)(bits 7:1) de B. CY contient bit 0
+$0602:On prend à nouveau faclo2 (a priori) dans A (puisque BCDE contient le nombre)
+$0605:On effectue la même première partie du calcul (mise en négatif
+$0606:Et le résultat part dans C
+$0607:Apres une rotation à droite
+$0608:XOR sur le résultat du calcul précédent. Ça a l'air d'être un calcul sur les signes ???
+
+$0635/fp_to_int/above
+Transforme le nombre flottant en décalant la mantisse jusqu'à ne garder que la partie entière.
+
+$063a:Retour lors du cas 0
+$063b:Sauvegarde de HL (qui contient fac)
+$063c:En sortie, BCDE est chargé avec le nombre flottant sur 32 bits
+
+$0644:Quelque chose dans le cas négatif
+$0649:Soustraction de l'exposant actuel de l'exposant maximum
+$064a:Après l'appel, la CDE contient sur 24 bits le nombre entier.
+$064d:Récupération dans A du calcul sauvé en $0643
+$064f:Traitement spéciaux en cas de ??? (négatif ?)
+
+$0660/above
+Fonction BASIC : INT()
+
+$0664:Comparaison avec $98, c'est à dire exposant 24, car c'est la capacité maximale de la mantisse. Au dela, il n'y a plus de précision pour les décimale.
+$0666:Pourquoi prendre (faclo) juste avant de retourner le résultat ??? (le résultat est dans le buffer flottant de toute façon)
+$0669:La partie entière est donc trouvée immédiatement.
+$066b:En sortant de cet appel, E contient la partie basse entiere du nombre (si inférieur à 256)
+$066e:Puisque le nombre entier est complètement à droite de la mantisse, l'exposant est à $98. Le nombre se fera normalisé par la suite.
+$0671:Mise sur la pile de l'octet le plus bas du nombre entier résultat (??? pourquoi ?)
+
 $0679/dim_compute/above
 Calcul la taille mémoire nécessaire pour stocker une dimension de tableau
 Entrées :
@@ -369,7 +439,8 @@ $06b2:Cas du caractère `e`
 $06b6:Cas du caractère pas `E`
 $06b8/case_exp
 $06c6/case_dot
-$06e9/case_digit
+$06e9/case_digit/above
+Parses a digit loaded in A
 
 $06f4:Récupération de la valeur du caractère (qui était dans DE ?)
 $06f5:Transformation en valeur numérique
