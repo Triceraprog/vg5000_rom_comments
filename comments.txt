@@ -25,6 +25,8 @@ $0010/chget/above
 Incrémente HL et met le contenu (HL) dans A.
 Si le caractère est supérieur à $3a (: donc juste après '9'), retourne immédiatement, sinon...
 Retour: Flag Z si caractère NUL, Flag C si un chiffre, NC si pas un chiffre
+;
+MS_BASIC=GETCH
 
 $0018/outdo/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
@@ -359,7 +361,11 @@ Place DE dans faclo et BC dans faclo+2. Préserve la valeur de HL
 $05dd/fac_to_bcde/above
 Extrait le contenu du buffer de virgule flottante dans BC/DE
 
-$05e0/hl_to_bcde
+$05e0/hl_to_bcde/above
+Loads the Floating Point space from HL ?
+;
+MS_BASIC=LOADFP
+
 $05e7/inc_hl
 
 $05e9/cpy_faclo_hl/above
@@ -892,9 +898,11 @@ Lorsqu'arrive directement ici, c'est pour afficher un arrêt d'exécution en lig
 $228d/ok_loop/above
 Reset l'imprimante, remet le curseur en début de ligne et affiche "Ok".
 Puis tombe dans la boucle du moniteur.
+;
+MS_BASIC=PRNTOK
 
 $2299/monitorloop
-$2299:Ligne courante du BASIC à -1
+$2299:Ligne courante du BASIC à -1 ; MS_BASIC=GETCMD
 $22a3:Saute si hors du mode AUTO
 $22a5:Ligne courante du mode AUTO dans HL
 
@@ -915,16 +923,17 @@ HL pointe sur l'adresse précédente le buffer en entrée, qui se termine par 0.
 
 $22b1:Lorsque monitor sort avec Carry (touche STOP), on boucle immédiatement.
 $22b3:Acquisition d'un nouveau caractère depuis HL dans A
-$22b5:On ne test pas avec "or a" à cause du test de Carry plus loin en $22ca (vraiment ?)
-$22b6:Si le caractère était zéro, le traitement est terminé
+$22b5:On ne test pas avec "or a" à cause du test de Carry plus loin en $22ca. Le inc,dec n'affecte pas le Carry flag.
+$22b6:Si rien n'a été entré, on repart pour un tour.
+$22b8:Sauve le Carry flag.
 
 $22bd:Si le flag d'exécution BASIC est différent de 0, branchement en 0 pour un reset de la machine. C'est le cas avec les programmes "protégés", dont l'arrêt provoque le RESET de la machine.
 $22c3:DE contient soit un numéro de ligne, soit 0.
 
-$22c7:En fin de tokenisation, A == 0, donc B prend 0 aussi
-$22c8:Récupération du numéro de ligne dans DE
-$22c9:Récupération du AF de $22b8 (vraiment ? Ça n'a pas trop de sens pour lancer l'exécution immédiate)
-$22ca:Quand est-ce que le Carry est set ? Autre chose que $FF ?
+$22c7:En fin de tokenisation, A == 0, donc B prend 0 aussi (ou plutôt, A contient la longueur de la ligne tokenisée ??? Ou bien est-ce C ???)
+$22c8:Récupération du numéro de ligne dans D
+$22c9:Récupération du AF de $22b8
+$22ca:Carry est set lorsqu'il y avait un numéro de ligne. Dans le cas contraire, exécution immediate.
 
 $22cd:Push numéro de ligne
 $22ce:Push de C qui contient la taille du résultat de tokenisation (B = 0 depuis $22c7)
@@ -938,7 +947,7 @@ $22da:Préparation et sauvegarde d'un test sur le token récupéré
 $22de:Le numéro de ligne qui était dans DE (le numéro de la ligne en cours) a été trouvé.
 
 $22e2:Si le caractère récupéré était NUL, alors on sort vers le moniteur. En effet, si la ligne n'existait pas et qu'il n'y a rien à y encoder, on ne fait rien.
-$22e5:Pourquoi refaire un "or a,a" ici ?
+$22e5:Pourquoi refaire un "or a,a" ici ? Il faut apparamment clearer le Carry flag
 $22e6:BC contient l'adresse de la ligne trouvée.
 $22e7:Saut si on ne vient pas $22de directement. Autrement dit, si la ligne courante n'a pas été trouvée.
 
@@ -1169,7 +1178,7 @@ $2508:Récupération dans HL du pointeur sur le contenu de la ligne BASIC
 
 //-----------------
 $2509/exec_token
-$2509:Récupère le première token du buffer
+$2509:Récupère le première token du buffer ; MS_BASIC=EXECUTE
 $250d:Met sur la pile une adresse de retour qui est "end_of_inst"
 $250e:Retourne en "end_of_inst" si le caractère du buffer est NUL, c'est-à-dire que le contenu de la ligne était vide, ce qui est le cas pour la dernière ligne.
 $250f:Les tokens sont tous supérieurs à $80
@@ -1227,6 +1236,8 @@ Sortie : le paramètre dans DE. Le dernier caractère pointé dans A.
 Le numéro de ligne maximum est limité par le test avec $1998 (6552). Ce nombre est multiplié par 10
 avant la dernière addition. Ce qui porte le numéro maximum de ligne à 65529. Au delà, le parsing
 sera étrange. Par exemple 65530 sera compris comme : ligne 6553, qui contient '0'.
+;
+MS_BASIC=ATOH ; ASCII to HEX?
 
 $256d/get_lin_nu2:Accès sans recalage de HL
 
@@ -1277,15 +1288,17 @@ $25ca:Saute si le numéro de ligne du GOTO est avant la ligne courante
 $25d0:Retour en cas de ligne trouvée (HL pointe sur l'octet avant la ligne courante)
 $25d3:Erreur "Undefined line number"
 
-$234d/goto_after
-$2347/goto_before/above
+$234d/line_search_lp
+$2347/line_search/above
 Chercher la ligne de BASIC à exécuter, présent dans DE
 En sortie, si Carry Flag est levé, alors BC contient le pointeur vers la ligne de BASIC trouvée.
 Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché
 HL contient la ligne suivante à celle pointée par BC.
+;
+MS_BASIC=SRCHLN
 
 $234a:HL contient la première adresse du listing BASIC
-$234d:Met la dernière ligne trouvée dans (prelin)
+$234d:Met la dernière ligne trouvée dans (prelin) ; MS_BASIC=SRCHLP
 $2352:HL dans BC
 $2356:A contient le OR des deux premier octets de la ligne actuelle (HL n'est pas touché)
 $2357:Retour immédiat si A est à 0 (fin des liens)
@@ -1557,8 +1570,10 @@ $2eb8:Décrément de HL et BC
 $2eb9:Boucle de la copie
 
 $2ed9/reset_mem/above
-Reset memoire ?
 Met 0 dans les deux premiers octets de txttab (donc efface l'accès au listing)
+L'effet sur l'utilisateur est d'effacer le programme (mais il est encore là)
+;
+MS_BASIC=CLRPTR
 
 $2edc/reset_mem_2
 $2edc:appelé depuis l'instruction NEW
@@ -1596,7 +1611,7 @@ $2efe/resetstack/above
 Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
 Retour : HL contient le code de l'instruction en cours ?
 ;
-Un meilleur nom: interpreter_reset ?
+MS_BASIC=CLREG
 
 $2efe:Récupération de l'adresse de retour
 $2eff:Réinitialisation de la pile (SP) à la dernière addresse RAM valide
@@ -1607,6 +1622,10 @@ $2f15:Mise à zéro de
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
+$2f1a/runfast/above
+Vérfier l'appel direct ici ???
+MS_BASIC=RUNFST
+
 
 $2f42/end_of_prog/above
 Traite la fin d'un programme
@@ -1817,6 +1836,8 @@ Sortie: HL pointe sur le buffer temporaire de chaîne, dsctmp
 
 $366c/out_str_prc/above
 Fonction: traite la chaîne de caractères à afficher avec extention des variables.
+;
+MS_BASIC=CRTST (Create String?)
 
 $366c:Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
 $366d/str_to_str
@@ -1845,11 +1866,21 @@ $36a1:Lecture du prochain caractère
 $36a2:Retour s'il reste de la place dans le buffer tempst
 $36a6:Lancement de l'erreur "String formula too complex"
 
-$36a9/sharp_char/code
+$36a9/sharp_char/code/above
+Afficher une chaîne sans le premier caractère
+;
+MS_BASIC=PRNUMS
 
 $36aa/out_str/above
 Fonction: Affichage d'une chaîne à l'écran
 Entrée: HL pointe sur la chaîne de caractère terminée par un 0
+;
+MS_BASIC=PRS (Print String)
+
+$36ad/out_str1
+$36ad:MS_BASIC=PRS1
+$36b4/prsloop
+$36b4:MS_BASIC=PRSLP ; Compte les caractères
 
 $36d6/out_str_mem
 $36da:Sors avec l'erreur "Out of string space"
@@ -1861,6 +1892,9 @@ Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (
 Si en remontant encore de deux adresse ou tombe sur DE, alors on met à jour (temppt) avec cette nouvelle addresse.
 Sinon, on retourne.
 Quoi qu'il arrive, avec BC
+
+$37d1/GSTRCU/above
+MS_BASIC=GSTRCU (Current string to pool)
 
 $37dc:DE <- BC, l'adresse de la chaine de caractères
 $37de:C contient la taille de la chaine de caractères
@@ -2128,6 +2162,8 @@ $3c3c/sendchar_te:Récupération de AF qui contient prtflg
 $3c40/cursor_x0/above
 Remet le terminal en état. Puis, si le curseur n'était pas en
 première colonne, fait un saut à la ligne sur le terminal. Sinon, ressort.
+;
+MS_BASIC=STTLIN
 
 $3c4a/putnulatend/above
 Fonction: met un caractère NUL à la fin de la chaîne précédent le pointeur HL actuel, en ignorant les espaces.
@@ -2173,13 +2209,15 @@ Fonction : Retour chariot à la ligne suivante sur l'imprimante
 
 $3c6a:Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
 
-$3ca2/monitor/above
-Fonction: Le Monitor
+$3ca2/get_line/above
+Fonction: Récupération d'une ligne d'instruction entrée au BASIC
 Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
+;
+MS_BASIC=GETLIN
 
 $3ca4:Commence par un appel à l'input hook qui par défaut revient immédiatement.
 
-$3ca8/monitor_cnt
+$3ca8/get_line2
 $3cac:Saute si le périphérique d'entrée actuel est le clavier. En fait, non getflg ici indique si on est en train de décoder une entrée ou bien si on exécute un stream BASIC tokénisé.
 
 $3cae:Traitement si inputsel ne désigne pas un clavier (!= 0)
@@ -2223,6 +2261,14 @@ $3db9/stopauto:Stop le traitement de AUTO
 $3dbd/after_auto2
 
 $3dc0/initscreen1
+
+$3dce/above
+Instruction : NEW
+Efface le listing courant.
+Il y a une condition sur Z qui semble dire que dans certaines situations, le NEW n'est pas honoré ???
+;
+MS_BASIC=NEW
+
 $3de1/decodenext
 $3de1:Si HL était avant la fin du buffer de crunch, on incrémente HL et on continue.
 $3de3:Si HL n'est pas égal non plus, c'est qu'il est supérieur à la fin du buffer de crunch, on loop directement sur le moniteur sans toucher à HL.
