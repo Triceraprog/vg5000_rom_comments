@@ -385,6 +385,12 @@ $0606:Et le résultat part dans C
 $0607:Apres une rotation à droite
 $0608:XOR sur le résultat du calcul précédent. Ça a l'air d'être un calcul sur les signes ???
 
+$060a/cmp_num/above
+Compare des nombres
+;
+MS_BASIC=CMPNUM
+
+
 $0635/fp_to_int/above
 Transforme le nombre flottant en décalant la mantisse jusqu'à ne garder que la partie entière.
 
@@ -1165,12 +1171,18 @@ $2471:HL est placé juste avant le buffer de traitement
 $2474:DE pointe sur la fin du buffer tokenizé. Comme A contient 0, le buffer est terminé par trois 0.
 $2479:Fin de la fonction de tokenisation
 
-$24ea/end_of_inst/code
+$24ea/end_of_inst/code/above
+Recherche l'instruction suivante
+;
+MS_BASIC=RUNCNT
+
 $247A/inst_for/code
 
 $24f1:Comparaison avec ':'
+$24f3:Il y a une autre instruction à exécuter
 $24f6:HL doit pointer sur le NUL de fin de ligne ou bien ':'. Si ce n'est pas le cas, c'est une erreur de syntaxe (l'instruction n'a pas tout consommé)
-$24fd:Saut si on est sur la dernière ligne du programme
+$24fc:La dernière ligne chaine sur l'adresse de ligne $0000. C'est ce qu'on lit ici.
+$24fd:Saut si on est sur la dernière ligne du programme (l'adresse de ligne suivante était $0000)
 
 $2504:HL contient le numéro de ligne, DE contient le pointeur sur le contenu de la ligne BASIC
 $2505:Enregistrement du numéro de la ligne courante
@@ -1180,7 +1192,8 @@ $2508:Récupération dans HL du pointeur sur le contenu de la ligne BASIC
 $2509/exec_token
 $2509:Récupère le première token du buffer ; MS_BASIC=EXECUTE
 $250d:Met sur la pile une adresse de retour qui est "end_of_inst"
-$250e:Retourne en "end_of_inst" si le caractère du buffer est NUL, c'est-à-dire que le contenu de la ligne était vide, ce qui est le cas pour la dernière ligne.
+$250e/retz
+$250e:Retourne en "end_of_inst" si le caractère du buffer est NUL, c'est-à-dire que le contenu de la ligne était vide (':' en fin de ligne principalement ? Protection contre une ligne vide ?)
 $250f:Les tokens sont tous supérieurs à $80
 $2511:Si la soustraction a provoqué un Carry, alors ce n'était pas un token. Exécute par défaut l'assignation de variable.
 $2516:Si le token est supérieur à $32 (les 50 premiers token sont des instructions, suivent les fonctions dont les 16 premieres n'ont pas d'adresse), affiche une Erreur de Syntaxe.
@@ -1197,9 +1210,13 @@ $2526:Récupération de l'adresse en cours du buffer tokenisé (cf. $251d)
 
 $2527/skipch/above
 Fonction: recupère le caractère suivant du pointeur HL
-Retourne immédiatement si le caractère est superieur à $3a,
+Retourne immédiatement si le caractère est superieur à $3a avec NC
 sinon, fallthrough dans chget_2
+Retourne avec Z set si le caractère lu était NUL
+Retourne avec C set si 
+;
 La fonction est à la suite du décodage de token, ce qui permet d'avancer le pointeur directement.
+"RET" signifie donc aussi dans ce contexte un saut à l'adresse de l'instruction.
 
 
 $252c/chget_2/above
@@ -1210,7 +1227,7 @@ $252e:Se positionne sur le premier caractère qui n'est pas un espace et est inf
 $2530:Si le caractère est supérieur à ' ', saut plus loin
 $2534:Saute si le caractère est entre 0F et 1F (une partie des caractères de contrôle)
 $2538:Saute si le caractère est inférieur à 0D (une autre partie des caractères de contrôle, dont 0)
-$253a:Reste les cas 0D et 0E ?
+$253a:Reste les cas 0D et 0E. Dans ce cas, le pointeur d'execution + 3 est sauvé dans (contxt) puis HL est restauré.
 
 $2542/chget_3
 $2543:Ce RET branchera sur l'instruction à exécuter si un token a été décodé. Si appel depuis RST, retourne normalement avec le flag Z si A était à NUL. Cela signifie aussi que les exécution d'instruction arrivent avec Z=1 si le caractère lu après le token est NUL (modulo le recalage précédent)
@@ -1218,14 +1235,30 @@ $2543:Ce RET branchera sur l'instruction à exécuter si un token a été décod
 $2544/chget_4
 $2544:Compare avec '0'
 $2546:Inverse la retenue. Donc le flag C sera mis si le caractère est supérieur ou égal à '0' (donc un chiffre).
-$2548:Manipulation de A pour mettre le flags en fonction de la valeur du caractère (comment exactement ?)
+$2548:Manipulation de A pour setter Z si A était NUL
 
 $254a/num_read/above
 Lecture d'un nombre depuis une chaine pointée par HL.
-Quelle différence avec str_to_num ???
-Sortie dans DE ???
+Ce nombre doit être entre 0 et 32767. (est-ce la différence avec str_to_num ???)
+Sortie dans DE.
+Une structure récurante est d'appeler frnum_impl puis deint_impl, pour récupérer un entier de -32768 à 32767
+(la vérification du signe est "évitée")
+;
+MS_BASIC=FPSINT
+
+$254b/pos_int/above
+Lecture d'un nombre dans DE
+MS_BASIC=POSINT
+
+$254e/dep_int:MS_BASIC=DEPINT
+$254f:Erreur si le nombre est négatif
 
 $2552/deint_impl
+$2552:Récupère l'exposant
+$2555:Et le compare à $80+16 (donc 16).
+$2557:Si l'exposant est ok, on convertie en INT.
+$255a:Limite haute: -32768
+$2566:Si dans le range, retour. Sinon, fallthrough dans l'erreur
 
 $2567/ill_call
 $2569:Affichage "Illegal function call"
@@ -1280,12 +1313,17 @@ $25b9/inst_run_2
 $25ba/above
 Instrution : GOTO
 
+$25bd:Le reste de la liste ne peut pas être atteint, on ignore donc tout
+$25c1:Le pointeur sur l'éxecution de la ligne suivante est mis sur la pile. Pourquoi???
+
 $25ba:DE contient l'argument (numéro de ligne)
 $252c:HL contient la ligne courante exécutée
 $25c5:C si DE supérieur à HL
 $25c7:Saute si le numéro de ligne du GOTO est au-delà de la ligne courante
 $25ca:Saute si le numéro de ligne du GOTO est avant la ligne courante
 $25d0:Retour en cas de ligne trouvée (HL pointe sur l'octet avant la ligne courante)
+
+$25d1/udef_line
 $25d3:Erreur "Undefined line number"
 
 $234d/line_search_lp
@@ -1317,25 +1355,35 @@ $25d6/above
 Instruction : RETURN
 
 $25d6:S'il y a des choses après le RETURN, retour immédiat. Return n'a pas de paramètre.
-$25dc:Ajuste la pile à la valeur calculée par marker_vrfy. Ce qui remet la pile avant le marqueur (au passage, on n'a plus l'adresse de retour de l'appel à l'instruction en cour)
+$25dc:Ajuste la pile à la valeur calculée par marker_vrfy. Ce qui remet la pile avant le marqueur (au passage, on n'a plus l'adresse de retour de l'appel à l'instruction en cours). Cela a aussi pour effet d'enlever tous les contextes sur la pile, comme les FOR (uniquement les FOR ?)
 $25dd:Vérification du marqueur placé par GOSUB
 $25e1:S'il n'est pas là, lancement d'une erreur "RETURN without GOSUB"
 $25e5:Récuération de l'adresse de la ligne appelante et sauvegarde dans (curlin)
-$25eb:Vérification que la valeur incrémentée de 1 n'est pas 0 sinon... ben rien. C'est louche. Visiblement, un test de la valeur de ligne FFFF qui a tourné court.
-$25f0:Remise en place en haut de pile de l'adresse de retour de l'instruction. Le POP HL récupère le pointeur d'exécution de la ligne qui avait le GOSUB. Puis quelques instructions nulles, pour arriver en 25f7.
+$25eb:Si on était en mode direct, HL est à $FFFF et donc fallthrough. Sinon, on saute plus loin, on était dans un programme... Mais sur cette implémentation, on ne fait rien (!!!)
+$25ed/useless_jp
+$25f0:Remise en place en haut de pile de l'adresse de retour de l'instruction. La reste de la ligne est ignoré en fallthrough sur DATA.REM
+
+$25f3/above
+Instruction DATA
+En arrivant en DATA, C sera chargé avec $3e (: == end of statement)
+
+$25f5/above
+Instruction REM
+En arrivant en REM, C sera chargé avec $00 (identique à la fin de ligne, donc pas de traitement particulier de ':')
 
 $25f9/rem_ex_lp
-$25fb:Swap le contenu de B et C. Donne $3a00 en venant de RETURN (ce qui signfie que l'on cherche un ':')
+$25fb:Swap le contenu de B et C. Donne $3a00 en venant de RETURN (ce qui signfie que l'on cherche un ':'). Cela permet de chercher temporairement " pour les chaîne de caractères en mettant le ':' de côté.
 $25fc/rem_loop
 
 $25fd:Vérifie la présence d'un argument (numérique sur 16 bits?)
 $2603:S'il y a un argument, saute le marqueur et la valeur
 $2604:Puis lit dans A la valeur suivante
 $2605/no_param
-$2606:Si la dernière valeur lue est zéro, retour immédiat.
-$2607:Compare avec le caractère spécifique cherché
+$2606:Si la dernière valeur lue est zéro, retour immédiat. C'est la fin de la ligne.
+$2607:Compare avec le caractère spécifique cherché (: ou 0 suivant si on traite REM ou DATA)
 $2608:Retour immédiat si trouvé
 $2609:Sinon, on passe au caractère suivant
+$260a:Comparaison avec " pour une chaîne de caractères.
 $260c:Si c'est $22 ('"'), on loop sur l'échange du caractère recherché
 $260e:Sinon, on continue le parsing de la ligne
 
@@ -1585,24 +1633,33 @@ $2ee0/reset_mem_4
 $2ee1:txttab+2 dans (vartab)
 $2ee4/reset_vars:Remet à zéro les pointeurs du modèle mémoire
 $2ee7:HL pointe sur l'octet avant txttab
-$2ee8:HL est mis de côté
+$2ee8/init_vars:HL est mis de côté ; MS_BASIC=INTVAR
 $2eeb:HL prend la valeur de memsiz
 $2eee:fretop est donc mis à memsiz, cela signifie que toute la mémoire est disponible.
 $2ef5:(vartab) est placé dans (arytab) et (strend). Autrement dit, élimine toutes les variables, les tableaux et les chaînes.
 
 $2ebb/stk_verify/above
-Entrée : C, le nombre de mots de 2 octets que l'on voudrait mettre sur la pile
+Entrée : BC (B == 0), le nombre de mots de 2 octets (des "niveaux" que l'on voudrait mettre sur la pile
 S'il n'y a pas la place demandée sur la pile, provoque un message d'erreur.
-La place vérifiée semble être deux fois la place demandée avec une marge de $60 octets.
+La place vérifiée semble être deux fois la place demandée avec une marge de $60 octets (jamais moins
+de $60 octets disponibles)
 Préserve HL.
+;
+MS_BASIC=CHKSTK
+
+$2ebb:Sauve le pointeur d'exécution
+$2ebc:Prend la mémoire la plus basse disponible (après les chaînes?)
 
 $2ec4/mem_verify/above
 Identique à stk_verify mais fourni HL pour comparer avec la pile.
+;
+MS_BASIC=ENFMEM
 
 $2ec2:Ajoute deux fois l'entrée C à strend
 $2ecc:HL <- $FFA0 - HL (HL étant (strend) + 2 * C)
 $2ecd:S'il n'y a pas au moins $60 octets entre la valeur désirée et $FFFF, alors il n'y a plus de mémoire (oui, c'est en dur quelque soit la mémoire présente, c'est louche)
 
+$2ed0:Restore dans HL le pointeur d'exécution
 $2ed1:Si HL + SP provoque une retenue, alors on revient, il y a assez de mémoire. Sinon, c'est qu'il y a moins de $60 octets entre la pile et (strend), il n'y a pas assez de mémoire.
 $2ed2/out_of_mem
 $2ed5:"Out of Memory"
@@ -1626,9 +1683,23 @@ $2f1a/runfast/above
 Vérfier l'appel direct ici ???
 MS_BASIC=RUNFST
 
+$2f1e/above
+Instruction : RESTORE
+;
+MS_BASIC=RESTORE
+
+$2f22:Pas de paramètre, on restore depuis le début du programme
+$2f2f:Si le numéro de ligne spécifié n'est pas trouvé, erreur
+
+$2f32/restore_all:MS_BASIC=RESTNL
+$2f33/set_data:MS_BASIC=UPDATA
+$2f33:Sauvegarde de l'octet de la prochaine ligne de DATA
+
 
 $2f42/end_of_prog/above
 Traite la fin d'un programme
+;
+MS_BASIC=ENDPRG
 
 $2f49:Si la dernière ligne était FFFF, alors le A est égal à 0, saut.
 $2f4b:Sauve la dernière ligne exécutée si elle avait un numéro
@@ -1646,6 +1717,46 @@ Vérification que le caractère pointé par HL est entre A et Z inclus.
 Dans le cas contraire, lève le drapeau de retenu.
 
 $2f99/a_to_z_2:Appelé ici lorsque A contient déjà la caractère à vérifier
+
+$2fa0/above
+Instruction : CLEAR
+
+$2fa0:Si pas d'argument, initialise les variables avec les valeurs courantes
+$2fa3:Récupère un premier paramètre entre 0 et 32768
+$2fa7:Prend le caractère suivant
+$2fa8:Sauve le pointeur d'exécution
+$2fa9:HL prend la dernière adresse mémoire disponible.
+$2fac:Si pas de deuxième paramètre (le chget a renvoyé 0), alors on continue plus loin
+$2faf:Vérifie que le caractère lu est bien une virgule
+$2fb0:data -> ','
+$2fb1:Sauve le premier paramètre
+$2fb2:Décode le second paramètre (de -32768 à 32767)
+$2fb9:Lit le caractère suivant.
+$2fba:S'il n'est pas nul, c'est une erreur de syntaxe
+$2fbd:Le pointeur d'exécution va sur la pile et on récupère le premier paramètre dans HL
+$2fbe:Le premier paramètre est dans DE, le second dans HL.
+
+$2fbf/clr_stored/above
+Le premier paramètre est dans DE, le second dans HL, qui est (memsiz) si on est venu sans second paramètre spécifié.
+;
+MS_BASIC=STORED
+
+$2fbf:Appel qui pourrait être inliné... (!!!)
+$2fc2:Si HL - DE est négatif, alors erreur de mémoire
+$2fc5:Sauvegarde de l'adresse mémoire haute (second paramètre)
+$2fc5:HL prend la valeur de (vartab), l'adresse de fin de programme BASIC stocké.
+$2fc9:En vrai, LD BC,$28 (== 40) (taille minimale voulue)
+$2fcd:Comparaison de (vartab) + $28 et de DE, qui contient la plus haute mémoire réduire de la taille pour les chaînes
+$2fce:S'il n'y a pas assez de mémoire, le signaler.
+$2fd2:Stockage de HL (venant de DE) comme nouveau (stktop)
+$2fd6:Stockage de HL (venant de la pile) comme neaucou (memsiz)
+$2fd9:On pop quoi ??? L'adresse de retour car on jump ?
+$2fda:Saut à l'initialisation des variables.
+
+$2fdd/top_string/above
+Soustraction du second paramètre (la mémoire haute) par la taille
+pour les chaînes demandée.
+À la fin, HL n'est pas touché, et DE contient HL - (taille demandée)
 
 /////////////////////////////////////////
 ////////////////// 3000 /////////////////
@@ -2069,6 +2180,8 @@ Arrive ici lorsque arytab == strend lors d'un dimensionnement de tableau.
 HL contient arytab
 BC contient le nom de la variable (du tableau)
 DE est initalisé à 4, qui est la taille d'un élément pour la première dimension
+;
+MS_BASIC=CREARY
 
 $39df:Récupération de la dimension (dans A, F == 0 normalement, sauf ???)
 
@@ -2081,10 +2194,10 @@ $39f0:Place le nombre de dimensions du tableau dans la structure du tableau
 $39f1:HL pointe sur l'emplacement de la première dimension
 $39f5:Pour setter Carry. A priori, si accès sans DIM, le Carry flag est OFF (donc bit de poids fors de A est à 0 ?)
 $39f6:A contient le nombre de dimensions
-$39f7/multi_dim:Préparation de BC <- $000B pour le saut suivant. C'est la taille par défaut d'un tableau
+$39f7/multi_dim:Préparation de BC <- $000B pour le saut suivant. C'est la taille par défaut d'un tableau ; MS_BASIC=CRARLP
 $39fc:BC contient la taille de la dimension traitée
 $39fd:En BASIC, la taille d'un tableau est d'une unité plus grande que celle spécifiée (à cause de l'indice 0). Ce BASIC n'a pas l'option pour démarrer les indices à 1.
-$39fe/default_dim
+$39fe/default_dim:MS_BASIC=DEFSIZ
 $39ff:Sauvegarde de la dimension en cours sur la pile
 $3a01:BC est placé dans les deux octets de la spécification de la dimension des données du tableau
 $3a03:Sauvegarde sur la pile de la position suivante dans la structure du tableau
@@ -2100,7 +2213,7 @@ $3a11:Après l'addition, HL contient le pointeur de fin du contenu du tableau
 $3a12:Si HL a débordé, alors il n'y avait plus de mémoire pour sûr (dépassement de la plus haute adresse adressable)
 $3a15:Sinon, vérification par rapport à la mémoire installée
 $3a18:Si tout est bon, comme un nouveau tableau est toujours en dernier (on ne redimensionne pas les tableaux), mise à jour de (strend)
-$3a1b/dim_nullify
+$3a1b/dim_nullify:MS_BASIC=ZERARY
 $3a1c:Mise à zéro du contenu du tableau
 $3a1f:Mise à zéro du contenu du tableau en ramenant HL (pointeur sur la fin du contenu du tableau) vers DE (début du contenu du tableau)
 $3a21:Incrément du la taille mémoire du tableau
@@ -2113,7 +2226,7 @@ $3a30:Placement de la taille calculée à cet endroit
 $3a31:Récupération des anciens flags
 $3a32:Si le Carry Flag était set, alors on a fini. Sinon, il s'agit d'un accès au tableau (allocation par défaut lors d'un accès à un tableau non défini)
 
-$3a34/dim_access
+$3a34/dim_access:MS_BASIC=FINDEL
 $3a34:En arrivant ici depuis $3a4e, a est égal à 0
 $3a35:Donc BC <- $00
 $3a36:HL est à identifiant+4. A <- nombre de dimensions du tableau
@@ -2137,7 +2250,7 @@ $3a52:Récupération dans BC du pointeur des données du tableau mise sur la pil
 $3a53:HL <- addresse de la donnée cherchée
 $3a54:DE <- addresse de la donnée cherchée
 
-$3a55/end_dim
+$3a55/end_dim:MS_BASIC=ENDDIM
 $3a55:Récupération dans HL du pointeur de parsing
 $3a58:En cas de lecture du tableau, DE contient le pointeur vers l'entrée cherchée.
 
