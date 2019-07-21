@@ -458,7 +458,9 @@ $06f4:Récupération de la valeur du caractère (qui était dans DE ?)
 $06f5:Transformation en valeur numérique
 
 $0715/out_in/above
-Affiche à l'écran le texte " en "/" in " suivant la langue, suivi de... ?
+Affiche à l'écran le texte " en "/" in " suivant la langue, suivi du numéro de ligne présent dans HL
+;
+MS_BASIC=LINEIN
 
 $0722/out_in_fr
 
@@ -833,6 +835,12 @@ $1371/keyseng_c7
 $1379/errors_fr
 $153f/errors_eng
 
+$170f/txt_igno_fr
+$172d/txt_igno_en
+
+$173c/txt_redo_fr
+$1752/txt_redo_en
+
 $1763/txt_arret
 $176a/txt_break
 
@@ -899,8 +907,14 @@ $226b:Saute si E est inférieur à $2b
 $226f/err_loop:E est le min entre E et $2a
 
 $2278/disp_break/above
-Lorsqu'arrive directement ici, c'est pour afficher un arrêt d'exécution en ligne (curlin) (à vérifier)
+Lorsqu'arrive directement ici, c'est pour afficher un arrêt d'exécution en ligne (curlin)
+;
+MS_BASIC=ERRIN
 
+$2281:Si le numéro de ligne est 65534, alors c'est un cold start.
+$2288:Il y avait un numéro de ligne, on l'affiche. Sinon fallthrough dans la loop Ok!
+
+$228c/nok_loop:MS_BASIC=POPNOK
 $228d/ok_loop/above
 Reset l'imprimante, remet le curseur en début de ligne et affiche "Ok".
 Puis tombe dans la boucle du moniteur.
@@ -1363,6 +1377,8 @@ $25eb:Si on était en mode direct, HL est à $FFFF et donc fallthrough. Sinon, o
 $25ed/useless_jp
 $25f0:Remise en place en haut de pile de l'adresse de retour de l'instruction. La reste de la ligne est ignoré en fallthrough sur DATA.REM
 
+$25f2/next_data:MS_BASIC=NXTDTA, un appel ici suppose que la chaîne à traiter est sur la pile. Fallthrough sur inst_data. On va donc mettre HL sur le statement ou fin de ligne suivante.
+
 $25f3/above
 Instruction DATA
 En arrivant en DATA, C sera chargé avec $3e (: == end of statement)
@@ -1403,8 +1419,116 @@ $261f:Cette adresse est sauvegardée dans (temp)
 $2622:Mise du type de la variable dans le Carry (1 si chaîne, 0 si numérique). A est à 0.
 $2623:Vérification de la compatibilité du type de l'expression et de la variable.
 $2626:Saut en cas de variable numérique
+$2628/let_string
 
 $2657/set_num_var
+
+$2746/bad_input/above
+Arrive ici si les données sont insuffisantes pour les variables à remplir
+;
+MS_BASIC=BADINP
+
+$274a:Saute dans le cas d'un READ
+$274d:Jette le pointeur de données courant
+$275a/redo_fr:Affiche "Redo from scratch" en fonction de la langue
+
+$2760/above
+Instruction INPUT
+;
+MS_BASIC=INPUT
+
+$2763:Appel du hook sur INPUT
+$2767:S'il y a un " après INPUT, c'est qu'il y a un texte à afficher.
+$2769:Efface A et laisse les flags (reste de MS pour enable output ? Pas besoin de clearer A ici... !!)
+$2770:Vérifie que le caractère suivant est un ';'
+$2771: ';'
+$2772:Sauvegarde du pointeur d'exécution
+$2773:Affiche la chaine de caractères
+$2777/raw_input
+
+$2780/prompt_2
+$278e:Remet en place le contact du curseur et de l'INPUT flag
+
+$2793/inst_input_2
+$2793:Récupération du pointeur d'exécution dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
+$2794:Comme on est passé par get_line, si Carry set, c'est qu'on a appuyé sur Break. On arrête le programme.
+$279a:Peek du premier caractère de la chaine pour voir s'il est NUL.
+$279b:Sauvegarde du pointeur d'exécution.
+$279c:Si c'était la fin de la ligne, alors on saute jusqu'au prochain statement. Les variables ne seront pas touchées.
+$279f:Sinon, on place ',' comme premier caractère (avant la ligne)
+
+$27a3/above
+Instruction : READ
+;
+MS_BASIC=READ
+
+$27a3:Sauvegarde du pointeur d'exécution
+$27a4:Chargement de l'emplacement du prochain DATA
+
+$27a8/read_data:MS_BASIC=NXTITM
+$27a9:Si A == 0, on est dans INPUT, sinon, on est dans READ. (flginp) est donc plutôt un Flag Read?
+$27ac:Met sur la pile le pointeur DATA et récupère le pointeur d'exécution.
+$27ae/data_loop:Vérifie qu'il y a un ',' (sauf la première fois)
+$27af:','
+$27b0:Récupération de la variable (retour dans DE)
+$27b3:Swap pour récupérer la ligne d'INPUT,DATA
+$27b4:Sauvegarde de la variable
+$27b8:Saute si le prochaine caractère de la donnée est ',' (c'est pour cela que l'INPUT est amorcé avec un ',')
+$27be:Saute si on est dans le cas READ
+$27c1:Il manque des données, réaffiche le prompt
+$27c7:Récupération de la variable
+$27c8:Récupération du pointeur d'exécution
+$27c9:Traitement du break
+$27cf:INPUT line vide ?
+$27d0:Sauvegarde du pointeur d'exécution
+$27d1:Si vide, alors statement suivant, la variable ne sera pas touchée.
+$27d4:Sauvegarde de la variable
+
+$27d5/get_value:MS_BASIC=ANTVLU
+$27d9:Saute si la variable est de type numérique
+$27db:Récupération du prochain caractère
+$27dd:Sauvegarde du caractère dans D et B
+$27e0:Saute si le premier caractère est "
+
+$27e5:A == 0 si on est dans INPUT
+$27e6:Dans ce cas, D contiendra 0, sinon, D sera fixé en $27e9
+$27e9:En cas de READ, D est ':'
+
+$27eb/data_sep:B == ',', séparateur des données
+$27ed:Remise en place de HL sur le premier caractère dans le cas où il n'était pas "
+
+$27ee/lit_string:Au final, B et D contiennent des séparateurs de données, et HL est sur la première position intéressante. Récupération de la chaine.
+
+$27f1:DE <- adresse de la chaine de caractères.
+$27f5:Branchement pour le RET
+$27f6:Sauvegarde de la chaine de caractères de données
+$27f7:Tout est prêt pour l'assignation de la variable alphanumérique. Le retour se fera à l'adresse juste spécifiée.
+
+$27fa/num_data
+$27fb:Transformation de la donnée en nombre
+$27fe:Sauve le pointeur de données, récupération de la variable
+$27ff:Assignation de la variable (par copie du buffer flottant vers HL, qui est le contenu de la variable)
+$2802:Récupération du pointeur de données.
+
+$2803/next_comma
+$2805:Saute si le buffer données est vide
+$2809:Saute si le caractère suivant n'est pas ","
+$280c/empty_data
+$280c:HL <- pointeur d'exécution. Pointeur DATA sur la pile
+$280d:Recalage
+$280f:Saute s'il reste du contenu dans la paramètres d'INPUT ou de READ
+$2811:Récupération du pointeur DATA
+$2815:Est-ce qu'on est dans INPUT (== 0) ou READ ?
+$2816:Échange de DATA et d'exécution
+$2817:Mise à jour du pointeur de DATA pour les prochains READ
+$281a:Sauvegarde du pointeur d'exécution
+$281b:Est-ce qu'il restait des choses dans les données pour INPUT ?
+
+$2829/ignore_fr
+$282a:Si oui, on affiche que le reste est ignoré (après restauration des flags)
+$282d:Restauration du pointeur d'exécution
+
+$282f/go_nxt_data
 
 $283b:Sors avec "Out of DATA"
 
@@ -1474,6 +1598,11 @@ $2a0f/retfun_impl
 $2a0f/above
 Function : met en place la valeur de retour d'une fonction
 Prerequis : valeur dans A
+
+$2a87/ill_direct/above
+Vérifie que la ligne courante n'est pas -1.
+Si c'est le cas, lance l'erreur correspondante.
+MS_BASIC=IDTEST
 
 $2a92:Sors avec "Illegal direct"
 
@@ -1679,9 +1808,12 @@ $2f15:Mise à zéro de
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
-$2f1a/runfast/above
-Vérfier l'appel direct ici ???
-MS_BASIC=RUNFST
+$2f1a/do_again/above
+Récupère le pointeur d'exécution de l'instruction en court puis termine l'instruction
+en court. A priori pour la relancer (appelée depuis INPUT en cas de Redo from Scratch)
+A tracer depuis le reset qui précède et depuis INPUT (??)
+;
+MS_BASIC=RUNFST <- Non, ça fait autre chose
 
 $2f1e/above
 Instruction : RESTORE
@@ -1695,20 +1827,30 @@ $2f32/restore_all:MS_BASIC=RESTNL
 $2f33/set_data:MS_BASIC=UPDATA
 $2f33:Sauvegarde de l'octet de la prochaine ligne de DATA
 
+$2f3f/input_brk
+$2f41:Enlève l'adresse de retour des instructions. Le programme est terminé
+
 
 $2f42/end_of_prog/above
 Traite la fin d'un programme
 ;
 MS_BASIC=ENDPRG
 
-$2f49:Si la dernière ligne était FFFF, alors le A est égal à 0, saut.
+$2f45:Sauve le status de l'arrêt. STOP a mis A <- $C0, BREAK a mis A <- $FF, et END ?
+
+$2f49:Si la dernière ligne était FFFF, alors le A est égal à 0, saut. Nous étions en mode direct.
 $2f4b:Sauve la dernière ligne exécutée si elle avait un numéro
-$2f51:Sauve le dernier pointeur de token (?) concernant une ligne avec numéro.
+$2f51:Sauve le dernier pointeur d'exécution concernant une ligne avec numéro. Utile pour CONT
 
 $2f54/no_line
-$2f5a:Récupére AF... sans intérêt, on le push juste après sans rien en faite.
+$2f54:Nouvelle ligne sur la sortie (et l'imprimante?)
+$2f5a:Récupére AF... sans intérêt, on le push juste après sans rien en faire. A est écrasé par la langue et F par le test. (!!)
+$2f5b:Chargement du texte pour l'arrêt
+$2f5e:Remise dans la pile de AF...
+$2f5f:Chargement de la langue du système.
 $2f68/break_fr
-$2f69:Comment est-ce que cela peut être NZ ?
+$2f69:Si A était à zéro, il s'agissait d'un arrêt de programme normal, sinon, au saute à l'affichage de message d'arrêt.
+$2f6c:Boucle sur l'affichage "Ok!"
 
 $2f77:Sors avec l'erreur "Cannot continue"
 
@@ -1951,8 +2093,8 @@ Fonction: traite la chaîne de caractères à afficher avec extention des variab
 MS_BASIC=CRTST (Create String?)
 
 $366c:Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
-$366d/str_to_str
-$3670:Sauve la valeur courante de HL, la mémoire à parser entre guillemets
+$366d/str_to_str:MS_BASIC=QTSTR
+$3670/direct_str:Sauve la valeur courante de HL, la mémoire à parser entre guillemets. Un appel direct ici devra placer ses propres terminateurs dans B et D ; MS_BASIC=DTSTR
 $3673/loop_str
 $3674:Récupération du caractère dans a
 $3675:Incrémentation du compteur de caractères parsés (longueur totale de la chaîne)
@@ -2317,6 +2459,12 @@ $3c96:Réinitialisation du compteur de répétition des touches
 $3c9a:Set Carry, pour provoquer la boucle immédiate du BASIC
 $3c6e/crdo_k7
 
+$3c9c/print_prt/above
+Affiche le prompt "? " de INPUT.
+Puis fallthrough sur l'acquisition d'une ligne de texte.
+;
+MS_BASIC=PROMPT
+
 $3c63/crdo_prt/above
 Fonction : Retour chariot à la ligne suivante sur l'imprimante
 
@@ -2327,6 +2475,8 @@ Fonction: Récupération d'une ligne d'instruction entrée au BASIC
 Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
 ;
 MS_BASIC=GETLIN
+
+$3ca2:Appel au HOOK de GetLine
 
 $3ca4:Commence par un appel à l'input hook qui par défaut revient immédiatement.
 
@@ -2388,6 +2538,11 @@ $3de3:Si HL n'est pas égal non plus, c'est qu'il est supérieur à la fin du bu
 $3de3:Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ?) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
 
 $3de9/ind_inchl:Saut intermédiaire pour aller incrémenter HL
+
+$3dec/prompt
+MS_BASIC=PROMPT (ou pas tout à fait, car chez MS, c'est l'affichage du PROMPT et le branchement sur l'acquisition)
+$3df1:Met le flag INPUT à 1
+$3df4:Paramètres du curseur
 
 $3dfb/acquirekeyn4/above
 Suite (3) du traitement de l'entrée
