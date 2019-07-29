@@ -259,9 +259,20 @@ poids fort sur le port $CF soit à 0.
 
 $028a/wait_loop
 
+$030b/fp_bcde_sub/code/above
+Appelé via la table des priorités
+Soustrait le contenu de BCDE (pris dans la pile) du FP
+Par inversion de signe et fallthrough dans l'addition.
+
+$0310/fp_bcde_add/above
+Appelé via la table des priorités
+Ajoute le contenu de BCDE (pris dans la pile) et de FP
+;
+MS_BASIC=FPADD
+
 $035c/retfun_4
-$035c:En venant du traitement d'auto via retfun_3, A étant à zero, la rotation à gauche n'a pas généré de Carry
-$0360:HL <- EB. ?. B est forcé à 0 par retfun_3 et E contient la partie basse du numéro de ligne quand on arrive de auto via retfun_3
+$035c:En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry
+$0360:HL <- EB. ?. B est forcé à 0 par bade_to_fp et E contient la partie basse du numéro de ligne quand on arrive de auto via bade_to_fp
 $0361:A = 0
 
 $0362/rot_loop/above
@@ -281,8 +292,8 @@ $036B:A <- B, récupération temporaire dans A du compteur
 $036e:Comparaison avec $e0...
 $0370:Arrêt si le compteur est arrivé à 32. On a shifté de 32 bits au max
 
-$0372/clear_fac0
-$0373/load_fac0:Il n'y avait rien à normaliser dans la mantisse, force la valeur à 0.
+$0372/clear_fp
+$0373/load_fac0:Il n'y avait rien à normaliser dans la mantisse, force l'exposant à 0.
 
 $037a:Saute s'il y a quelque chose après le premier octet de la mantisse
 $37c:Sinon, on traite C pour trouver le premier bit de poids fort
@@ -329,6 +340,32 @@ $0400:Cette partie jusqu'au JR est un shift vers la droite de l'ensemble CDEB
 
 $0404:Grace au XOR A, le CY est à 0
 
+$0478/fp_bcde_mult/code/above
+Appelé via la table des priorités
+
+$04d0/fp_div_10/above
+Division de FP par 10
+;
+MS_BASIC=DIV10
+
+$04dc/fp_bcde_div/above
+Appelé via la table des priorités
+
+$0583/fp_x_10/above
+Multiplication de FP par 10
+;
+MS_BASIC=MLSP10
+
+$0583:Récupère FP dans BCDE
+$0588:Si l'exposant est à zéro, retour immédiat
+$0589:En ajoutant 2 à l'exposant, on multiplie le nombre par 4
+$058b:Sortie si Overflow avec le message d'erreur
+$058e:Si ok, on remet l'exposant en place dans BCDE
+$058f:Ce nombre x4 est ajouté au FP actuel, pour un résultat de x5
+$0595:Incrémente directement l'exposant dans FP
+$0596:Retour si on n'a pas fait passer l'exposant à zéro
+$0597:Sinon, c'est un Overflow
+
 $059d:Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
 $059e/code:Appelé depuis une routine à cause de $060f
 $059f:Rotation à gauche via Carry
@@ -336,9 +373,10 @@ $05a0:Soustraction de A avec A avec retenu.
 $05a1:Saute si la rotation avait débordée dans la retenue.
 $05a2:Sinon, augmente A de 1 (autrement, dit A = 1 puisque la soustraction avait donné 0)
 
+$05a5/a_to_fp
 $05a5:Prépare le placement des valeurs $88,$80 dans le buffer de virgule flottante
 
-$05aa/retfun_3
+$05aa/bade_to_fp
 $05aa:Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro de ligne
 
 $05b2:Mets dans le buffer 'fac' les octets B et $80, B est assigné à 0. C est à 0 (depuis A) en venant du traitement d'auto.
@@ -354,6 +392,10 @@ $05c2/fac_to_stck/above
 Function : Place le contenu de faclo et faclo+2 sur la pile
 en préservant la valeur de retour pour RET.
 La valeur de HL est préservée
+
+$05cf/hl_to_fp/above
+La valeur numérique pointée par HL sera d'abord extraite dans BCDE, puis par fallthrough sera transmis au FP
+
 
 $05d2/bcde_to_fac/above
 Place DE dans faclo et BC dans faclo+2. Préserve la valeur de HL
@@ -433,29 +475,97 @@ $0687:DE <- DE * 2
 $068f:Boucle sur A (16 fois)
 
 $0692/str_to_num/above
-Function: transforme le texte pointé par HL en nombre
+Function: transforme le texte pointé par HL en nombre dans l'accumulateur FP
+;
+MS_BASIC=ASCTFP
 
 $0692:Cas hexa (commence par `&`)
+$0694:On branche immédiatement dans ce cas, c'est une autre routine qui se charge de ça. (à noter que parse_value fait déjà ce test, qui n'est pas inutile car cherche d'autres préfixes)
 
 $0697:Cas négatif qui commence par '-'
+$0699:Sauvegarde des flags de la comparaison avec '-'
 $069c:Cas positif qui commence par '+'
-$06a0:Position HL un caractère avant dans les autres cas
-$06a1:Initialise le buffer de travail avec 0 en première place. Effet de bord, A = 0
-$06a6:Met B et DE à 0
-$06a8:Met C à FF
+$06a0:Positionne HL un caractère avant dans les autres cas (car chget avance d'un avant toute chose)
+$06a1/skip_sign
+$06a1:Initialise l'exposant de FP à 0. Effet de bord, A = 0
+$06a4:Nombre de chiffres après le point (la virgule) (B = 0)
+$06a5:Signe de l'exposant (D = 0)
+$06a6:Puissance de 10 (E = 0)
+$06a8:Met C à FF, flag pour situer le parsing avant ou après le point
+
 $06a9/prse_flt_lp
 $06a9:Lecture du caractère suivant
 $06aa:Cas d'un chiffre
 $06ae:Cas du caractère `.`
 $06b2:Cas du caractère `e`
 $06b6:Cas du caractère pas `E`
+
 $06b8/case_exp
-$06c6/case_dot
+$06b9:Au retour, le signe de l'exposant est dans D
+
+$06bc/exp_loop
+$06bd:C'est un chiffre, on l'ajoute à l'exposant
+$06bf:Ce n'est pas un chiffre, on vérifie le signe de l'exposant
+$06c0:Saut s'il était positif, on a fini
+$06c4:S'il était négatif, on inverse E (l'exposant)
+$06c5:Le flag de passage de point est augmenté pour s'assurer qu'on ne bouclera plus dans le parsing
+
+$06c6/case_dot:Le flag du passage du point est incrémenté (pour le premier point, passe de FF à 00)
+$06c7:Si le flag est passé à 0, alors on boucle pour parser la suite, le flag est maintenant sur 0.
+
+$06c9/exp_end
+$06c9:Que ce soit avec un deuxième point ou la fin de l'exposant, le parsing du nombre est terminé. Il faut le finaliser. On sauve le pointeur d'execution.
+
+$06cc/adj_loop
+$06cb:A contient l'exposant moins le nombre de chiffre après le point. L'exposant est donc tel que tous les chiffres significatifs sont à gauche du point
+$06cc:Saute si l'exposant ajusté est positif
+$06cf:Si A toujours positif, vérifie la fin de boucle
+
+$06d3:L'exposant est négatif, on divise FP par 10 et on augmente A
+
+$06d8/adj_div_10
+
+$06da:Restaure le pointeur d'execution.
+$06db:Restaure le signe du nombre
+$06dc:S'il était négatif, appel l'inversion de signe
+$06df:Récupère le pointeur d'execution dans HL
+
+$06e1/adj_x_10/above
+Ajuste en multipliant par 10 et en décrémentant A
+
+$06e1:Si A était 0, retour immédiat
+$06e2/fp_x_10_dec_a
+
 $06e9/case_digit/above
 Parses a digit loaded in A
 
-$06f4:Récupération de la valeur du caractère (qui était dans DE ?)
+$06e9:Sauve l'exposant
+$06ea:Sauve le chiffre dans D
+$06eb:Récupère le nombre de chiffres après le point
+$06ec:On est arrivé dans cette routine avec le Carry Flag Set. Si C == FF, alors on ajoute zéro, si C == 0, alors on ajoute 1
+$06ed:Compteur après le point ajusté, remis dans B
+$06ee:Sauvegarde des informations sur la position du oint
+$06ef:Sauvegarde du pointeur d'execution.
+$06f0:Sauvegarde du chiffre (qui est dans D)
+
+$06f4:Récupération de la valeur du caractère
 $06f5:Transformation en valeur numérique
+$06f7:Ajoute A à FP
+$06fc:Restaure le contexte du parsing
+$06fd:Va chercher le caractère suivant.
+
+$06ff/add_a_to_fp
+$06ff:Met le FP sur la pile
+$0702:Met le digit dans A dans FP
+
+$0705/eval_add:Appelé a travers la table des priorités ; MS_BASIC=PADD
+$0706:Récupère le nombre depuis la pile
+
+$070a/add_to_exp/above
+Prend l'exposant actuel E et le multiplie par 10, ajoute le caractère de (HL) et en soustrait '0'
+Puis va chercher un autre chiffre pour l'exposant
+;
+MS_BASIC=EDIGIT
 
 $0715/out_in/above
 Affiche à l'écran le texte " en "/" in " suivant la langue, suivi du numéro de ligne présent dans HL
@@ -479,6 +589,8 @@ $0744:Saut si le résultat était < 0
 $074c:Aussi appelé (jp (hl))depuis $07fe
 
 $07ff/data_what:Probablement de la donnée
+
+$0826/fp_bcde_pow
 
 $0a78:Désactivation de l'affichage
 
@@ -642,6 +754,27 @@ $0f3a:Vérification de l'appuie de la touche ESPACE
 
 $0f3e/stka_joy0
 $0f3a:Vérification de l'appuie sur la bouton action du joystick 0
+
+$0fd2/get_hex/above
+Lecture d'un chiffre Hexa depuis HL (HL doit donc être positionné sur le caractère précédent)
+Le caractère est valide si le Carry est reset, A contient alors la valeur.
+Si le Carry est set, la valeur n'était pas valide
+
+$0fd4:Comparaison avec '0'
+$0fd6:Saute si en dessous, c'est invalide
+
+$0fd8:Comparaison avec ':' (juste après '9')
+$0fda:Saute si en dessous (on est donc entre '0' et '9', c'est valide)
+$0fdc:toupper() du caractère
+$0fe0:Saute si en-dessous de 'A'
+$0fe4:Saute si au-dessus ou égal à 'G'
+$0fe7:Soustrait $37 à A pour obtenir la valeur ('A' - $37 donne $0A)
+
+$0fe9/valid_hex
+$0fe9:S'assure que le résultat dans de $00 à $0F, au passage clear du carry
+
+$0fec/invalid_hex:set le carry et revient
+
 
 $1af8/mem_out_err
 $1afc:Affiche l'erreur "Out of Memory"
@@ -873,7 +1006,7 @@ $2000/instructions
 $209d/prekeywords
 $209e/keywords
 $21fd/keywstop
-$21fe/mysteryatnow
+$21fe/prio_table
 
 $2214/ok_str
 $2219/marker_vrfy
@@ -1253,7 +1386,7 @@ $2548:Manipulation de A pour setter Z si A était NUL
 
 $254a/num_read/above
 Lecture d'un nombre depuis une chaine pointée par HL.
-Ce nombre doit être entre 0 et 32767. (est-ce la différence avec str_to_num ???)
+Ce nombre doit être entre 0 et 32767. (avec un parsing tel que str_to_num, on parse un FP)
 Sortie dans DE.
 Une structure récurante est d'appeler frnum_impl puis deint_impl, pour récupérer un entier de -32768 à 32767
 (la vérification du signe est "évitée")
@@ -1485,7 +1618,7 @@ $27d1:Si vide, alors statement suivant, la variable ne sera pas touchée.
 $27d4:Sauvegarde de la variable
 
 $27d5/get_value:MS_BASIC=ANTVLU
-$27d9:Saute si la variable est de type numérique
+$27d9:Saute si la variable est de type numérique ; Si la donnée et le variable ne correspondent pas, que se passe-t-il ???
 $27db:Récupération du prochain caractère
 $27dd:Sauvegarde du caractère dans D et B
 $27e0:Saute si le premier caractère est "
@@ -1528,15 +1661,28 @@ $2829/ignore_fr
 $282a:Si oui, on affiche que le reste est ignoré (après restauration des flags)
 $282d:Restauration du pointeur d'exécution
 
-$282f/go_nxt_data
+$282f/go_nxt_data:MS_BASIC=FDTLP ; Va à la prochaine instruction
+$2832:Test de fin de ligne
+$2833:Saute si ce n'est pas la fin de la ligne
+$2838:On est à la fin de la ligne, est-ce que la ligne suivante est NUL ?
+$283b:Si oui, sors avec "Out of DATA"
 
-$283b:Sors avec "Out of DATA"
+$2846/test_data
+$2847:Compare avec le token DATA
+$2849:Saute si ce n'est pas une instruction DATA pour aller chercher plus loin
+$284b:On a trouvé la prochaine donnée, on peut aller l'assigner à la variable
+$2842:Sinon, charge la ligne de DATA courante. Il y a ici in EX HL,DE dans MS_BASIC, que se passe-t-il ???
 
-$284d/frnum_impl/above
-Fonction :
+$284d/eval_num_ex/above
+Fonction : Evalue une expression et vérifie que le résultat est numérique.
+
+$2850/type_eq_num/above
+Fonction: vérifie que le type évalué est de type numérique.
+Le OR A,$37 va faire un clear Carry et sauter le Set Carry du test de type chaîne
 
 $2851/type_eq_str/above
 Fonction: vérifie que le type évalué est une chaine de caractère
+
 
 $2852/type_eq_chk/above
 Fonction: vérifie que deux types sont égaux
@@ -1549,49 +1695,155 @@ Fonction appelée récursivement par l'évaluation commencée par read_expr.
 Commence par vérifier la présence d'une parenthèse ouvrante puis continue l'évaluation.
 Il n'y a pas de partial instruction en $2860, c'est uniquement le paramètre de chkchr
 
-$2861/read_expr/above
-Leture d'une expression ???
+$2860:Vérifie la parenthèse ouvrante
 
-$2867:Vérification qu'il est possible de mettre 1 octet (C) sur la pile
+$2861/read_expr/above
+Lecture et évaluation d'une expression
+À chaque parsing, est mis sur la pile l'adresse de l'opérande, suivi du FP (BCDE), suivi du retour en eval_2 (qui sera exécuté par le RET dans l'opérande)
+Cela forme une liste de commandes à exécuter lorsqu'un bloc est évalué.
+Lorsqu'un opérateur de plus faible priorité est trouvé, le RET NC permet de faire un saut vers l'adresse d'exécution de l'opérateur, qui trouvera son
+paramètre sur la pile, suivi de l'adresse de retour en eval_2, qui considère que l'accumulateur FP est rempli (et contient donc l'évaluation).
+;
+MS_BASIC=EVAL
+
+$2862:La priorité est stockée dans D.
+
+$2864/eval_1
+$2864:Sauvegarde de la priorité
+
+$2867:Vérification qu'il est possible d'ajouter 1 niveau (C) sur la pile
+$286a:Attention, la lecture de caractère via RST $10 commence par un INC HL, les opérateurs sont donc 'ignorés' naturellement à ce niveau du parsing. D'où aussi la nécessité du DEC HL en début de fonction
 $286d:Sauvegarde de l'adresse de parsing courante
+
+$2870/eval_2
 $2870:Récupération de l'adresse de parsing courante
-$2873:Récupération de la valeur de DE pushée en début de fonction
-$2877:Saut si A >= $78 ???
+$2873:Récupération de la priorité
+$2875:Comparaison avec la priorité de AND et OR
+$2877:Si ce n'est pas AND et OR (la priorité est au moins à $78), vérification que l'on veut un type numérique. Si on revient, c'est que c'était le cas
+$287a:Récupération dans A de l'opérateur suivant (ou de la fonction)
 $287b:Sauvegarde de l'adresse de parsing courante
-$287e:$b9 est le token pour '+', qui est aussi le premier token qui n'est pas une instruction
+$287e:$b9 est le token pour '+', qui est aussi le premier token qui n'est pas une instruction (les opérateurs)
 $2880:Retour si ce qui est parsé est avant le '+', donc ne faisant plus partie de l'expression
-$2881:$c3 est le code de SGN, la première fonction prédéfinie. ???? que se passe-t-il pour la suite de l'évaluation ????
+$2881:$c3 est le code de SGN, la première fonction prédéfinie. 
+$2883:Si c'est une fonction ou ensuite, ce n'est pas un opérateur, on sort de l'évaluation.
+$2884: $c0 '>' $c1 '=' $c2 '<'
+$2886:Saute si '>' ou au-delà
+$2888:Index de l'opérateur (en commençant par '+' comme 0)
+$288a:Sauvegarde de l'index dans E
+$288b:Saute si l'opérateur n'est pas '+'
+$2891:Récupération de l'index de l'opérateur sauvé en $288a
+$2892:Si la valeur est une chaîne de caractères, on saute (concatenation de chaînes)
+
+$288d/no_call
+$288d:Il n'y a pas d'appel ici, c'est l'appelant qui est un "skip"
+$2890:Type de la valeur : -1=num 0=string
+
+$2895/not_plus
+$2897:Index de l'opérateur multiplié par 3 dans E
+$2898:Charge la table des priorités
+$289d:Indexation dans la table
+$289e:Sauvegarde de la priorité courante
+$289f:Récupération de la priorité du nouvel opérateur
+$28a0:Comparaison des priorités
+$28a1:Si la nouvelle priorité est plus petite, on sort (== on saute à l'adresse de l'opérateur sur la pile)
+$28a2:Sinon, HL pointe sur l'adresse de l'opérateur
+$28a3:On vérifie que l'on a affaire à un type numérique (encore ???)
+$28a6:Sauvegarde de B (précédente actuelle) et C (???)
+$28aa:Sauvegarde de l'adresse de retour lorsque l'expression de cette priorité sortira
+$28ab:Sauve l'index dans la table de priorité
+$28ad:Monte la valeur FP sur la pile
+$28b1:Restaure l'index dans la table de priorité
+$28b4:Récupération de l'adresse de l'opérateur dans BC
+$28b6:Qui est mis sur la pile
+$28b7:Restauration du pointeur de parsing
+$28ba:On continue le parsing jusqu'á sortir de la priorité courante
+
+$28bd/above
+Lorsque l'on arrive ici, A contient > = <
+Il s'agit de chercher un motif d'opérateur de comparaison composé.
+
+$28bf/comp_loop
+$28c1:Saut si A est avant >
+$28c6:Saut si A est après <
+$28c9:Est-ce '=' ?
+$28cb:> donne b11, = donne b10, < donne b00
+$28cc:À la première boucle, A n'est pas changé (D == 0). En deuxième boucle, tous les doublons (>>, << et ==) donnent b00, <= et => donnent b01, >= et => donnent b10
+$28ce:Le premier caractère est mis dans D
+$28cf:À la première boucle, A ne peut pas être inférieur à D.
+$28d2:Le pointeur de parsing est ajusté (à la deuxième boucle surtout)
+$28d5:Lecture du caractère suivant
+
+$28bd/eval_comp
 
 $28d8/parse_value/above
 Fonction: parse une valeur depuis HL+1. Cette valeur peut être numérique, alphanum ou bien une fonction
 prédéfinie ou utilisateur.
+;
+MS_BASIC=OPRND
 
-$28d9:Type numérique
-$282c:Lecture du prochain caractère (non blanc, numérique, essayer avec INIT ABC ?)
-$28dd:Cas où le caractère est NUL
-$28e0:Cas où le caractère est un chiffre.
+$28d9:On cherche un type numérique par défaut
+$28dc:Lecture du prochain caractère (non blanc, numérique, essayer avec INIT ABC ?)
+$28dd:Saute dans le cas où le caractère est NUL
+$28e0:Saute dans le cas où le caractère est un chiffre.
 $28e3:Caractère '&'
 $28e5:Saut si sur le point de parser un nombre en hexa
-$28eb:Saut si la valeur est entre A et Z
+$28eb:Saut si la valeur est entre A et Z (on va chercher une variable)
 $28ed:Token pour '+'
+$28ef:La valeur commence par un '+', on ignore et on relance le parsing
 $28f1:Caractère '.'
+$28f3:C'est un nombre (flottant)
 $28f6:Token pour '-'
+$28f8:Saut pour prendre l'opposé du parsing
 $28fa:Caractère '"'
+$28fc:C'est une chaîne de caractères délimité par "
 $28ff:Token pour 'NOT'
+$2901:Saute å l'évaluation d'un NOT
 $2904:Token pour 'FN'
+$2906:Saute à l'évaluation d'une fonction utilisateur
 $2909:Token pour 'SGN', la première des fonctions
-$290d:Cas de la sous-expression entre parenthèses.
-$2911:Caractère ')' pour le check du-dessus. Donc erreur de syntaxe si une variable fermante n'est pas trouvée.
+$290b:Saute á l'évaluation d'une fonction prédéfinie
+$290d:Cas de la sous-expression entre parenthèses, qui est le dernier choix possible. Pour cela, on lance une évaluation de sous expression qui commencera par vérifier l'existence de cette parenthèse.
+$2911:Caractère ')' pour le check du-dessus. Donc erreur de syntaxe si une parenthèse fermante n'est pas trouvée.
+$2912:À ce niveau là, la sous-expression est dans l'accumulateur FP.
 
 $2913/str_to_min
-$2924/str_to_var
+$2913:Un '-' comme opérateur unaire doit s'évaluer sur ce qui suit. Charge la précédence de l'opérateur.
+$2915:Puis évalue l'expression. Qui sortira lorsque la précédence sera moins forte
+$2918:Récupération de l'adresse de parsing du prochain opérateur
+$291b:Que l'on sauve
+$291c:Le temps d'inverser le signe de ce que contient FP
+$291f:Et de vérifier que l'on a bien affaire à un type numérique
+$2922:Restauration du pointeur d'exécution
+
+$2924/str_to_var/above
+Récupère la valeur d'une variable lors d'une évaluation.
+
+$2924:Récupère l'adresse de la variable dans DE
+$2927:Sauve le contexte
+$2928:HL prend l'adresse de la variable
+$2929:Sauve l'adresse de la variable
+$2930:Appel si le type de la variable est numérique (pour mettre sa valeur dans FP)
+$2933:Restaure le contexte
+
 $2935/str_to_func
 $29d3/str_to_not
 $2a41/str_to_fn
 
 $2966:Appel à une fonction pour évaluation ?
+$2967/exp_sign/above
+Retourne D == FF si le caractère dans A est - (token) ou '-', D == 0 si + (token) ou '+' avec Z flag set. Si rien trouvé, NZ (et D = 0), et HL reculé (pour recommencer le parsing)
+;
+MS_BASIC=SGNEXP
 
-$29f0/retfun_2:B contient la valeur de la fonction, A contient 0, quand appelé depuis retfun_impl
+$2978/fp_bcde_and/code:MS_BASIC=PAND
+
+$2977/fp_bcde_or/code/above
+Execution de AND et OR. Appelé via la table de priorités.
+;
+MS_BASIC=PAND
+
+
+$29f0/aetfun_2:B contient la valeur de la fonction, A contient 0, quand appelé depuis retfun_impl
 $29f6:Place 0 dans la globale valtyp, ce qui signifie que la valeur est numérique
 
 $2a0f/retfun_impl
@@ -1904,7 +2156,33 @@ pour les chaînes demandée.
 ////////////////// 3000 /////////////////
 /////////////////////////////////////////
 
-$302c/str_hex_dec
+$302c/str_hex_dec/above
+Transforme un nombre de la forme &"xxxx" en FP.
+;
+MS_BASIC=HEXTFP
+
+
+$302d:Vérifie que le début du nombre (après le '&'), est un '"'
+$302f/dummy/code:Pour forcer la donnée de chkchr. Le décodage ne fonctionne pas bien ici, c'est vraiment LD DE,$0000 qu'il faut lire. C'est l'initialisation de l'accumulateur de la valeur lue.
+$3032:Compteur de chiffres maximum (4 chiffres max, la boucle djnz sort lorsque B est décrémenté à 0)
+$3034:Positionnement du pointeur d'execution.
+
+$3035/hex_fetch:Va chercher un chiffre Hexa
+$3038:Saute si ce n'était pas un chiffre Hexa
+$303a:Temporairement sauve HL dans DE, qui contient l'accumulateur des valeurs
+$303e:HL (l'accumulateur) est décalé de 4 vers la gauche.
+$303f:A est ajouté dans les 4 bits de poids faible
+$3040:Remis dans l'accumulateur
+$3041:Remise en place de DE=accumulateur et HL=pointeur
+$3042:Si le compteur de chiffres n'est pas encore à zero, on repart pour un tour. 
+$3049:On lit (puis ignore) le caractère suivant
+$304c:Sauvegarde du pointeur d'exécution.
+$304d:B (exp) = $98, A == 0 et DE contient l'entier lu. Le tout est monté dans FP
+$3051:Restauration du pointeur d'exécution.
+$304d:Ici, on ignore le caractère qui vient d'être lu
+
+$3044/not_hexa:Vérification que le caractère est '"' (en cas d'arrivée par caractère non hexa, on peut voir que &"" est valide et égal à 0)
+$3046:Si ça n'est pas le cas, c'est une erreur de syntaxe.
 
 ////////////////// 3200 /////////////////
 $3278/initscreen/above
@@ -2137,6 +2415,8 @@ $36b4:MS_BASIC=PRSLP ; Compte les caractères
 
 $36d6/out_str_mem
 $36da:Sors avec l'erreur "Out of string space"
+
+$3784/str_concat
 
 $379b:Sors avec "String too long"
 
@@ -2779,3 +3059,5 @@ $381b/inst_chr/code
 $3829/inst_left/code
 $3858/inst_right/code
 $3861/inst_mid/code
+
+
