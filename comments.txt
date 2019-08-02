@@ -351,6 +351,8 @@ MS_BASIC=DIV10
 $04dc/fp_bcde_div/above
 Appelé via la table des priorités
 
+$04c9/pop_hl_ret
+
 $0583/fp_x_10/above
 Multiplication de FP par 10
 ;
@@ -1003,6 +1005,7 @@ $1e97:Replace le périphérique d'entrée sur le clavier
 /////////////////////////////////////////
 
 $2000/instructions
+$2064/functions
 $209d/prekeywords
 $209e/keywords
 $21fd/keywstop
@@ -1156,10 +1159,11 @@ $2344:Placement dans le chaînage de la ligne précédente du pointeur de ligne 
 
 
 $236b/tokenize/above
-Fonction : effectue la tokenisation du buffer d'entrée
+Fonction : effectue la tokenisation du buffer d'entrée (HL) vers BASBUF
 Entrée : HL pointe vers le contenu à traiter
-(qui est normalement dans basbuf au moins en mode direct)
 Sortie : C contient la taille du résultat de tokenisation en octets (?)
+;
+MS_BASIC=CRUNCH
 
 $236c:Le flag est à 0 pour signaler la tokenisation
 $2371:DE pointe sur le buffer de tokenisation
@@ -1802,6 +1806,8 @@ $2904:Token pour 'FN'
 $2906:Saute à l'évaluation d'une fonction utilisateur
 $2909:Token pour 'SGN', la première des fonctions
 $290b:Saute á l'évaluation d'une fonction prédéfinie
+
+$290d/eval_paren
 $290d:Cas de la sous-expression entre parenthèses, qui est le dernier choix possible. Pour cela, on lance une évaluation de sous expression qui commencera par vérifier l'existence de cette parenthèse.
 $2911:Caractère ')' pour le check du-dessus. Donc erreur de syntaxe si une parenthèse fermante n'est pas trouvée.
 $2912:À ce niveau là, la sous-expression est dans l'accumulateur FP.
@@ -1812,6 +1818,8 @@ $2915:Puis évalue l'expression. Qui sortira lorsque la précédence sera moins 
 $2918:Récupération de l'adresse de parsing du prochain opérateur
 $291b:Que l'on sauve
 $291c:Le temps d'inverser le signe de ce que contient FP
+
+$291f/ret_num
 $291f:Et de vérifier que l'on a bien affaire à un type numérique
 $2922:Restauration du pointeur d'exécution
 
@@ -1825,11 +1833,40 @@ $2929:Sauve l'adresse de la variable
 $2930:Appel si le type de la variable est numérique (pour mettre sa valeur dans FP)
 $2933:Restaure le contexte
 
-$2935/str_to_func
-$29d3/str_to_not
-$2a41/str_to_fn
+$2935/str_to_func/above
+Exécute le code d'une fonction interne lors de l'évaluation d'une expression
+En entrée, A contient l'index de la fonction (token soustrait du token de la première fonction)
+;
+MS_BASIC=FNOFST
 
-$2966:Appel à une fonction pour évaluation ?
+$2937:Double l'index de la fonction
+$2938:Avec B mis à 0, BC contient l'index doublé de la fonction
+$2939:Que l'on sauve
+$293a:Saute la '(' qui doit suivre
+$293b:A <- index doublé de la fonction
+$293c:Compare par rapport au token 220 (token CHR$ - token SGN, le tout * 2)
+$293e:Saute si c'est une fonction qui renvoie une valeur numérique
+$2940:On est dans une des fonctions renvoyant une valeur alphanumériques. Évaluation du premier paramètre.
+$2944:Vérification que le caractère suivant est ','
+$2945:Et que la valeur évaluée est bien alphanumérique.
+$2948:Sauve le pointeur d'exécution
+$2949:HL <- adresse de la chaîne évaluée
+$294c:Que l'on met en haut de la pile (et récupération de l'index doublé)
+$294d:Push de l'index doublé
+$294e:HL <- pointeur d'exécution
+$294f:Récupération d'un entier sur 8 bits (dans A et DE)
+$2952:Pointeur d'exécution dans DE, HL <- l'int récupéré
+$2953:HL <- index doublé, en haut de pile, l'entier du second paramètre
+
+$2956/num_func:Évaluation du paramètre de la fonction (qui est donc dans FP)
+$2959:HL <- index doublé, en haut de la pile, le pointeur d'exécution
+$295d:Prépare l'adresse de retour pour le prochain RET comme retour de fonction numérique
+
+$295e/exec_func
+$2961:Pointe dans le tableau d'adresse des fonctions celle correspondant à l'index
+$2965:Chargement de l'adresse dans HL
+$2966:Saut à l'implémentation de la fonction interne
+
 $2967/exp_sign/above
 Retourne D == FF si le caractère dans A est - (token) ou '-', D == 0 si + (token) ou '+' avec Z flag set. Si rien trouvé, NZ (et D = 0), et HL reculé (pour recommencer le parsing)
 ;
@@ -1842,14 +1879,83 @@ Execution de AND et OR. Appelé via la table de priorités.
 ;
 MS_BASIC=PAND
 
+$29ea/inst_fre_2
 
-$29f0/aetfun_2:B contient la valeur de la fonction, A contient 0, quand appelé depuis retfun_impl
+$29ef/ac_to_fp:Met A dans B, pour fallthrough dans ab_to_fp
+
+$29f0/ab_to_fp:Met B dans D (de BADE)
+$29f1:Net E à 0.
 $29f6:Place 0 dans la globale valtyp, ce qui signifie que la valeur est numérique
+$29f7:Exposant $80+$10
 
-$2a0f/retfun_impl
-$2a0f/above
+
+$29d3/str_to_not
+$29d3:Charge la priorité pour l'opérateur NOT
+$29d5:Lance une évaluation qui sortira en descente de priorité
+$29d8:Vérifie le type numérique de la valeur obtenue
+$29db:FP to Signed Int
+$29e2:Inverse les valeurs de la mantisse (D et E) et met le résultat dans A et C
+$29e3:Résultat dans FP
+$29e7:Suite de l'évaluation
+
+$2a13/above
+Instruction: DEF, définition d'une fonction
+;
+MS_BASIC=DEF
+
+$2a13:Vérifie que l'on a affaire à une fonction (et définie l'entrée)
+$2a16:Cette instruction ne peut pas être appelé en direct
+$2a1c:Prépare la valeur de retour pour aller à la prochaine instruction
+$2a1d:Sauve l'adresse de la fonction (de son pointeur)
+$2a1e:DE <- 0
+$2a22:Caractère suivant est '(' ?
+$2a24:Saute si non (il n'y a pas de paramètre, légal pour ce BASIC, même si l'appel doit quand même spécifier un argument...)
+$2a26:Saute le caractère '('
+$2a27:Récupère la variable en paramètre. check_fn a mis $80 dans subflg
+$2a2a:Sauvegarde du pointeur d'exécution
+$2a2b:HL <- pointeur sur la variable paramètre
+$2a2f:DE <- nom de la variable paramètre
+$2a30:HL <- pointeur d'exécution
+$2a31:Vérification du type numérique (pas de fonction alphanum)
+$2a35:Le caractère suivant est bien ')' ?
+$2a37:Le caractère suivant est bien '=' ?
+$2a39:BC <- HL (pointeur d'exec)
+$2a3a:HL <- pointeur de fonction, Stack -> pointeur d'exécution
+$2a3d:Le pointeur de fonction reçoit l'adresse du pointeur d'exécution au niveau de la fonction
+$2a3e:DE (nom de la variable) sera mis à la suite, avant un RET
+
+
+$2a36/no_param
+
+
+$2a41/str_to_fn/above
+Pour traiter la valeur du paramètre, c'est dans la récupération de la variable qu'un test
+est fait entre le nom de la variable en cours en prmnam. Si c'est égal, alors DE est
+placé sur prmval
+
+$2a41:Vérification que l'on a bien une fonction numérique (DE prend le pointeur vers la variable)
+$2a44:Sauvegarde du pointeur de fonction
+$2a45:Évaluation du paramètre de la fonction
+$2a48:Qui doit être numérique
+$2a4b:HL <- Pointeur sur la fonction (qui contient en premier un pointeur vers le code de la fonction)
+$2a4f:DE <- Pointeur sur la chaîne de code de la fonction
+$2a52:Saute si le pointeur était NUL, et donc la fonction non définie
+$2a58:HL <- Second paramètre de la variable, qui contient l'emplacement de la variable de fonction
+$2a59:Que l'on met sur la pile
+$2a5d:Sauvegarde du contenu du nom de paramètre sur la pile et échange avec l'actuel (les fonctions peuvent appeler de fonctions ???)
+$2a68:Sauvegarde du contenu actuel de la valeur du paramètre
+$2a6c:Sauve DE (code de la fonction)
+$2a6d:Copy FP dans ce qui est pointé par HL (valeur paramètre)
+$2a70:Pointeur sur le code de la fonction dans HL
+$2a71:Évaluation de la fonction (qui est une expression numérique)
+$2a74:Recalage du pointeur de parsing
+$2a82:Remise en place de la valeur et du nom du paramètre précédent
+
+
+$2a0f/retfun_impl/above
 Function : met en place la valeur de retour d'une fonction
 Prerequis : valeur dans A
+Sortie : valeur entière dans FP
 
 $2a87/ill_direct/above
 Vérifie que la ligne courante n'est pas -1.
@@ -1858,10 +1964,38 @@ MS_BASIC=IDTEST
 
 $2a92:Sors avec "Illegal direct"
 
+$2a95/check_fn:Vérifie que ce qui suite est une fonction (au sens DEFFN)
+$2a96:Token pour FN
+$2a97:Pourquoi ce flag ???
+$2a9c:A contient le caractère suivant avec le bit 7 à 1
+$2a9d:Qui est mis dans C
+$2aa1:Vérification du type numérique (qui se chargera du RET)
+
+$2aa4/preget_byte
 $2aa5/getbyt_impl/above
 Fonction : récupère un entier sur un octet depuis le buffer d'entrée
 Entrée : HL pointe sur la zone de texte
-Sortie : A contient l'entrée
+Sortie : A contient l'entrée (ainsi que DE ?)
+
+$2aa8/to_int
+
+$2ab4/above
+Fonction : Peek
+Récupère le paramètre entier, déférence l'adresse dans A et en fait la valeur de retour
+
+$2abb/above
+Instruction : Poke
+
+$2abe:Sauve la partie entière du paramètre (assuré d'être entier)
+$2ac0:Vérifie la présence de ','
+$2ac1:Récupère un octet (dans A)
+$2ac5:Met A à l'adresse DE
+
+$2ac7/why:Pourquoi ???
+
+
+$2acb/get_poke_addr
+
 
 $2ae4:Saute en fin de fonction si aucun caractère n'a été entré
 
@@ -2056,7 +2190,7 @@ $2eff:Réinitialisation de la pile (SP) à la dernière addresse RAM valide
 $2f06:Le pointeur sur la zone temporaire de descripteur est initialisé
 $2f0f:Mise à zéro de `oldtxt`
 $2f12:Mise à zéro du buffer `subflg` (utilisé pour FOR)
-$2f15:Mise à zéro de 
+$2f15:Mise à zéro du nom du paramètre pour les fonctions utilisateurs
 $2f18:Met 0 sur la pile
 $2f19:Remet l'adresse de retour sur la pile avant le RET
 $2f1a:HL contient la valeur de `temp` (code d'une instruction)
@@ -2360,36 +2494,53 @@ $35f4/char20
 
 ////////////////// 3600 /////////////////
 
-$3660/len_in_buf/above
-Fonction: met la longueur de chaîne puis rien puis DE (pointeur de chaîne) dans dsctmp
-Entrée: C contient un nombre de caractères (longueur de chaîne), DE ?
+$365b/str_len_1:Construction après vérification d'une chaine de taille 1.
+$365d/ctr_ver_str:Construction d'une chaine après vérification de la mémoire disponible
+$3660/crt_tmp_str/above
+Fonction: met la longueur de chaîne (A) puis rien (0, pour être sur 16 bits) puis DE (pointeur de chaîne) dans dsctmp
+Entrée: C contient un nombre de caractères (longueur de chaîne), DE le pointeur sur la chaine (sans séparateur de début)
 Sortie: HL pointe sur le buffer temporaire de chaîne, dsctmp
+;
+MS_BASIC=CRTMST
+
+$3666/de_in_hl:Puts DE where HL points to
 
 $366c/out_str_prc/above
-Fonction: traite la chaîne de caractères à afficher avec extention des variables.
+Création d'une chaine de caractère depuis la source pointée par HL (dans le pool de string ???)
 ;
 MS_BASIC=CRTST (Create String?)
 
 $366c:Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
 $366d/str_to_str:MS_BASIC=QTSTR
+
+$366f:'"' est dans B puis D
+
 $3670/direct_str:Sauve la valeur courante de HL, la mémoire à parser entre guillemets. Un appel direct ici devra placer ses propres terminateurs dans B et D ; MS_BASIC=DTSTR
+$3671:Compteur C de la taille de la chaine à -1
+
 $3673/loop_str
 $3674:Récupération du caractère dans a
 $3675:Incrémentation du compteur de caractères parsés (longueur totale de la chaîne)
 $3677:Si le caractère est 0 (fin de chaîne)
-$367a:Si le caractère est $22 (=34, guillemets)
+$367a:Si le caractère est $22 (=34, guillemets) (ou autre terminateur mis dans D)
+$367c:Traitement du deuxième terminateur possible
+$367d:Tant que l'on traite des caractères normaux
 
 $367f/out_str_2
 
-$367d:Tant que l'on traite des caractères normaux
-$3681:Traitement spécifique pour les guillemets (saute jusqu'au prochain caractère intéressant ?)
+$3681:Si la lecture s'est terminée par des guillements, on les consomme ("BLA est une chaine valide si en fin de ligne)
 $3684:Récupération du pointeur du début de la chaîne dans HL
 $3686:DE contient le début de la chaîne +1 (dont après les guillemets)
 $3687:A <- longueur de la chaîne
-$368e:HL récupere le pointeur actuel de traitement de la chaine
-$3691:Cette valeur est aussi mise dans (faclo)
+$3688:Création du pointeur de chaine sur l'espace temporaire
+
+$368b/cpy_to_pool
+$368b:DE <- espace temporaire
+$368e:HL <- espace actuel de traitement de chaine
+$368e:Sauve l'adresse de la chaine dans FP
 $3696:La valeur courante est une chaîne de caractères
-$3699:Copie les 4 premiers octets de dsctmp vers HL, qui pointe vers temppt,faclo
+
+$3699:Copie les 4 premiers octets de dsctmp vers HL, qui pointe vers temppt,faclo. Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
 $369c:Comparaison avec DE, qui est dsctmp et agit donc comme gardien de fin de buffer (après tempst) (où est initialisé temppt à part au reset de stack ???)
 $369d:Mise à jour du pointeur vers le buffer tempst
 $36a0:Récupération du pointeur de parsing
@@ -2412,6 +2563,32 @@ $36ad/out_str1
 $36ad:MS_BASIC=PRS1
 $36b4/prsloop
 $36b4:MS_BASIC=PRSLP ; Compte les caractères
+
+$36bb/check_str_mem/above
+Vérifie la place restante pour les chaines. À noter que cette fonction ne fait pas de GC, ce que
+peuvent faire d'autres implémentations.
+Dans ces implémentations, Z est d'abord reset, mais plus tard Set avec un bouclage après GC.
+Si au deuxième passage il n'y a toujours pas assez de mémoire, alors l'erreur est lancée.
+;
+MS_BASIC=TESTR
+
+$36bb:Ajuste un flag pour signaler no-GC
+$36bc:Ne sert à rien, relicat du branchement du GC (!!) pour annuler $f1 qui est pop af
+
+$36bf:Charge le pointeur sur le haut de la stack (et donc juste sous la mémoire réservée pour les chaines)
+$36c2:... dans DE
+$36c3:Charge le pointeur sur la plus haute mémoire libre disponible
+$36c6:A contient la longueur cherchée.
+$36c8:Met son inverse dans BC
+$36ca:L'ajoute à la plus haute mémoire
+$36cb:Ajustement pour le complèment à 2 de la soustraction
+$36cc:Compare avec l'adresse DE (adresse minimale possible)
+$36cd:Pas assez de mémoire, on lance l'erreur (dans d'autres implémentations, c'est un saut au GC)
+$36cf:Remise en place de la plus haute mémoire. N'a pas de sens sans lg GC (relicat !!)
+$36d2:HL est positionné sur la première adresse après fretop (la première adresse des chaines ???)
+$36d3:... dans DE (n'a pas l'air d'être utilisé par les appelants)
+$36d4:Restauration de AF, qui n'a servi à rien
+
 
 $36d6/out_str_mem
 $36da:Sors avec l'erreur "Out of string space"
@@ -2487,10 +2664,13 @@ En entrée: HL pointe sur la zone de parsing.
 En sortie: DE pointe sur la zone après l'identifiant et HL sur la zone de parsing.
 L'identifant est sur deux caractères. Si le type est alphanum, alors le second caractère a son bit de poids fort à 1.
 Une variable a 4 octets de valeur.
-Pour une chaine : taille, ??, pointeur sur la chaine (en fin de mémoire)
+Si le type est une fonction, le premier caractère a son bit de poids fort à 1 (vérifier ???)
+Pour une chaine : taille, (rien), pointeur sur la chaine (en fin de mémoire)
 
 $38db:En fonction de l'arrivée par DIM ou LET, met 0 (LET) ou $AF ou $FF ? (DIM) dans dimflg (différent de zéro en tout cas)
 $38de:Récupération du premier caractère de la variable dans C
+
+$38df/get_id
 $38e2:Si le nom de variable ne commence par par une lettre majuscule entre A et Z, c'est une erreur de syntaxe (rappel : tout ce qui est parsé hors chaîne de caractère est passé en majuscules)
 $38e7:valtyp à 0 par défaut (valeur numérique)
 $38ea:Lit le caractère suivant
@@ -2509,14 +2689,15 @@ $3904:??? quand est-ce que B est différent de 0 ?
 $3905:B <- B + A ($80)
 $3906:Lecture du caractère suivant le '$'
 $3907/num_vrble:Traitement de subflg ???
-$390b:Saut si subflg était égal à 1
-$390e:Saut si subflg était supérieur à 1
+$390b:Saut si subflg était égal à 1 (traitement des tableaux ???)
+$390e:Saut si subflg était supérieur à 1 (traitement des fonctions et FOR ??? Le subflg est à $80 pour une fonction lors d'une évaluation)
 $3914:Saut si le caractère suivant est une parenthèse ouvrante (pour le dimensionnement des tableaux)
 $3918:Reset de subflg
 $391b:Push de la position actuelle du pointeur de parsing
 $391d:DE <- BC
+$3921:Compare DE (le nom de variable cherchée) et HL (le nom pointée par le paramètre)
 
-$3925:Saute si le pointeur prmnam et le contenu actuel de DE sont identiques (avec DE mis à prmval juste avant)
+$3925:Si la valeur sont identique, saute (pour un RET) avec DE placé sur la valeur du paramètre.
 $392c:HL est à (vartab) et DE est à (arytab). L'espace de stockage des variables est entre les deux (HL < ou égal à DE)
 $392f/next_var
 $3930:Saut si HL et DE sont égaux, c'est-à-dire (vartab) == (arytab) (donc pas de variable définie)
@@ -2675,8 +2856,6 @@ $3a54:DE <- addresse de la donnée cherchée
 $3a55/end_dim:MS_BASIC=ENDDIM
 $3a55:Récupération dans HL du pointeur de parsing
 $3a58:En cas de lecture du tableau, DE contient le pointeur vers l'entrée cherchée.
-
-$29ea/inst_fre_2
 
 $3bd0/outdo_impl/above
 Fonction : envoie d'un caractère sur le périphérique sélectionné
@@ -2970,6 +3149,7 @@ $49dc/strend
 $49de/datptr
 $49e0/prmnam
 $49e2/prmval
+$49e4/prmval_2
 $49e6/faclo
 $49e8/faclo_2
 $49e9/fac
