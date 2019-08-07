@@ -1420,6 +1420,7 @@ Sortie : le paramètre dans DE. Le dernier caractère pointé dans A.
 Le numéro de ligne maximum est limité par le test avec $1998 (6552). Ce nombre est multiplié par 10
 avant la dernière addition. Ce qui porte le numéro maximum de ligne à 65529. Au delà, le parsing
 sera étrange. Par exemple 65530 sera compris comme : ligne 6553, qui contient '0'.
+Le caractère $OE sert de marqueur pour récupérer une valeur 16 bits entière directement dans le buffer.
 ;
 MS_BASIC=ATOH ; ASCII to HEX?
 
