@@ -1481,9 +1481,9 @@ $25d3:Erreur "Undefined line number"
 $234d/line_search_lp
 $2347/line_search/above
 Chercher la ligne de BASIC à exécuter, présent dans DE
-En sortie, si Carry Flag est levé, alors BC contient le pointeur vers la ligne de BASIC trouvée.
-Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché
-HL contient la ligne suivante à celle pointée par BC.
+En sortie, si Carry Flag est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
+Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché. HL contient la ligne suivante à celle pointée par BC.
+(prelin) contient toujours le pointeur vers la ligne cherchée précédemment.
 ;
 MS_BASIC=SRCHLN
 
@@ -1511,7 +1511,7 @@ $25dc:Ajuste la pile à la valeur calculée par marker_vrfy. Ce qui remet la pil
 $25dd:Vérification du marqueur placé par GOSUB
 $25e1:S'il n'est pas là, lancement d'une erreur "RETURN without GOSUB"
 $25e5:Récuération de l'adresse de la ligne appelante et sauvegarde dans (curlin)
-$25eb:Si on était en mode direct, HL est à $FFFF et donc fallthrough. Sinon, on saute plus loin, on était dans un programme... Mais sur cette implémentation, on ne fait rien (!!!)
+$25eb:Si on était en mode direct, HL est à $FFFF et donc fallthrough. Sinon, on saute plus loin, on était dans un programme... Mais sur cette implémentation, on ne fait rien de spécial. Ce qui permet un `RETURN` en mode direct après un pending `GOSUB`
 $25ed/useless_jp
 $25f0:Remise en place en haut de pile de l'adresse de retour de l'instruction. La reste de la ligne est ignoré en fallthrough sur DATA.REM
 
@@ -1967,7 +1967,7 @@ $2a92:Sors avec "Illegal direct"
 
 $2a95/check_fn:Vérifie que ce qui suite est une fonction (au sens DEFFN)
 $2a96:Token pour FN
-$2a97:Pourquoi ce flag ???
+$2a97:Signal à la recherche de variable que les tableaux sont interdits dans ce contexte
 $2a9c:A contient le caractère suivant avec le bit 7 à 1
 $2a9d:Qui est mis dans C
 $2aa1:Vérification du type numérique (qui se chargera du RET)
@@ -2657,18 +2657,18 @@ Le format d'un tableau (stocké à partir de arytab) est le suivant:
 paires suivantes : taille de chaque dimension
 puis la zone d'allocation de données (4 octets par indice)
 
-$38da/defvar:Saut depuis LET pour définir une variable
+$38da/getvar:Saut depuis LET pour définir une variable
 $38da/above
 Fonction qui parse le nom de la variable et initialise l'espace nécessaire après vartab, en poussant
 l'existant. Puis inscrit l'identifiant. Si la variable existe, se contente de la retourner.
 En entrée: HL pointe sur la zone de parsing.
-En sortie: DE pointe sur la zone après l'identifiant et HL sur la zone de parsing.
+En sortie: DE pointe sur la zone de mémoire contenant la valeur HL sur la zone de parsing.
 L'identifant est sur deux caractères. Si le type est alphanum, alors le second caractère a son bit de poids fort à 1.
 Une variable a 4 octets de valeur.
 Si le type est une fonction, le premier caractère a son bit de poids fort à 1 (vérifier ???)
 Pour une chaine : taille, (rien), pointeur sur la chaine (en fin de mémoire)
 
-$38db:En fonction de l'arrivée par DIM ou LET, met 0 (LET) ou $AF ou $FF ? (DIM) dans dimflg (différent de zéro en tout cas)
+$38db:0 dans dimflg sauf si l'on vient de DIM, auquel cas cela vaut $AF
 $38de:Récupération du premier caractère de la variable dans C
 
 $38df/get_id
@@ -2677,7 +2677,7 @@ $38e7:valtyp à 0 par défaut (valeur numérique)
 $38ea:Lit le caractère suivant
 $38eb:Saute si le caractère lu est un chiffre
 $38f0:Saute si le caractère lu n'est pas entre A et Z (donc si ni chiffre ni A à Z l'identifiant est terminé)
-$38f2/idnum_trail
+$38f2/idnum_trail:Sauve le premier caractère de la variable dans B
 $38f3/idtrail_skp
 $38f4:Avance la lecture de l'identifiant tant que l'on trouve des chiffres
 $38f9:Avance la lecture de l'identifiant tant que l'on trouve des lettres
@@ -2686,13 +2686,14 @@ $38fd:Si '$' n'est pas présent, on saute. La valeur est bien numérique.
 $38ff:Sinon, la variable est de type chaîne de caractères
 $3900:Ce qui est indiqué dans valtyp
 $3903:A <= $80 et Carry à 1
-$3904:??? quand est-ce que B est différent de 0 ?
+$3904:Ajoute $80 à B pour marque le type string de la variable
 $3905:B <- B + A ($80)
 $3906:Lecture du caractère suivant le '$'
-$3907/num_vrble:Traitement de subflg ???
-$390b:Saut si subflg était égal à 1 (traitement des tableaux ???)
-$390e:Saut si subflg était supérieur à 1 (traitement des fonctions et FOR ??? Le subflg est à $80 pour une fonction lors d'une évaluation)
+$3907/num_vrble:(subflg) == 1 pour une demande de tableau, >= 1 lorsque l'on vient d'un FOR ou d'une fonction ($80 lors d'une évaluation)
+$390b:Saut si subflg était égal à 1. L'appelant veut un tableau.
+$390e:Saut si subflg était supérieur à 1 (traitement des fonctions et FOR Le subflg est à $80 pour une fonction lors d'une évaluation avec la variable paramètre)
 $3914:Saut si le caractère suivant est une parenthèse ouvrante (pour le dimensionnement des tableaux)
+$3917/simplevar
 $3918:Reset de subflg
 $391b:Push de la position actuelle du pointeur de parsing
 $391d:DE <- BC
@@ -2735,7 +2736,9 @@ $3974:(HL) <- DE et HL += 2
 $3975/var_found:DE pointe sur la mémoire après le nom de la variable
 $3976:HL pointe sur la zone de parsing
 
-$3983/dim_set/above
+$3978/ret_null
+
+$3983/subscript/above
 HL pointe sur la zone de parsing
 
 $3983:Sauvegarde du pointeur de parsing
@@ -2755,6 +2758,8 @@ $399e:À ce moment, la pile contient (dimflg),(dimension tableau)+,...???, D con
 $39a2:Remise en place de la valeur de (dimflg) venant de la pile (a-t-elle pu être modifiée ???)
 $39a7:Nettoyage de E puis mise de DE (D contient le nombre de dimensions du tableau) sur la pile
 $39a8:En arrivant par ici, les push hl et push af suivant saut ignorés.
+
+$39a9/aryvar
 $39a9:On arrive ici par un jump conditionnel si lors d'une recherche de variable, (subflg) == 1
 $39aa:La pile contient (# de dimension),(tailles des dimensions)+
 $39ae:En arrivant par ici, le add hl,de suivant est ignoré
