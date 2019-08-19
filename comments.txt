@@ -1827,6 +1827,8 @@ $2922:Restauration du pointeur d'exécution
 $2924/str_to_var/above
 Récupère la valeur d'une variable lors d'une évaluation.
 
+$2927/from_eval
+
 $2924:Récupère l'adresse de la variable dans DE
 $2927:Sauve le contexte
 $2928:HL prend l'adresse de la variable
@@ -2117,10 +2119,10 @@ $2d9e/accel_keys
 
 
 
-$2ead/mem_move_ckk/above
+$2ead/mem_move_chk/above
 Fonction : vérify la mémoire
-Entrée : BC et HL deux pointeurs de mémoire (BC < HL), DE un pointeur de référence (DE < BC)
-Copie de DE à BC vers HL en descendant.
+Entrée : DE < BC < HL trois pointeurs de mémoire
+Copie la zone [DE, BC] vers [DE+(HL-BC), HL] depuis la fin (permet le recouvrement)
 
 $2eb0/mem_move
 
@@ -2717,11 +2719,11 @@ $3946/no_var_yet
 $3947:Récupération dans HL dans la valeur de retour du CALL (2613 si appelé par LET)
 $3948:Push de DE qui contient arytab
 $394c:Comparaison de l'adresse de retour avec $2927 (quelle instruction ???)
-$3948:Pop de DE qui contient maintenant arytab
-$394e:Saut si l'adresse de retour était $2927 (???). Attention, l'adresse de retour est toujours dans HL et le pointeur de parsing sur la pile
+$394d:Pop de DE qui contient maintenant arytab
+$394e:Saut si l'adresse de retour venait de str_to_var. Attention, l'adresse de retour est toujours dans HL et le pointeur de parsing sur la pile
 $3951:Remise en place de l'adresse de retour et HL pointe sur le parsing.
-$3952:Sauve le pointeur de parsing
-$3953:Sauve BC, qui contient ???
+$3952:Sauve le pointeur de parsing. On remet tout en place.
+$3953:Sauve BC, qui contient le nom de la variable.
 $395c:Récupération de strend dans HL (pointeur de fin de mémoire utilisable)
 $395b:Ajout de 6 à strend
 $395d:Sauvegarde de strend + 6
@@ -2729,10 +2731,10 @@ $395e:Copie de DE,BC vers HL
 $3962:(strend) <- (strend) + 6
 $3966:HL <- BC
 $3967:(arytab) <- HL
-$396a/clean_mem
+$396a/clear_mem
 $396e:Mise à zéro de la partie entre l'ancien (arytab) (DE) et le nouveau (HL). C'est-à-dire l'espace libérée pour la nouvelle variable.
-$3970:Que recupère DE ??? Les deux caractères significatifs de la variable ? ($80 pour le second si un seul caractère ?)
-$3974:(HL) <- DE et HL += 2
+$3970:DE récupère le nom de la variable.
+$3974:(HL) <- DE et HL += 2, enregistrement du nom de la variable dans son emplacement.
 $3975/var_found:DE pointe sur la mémoire après le nom de la variable
 $3976:HL pointe sur la zone de parsing
 
