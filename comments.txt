@@ -296,7 +296,7 @@ $0372/clear_fp
 $0373/load_fac0:Il n'y avait rien à normaliser dans la mantisse, force l'exposant à 0.
 
 $037a:Saute s'il y a quelque chose après le premier octet de la mantisse
-$37c:Sinon, on traite C pour trouver le premier bit de poids fort
+$037c:Sinon, on traite C pour trouver le premier bit de poids fort
 $037d/bit_find
 $037d:Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C). B est le résultat du nombre de shift de 8 effectué précédemment, en soustraction de $00.
 $0381:Bit à 1 trouvé. On remet B un cran avant.
@@ -415,7 +415,7 @@ $05e7/inc_hl
 $05e9/cpy_faclo_hl/above
 Copie le contenu des 4 premiers octets de faclo vers ce que pointe HL
 
-$05ec/cpy_4_to_hl/above
+$05ec/cpy_detohl_4/above
 Copie le contenu des 4 premiers octets pointés par DE vers ce que pointe HL
 
 $05ee/cpy_4_loop
@@ -1011,6 +1011,7 @@ $209e/keywords
 $21fd/keywstop
 $21fe/prio_table
 
+$2213/null_str
 $2214/ok_str
 $2219/marker_vrfy
 $221c:HL pointe 4 octet plus haut que le haut de la pile (skip l'adresse de retour de cette fonction et de celle appelante, l'instruction)
@@ -1558,6 +1559,26 @@ $2622:Mise du type de la variable dans le Carry (1 si chaîne, 0 si numérique).
 $2623:Vérification de la compatibilité du type de l'expression et de la variable.
 $2626:Saut en cas de variable numérique
 $2628/let_string
+$2628:Sauvegarde du pointeur vers la variable
+$2629:Récupération de la valeur de l'expression
+$262c:... et la sauvegarde
+$2631:Adresse de la chaine dans `DE`
+$2636:Saute si l'adresse de la variable est avant (txttab), autrement dit, dans un buffer temporaire. Il faut donc créer une entrée.
+$263b:Vérifie si la chaîne est présente dans le programme
+$263c:Récupère le pointeur sur le descripteur de chaine
+$263d:Si la chaîne est dans le programme, on saute à la fin
+$2643:Saute aussi si la chaîne n'est pas dans le buffer temporaire
+$2645:On a déjà fait le POP DE, il est sauté
+
+$2646/crtstrentry
+$2647:Récupération de la chaîne en haut du buffer temporaire (qui est popée si elle est égale à `DE`
+$264a:BC contient l'adresse du contenu de la chaîne, DE contient le pointeur vers le descripteur
+$264e/pop_string
+$264e:Récupération de la chaîne temporaire en haut du buffer
+$2651:Récupération de l'adresse de la variable
+$2652:Copie de descripteur de chaine vers la variable
+$2655:Restauration du pointeur d'exécution
+
 
 $2657/set_num_var
 
@@ -2497,11 +2518,20 @@ $35f4/char20
 
 ////////////////// 3600 /////////////////
 
+$3646/save_str
+$3646:A <- longueur de la chaine
+$3649:HL positionné sur l'adresse du contenu poussée dans la pile
+$364a:Vérification qu'il y a assez de place dans la mémoire de chaines
+$364d:Si oui, on lit l'adresse du contenu dans BC
+$3651:Création d'un descripteur temporaire
+$3656:Copie L octets de BC (source) vers DE (destination)
+$3659:Pointeur de descripteur de chaine dans DE
+
 $365b/str_len_1:Construction après vérification d'une chaine de taille 1.
 $365d/ctr_ver_str:Construction d'une chaine après vérification de la mémoire disponible
-$3660/crt_tmp_str/above
+$3660/crt_str_dsc/above
 Fonction: met la longueur de chaîne (A) puis rien (0, pour être sur 16 bits) puis DE (pointeur de chaîne) dans dsctmp
-Entrée: C contient un nombre de caractères (longueur de chaîne), DE le pointeur sur la chaine (sans séparateur de début)
+Entrée: A contient un nombre de caractères (longueur de chaîne), DE le pointeur sur la chaine (sans séparateur de début)
 Sortie: HL pointe sur le buffer temporaire de chaîne, dsctmp
 ;
 MS_BASIC=CRTMST
@@ -2529,7 +2559,7 @@ $367a:Si le caractère est $22 (=34, guillemets) (ou autre terminateur mis dans 
 $367c:Traitement du deuxième terminateur possible
 $367d:Tant que l'on traite des caractères normaux
 
-$367f/out_str_2
+$367f/create_str
 
 $3681:Si la lecture s'est terminée par des guillements, on les consomme ("BLA est une chaine valide si en fin de ligne)
 $3684:Récupération du pointeur du début de la chaîne dans HL
@@ -2543,7 +2573,7 @@ $368e:HL <- espace actuel de traitement de chaine
 $368e:Sauve l'adresse de la chaine dans FP
 $3696:La valeur courante est une chaîne de caractères
 
-$3699:Copie les 4 premiers octets de dsctmp vers HL, qui pointe vers temppt,faclo. Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
+$3699:Copie les 4 premiers octets de dsctmp vers HL, qui pointe vers (temppt). Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
 $369c:Comparaison avec DE, qui est dsctmp et agit donc comme gardien de fin de buffer (après tempst) (où est initialisé temppt à part au reset de stack ???)
 $369d:Mise à jour du pointeur vers le buffer tempst
 $36a0:Récupération du pointeur de parsing
@@ -2567,16 +2597,19 @@ $36ad:MS_BASIC=PRS1
 $36b4/prsloop
 $36b4:MS_BASIC=PRSLP ; Compte les caractères
 
-$36bb/check_str_mem/above
-Vérifie la place restante pour les chaines. À noter que cette fonction ne fait pas de GC, ce que
-peuvent faire d'autres implémentations.
+$36bb/alloc_str_mem/above
+Vérifie la place restante pour les chaines, alloue la chaine, lance le GC si nécessaire.
+La place demandée est dans A. À la fin de la routine, DE pointe sur un espace allouée de A
+caractères dans la mémoire dédiée, et (fretop) est ajusté en conséquence. Ainsi, ce n'est
+pas seulement un test mais un test et une allocation.
 Dans ces implémentations, Z est d'abord reset, mais plus tard Set avec un bouclage après GC.
 Si au deuxième passage il n'y a toujours pas assez de mémoire, alors l'erreur est lancée.
 ;
 MS_BASIC=TESTR
 
 $36bb:Ajuste un flag pour signaler no-GC
-$36bc:Ne sert à rien, relicat du branchement du GC (!!) pour annuler $f1 qui est pop af
+$36bc:Annule $f1 qui est pop af
+$36bd/code/retry_alloc
 
 $36bf:Charge le pointeur sur le haut de la stack (et donc juste sous la mémoire réservée pour les chaines)
 $36c2:... dans DE
@@ -2586,19 +2619,26 @@ $36c8:Met son inverse dans BC
 $36ca:L'ajoute à la plus haute mémoire
 $36cb:Ajustement pour le complèment à 2 de la soustraction
 $36cc:Compare avec l'adresse DE (adresse minimale possible)
-$36cd:Pas assez de mémoire, on lance l'erreur (dans d'autres implémentations, c'est un saut au GC)
-$36cf:Remise en place de la plus haute mémoire. N'a pas de sens sans lg GC (relicat !!)
-$36d2:HL est positionné sur la première adresse après fretop (la première adresse des chaines ???)
-$36d3:... dans DE (n'a pas l'air d'être utilisé par les appelants)
-$36d4:Restauration de AF, qui n'a servi à rien
+$36cd:Pas assez de mémoire, on lance l'erreur (ou le GC en première tentative)
+$36cf:Remise en place de la plus haute mémoire après un GC.
+$36d2:HL est positionné sur la première adresse après fretop (la première adresse des chaines avec une allocation de A caractères)
+$36d3:... dans DE (qui est utilisé par save_str par exemple)
+$36d4:Restauration de AF
 
 
 $36d6/out_str_mem
 $36da:Sors avec l'erreur "Out of string space"
 
+$36e3/gc_start
+
 $3784/str_concat
 
 $379b:Sors avec "String too long"
+
+$37c5/copy_str/above
+Copie le contenu mémoire d'une taille de L de BC vers DE.
+
+$37c6/move_loop
 
 $37ec/bc_from_tmp/above
 Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (temppt)
@@ -2664,7 +2704,9 @@ $38da/above
 Fonction qui parse le nom de la variable et initialise l'espace nécessaire après vartab, en poussant
 l'existant. Puis inscrit l'identifiant. Si la variable existe, se contente de la retourner.
 En entrée: HL pointe sur la zone de parsing.
-En sortie: DE pointe sur la zone de mémoire contenant la valeur HL sur la zone de parsing.
+En sortie: DE pointe sur la zone de mémoire contenant la valeur et cas d'assigntion,
+           l'accumulateur flottant la valeur en cas d
+           HL sur la zone de parsing.
 L'identifant est sur deux caractères. Si le type est alphanum, alors le second caractère a son bit de poids fort à 1.
 Une variable a 4 octets de valeur.
 Si le type est une fonction, le premier caractère a son bit de poids fort à 1 (vérifier ???)
