@@ -368,6 +368,8 @@ $0595:Incrémente directement l'exposant dans FP
 $0596:Retour si on n'a pas fait passer l'exposant à zéro
 $0597:Sinon, c'est un Overflow
 
+$059a/getsign2
+
 $059d:Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
 $059e/code:Appelé depuis une routine à cause de $060f
 $059f:Rotation à gauche via Carry
@@ -583,12 +585,17 @@ $0729:Sauvegarde de la valeur dans la pile pour un prochain RET
 $072a:Et échange de HL et DE (HL contient donc l'adresse du signe '#'. DE contient le numéro de ligne d'AUTO
 $072e:À l'appel, A = 0 et B = $98
 
+$0731:Affiche à l'écran le contenu de l'accumulateur flottant
+$0731/out_fp
+
 $0736:Place $20 dans fbuffr (un espace)
 $073b:Place $2d dans fbuffr (le signe '-') si le flag M est levé (résultat M dans le test des flottants)
+$073d/pos_sign
 $073e:place $30 dans fbuffr[1] (le chiffre '0')
 $0740:Saut si le résultat était 0
 $0744:Saut si le résultat était < 0
 $074c:Aussi appelé (jp (hl))depuis $07fe
+$07ea/out_zero
 
 $07ff/data_what:Probablement de la donnée
 
@@ -757,6 +764,10 @@ $0f3a:Vérification de l'appuie de la touche ESPACE
 $0f3e/stka_joy0
 $0f3a:Vérification de l'appuie sur la bouton action du joystick 0
 
+$0fad/above
+Instruction CALL
+Évalue l'argument, le cast en int, puis utilise le vecteur `calhk` comme tremplin.
+
 $0fd2/get_hex/above
 Lecture d'un chiffre Hexa depuis HL (HL doit donc être positionné sur le caractère précédent)
 Le caractère est valide si le Carry est reset, A contient alors la valeur.
@@ -823,6 +834,7 @@ $100a
 Copie de la ROM sur toute la mémoire adressable
 Equivalent C-style de : memcpy($4000, $0000, $C000)
 
+
 $100c:À la fin de LDIR, HL == $C000, DE == $0000, BC == $0000
 $100e:À présent, HL == $4000, DE == $0000, BC == $C000
 $1010:Début de la comparaison octet par octet de la mémoire
@@ -851,6 +863,8 @@ du système.
 $1020
 Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
 Equivalent C-style de : memset($47D0, $1E, $C9)
+
+$1027/hk_ini_lop
 
 $1048:L'adresse $47EE reçoit un JP $0069.
 
@@ -970,6 +984,9 @@ $1371/keyseng_c7
 $1379/errors_fr
 $153f/errors_eng
 
+$16c6/txt_fre_fr
+$16db/txt_fre_en
+
 $170f/txt_igno_fr
 $172d/txt_igno_en
 
@@ -1032,7 +1049,7 @@ $2250:Affiche une erreur "Device not supported"
 
 $2293:Affiche Ok!
 
-$2250/SomeVector/code:Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
+$2250/no_device/code:Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
 $2252/error_out/above
 Fonction : affiche un message d'erreur
 Entrée : E contient le numéro de l'erreur
