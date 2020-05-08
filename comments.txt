@@ -491,7 +491,7 @@ Function : Place le contenu de faclo et faclo+2 sur la pile
 en préservant la valeur de retour pour RET.
 La valeur de HL est préservée
 
-$05cf/hl_to_fp/above
+$05cf/hl_to_fac/above
 La valeur numérique pointée par HL sera d'abord extraite dans BCDE, puis par fallthrough sera transmis au FP
 
 
@@ -502,7 +502,7 @@ $05dd/fac_to_bcde/above
 Extrait le contenu du buffer de virgule flottante dans BC/DE
 
 $05e0/hl_to_bcde/above
-Loads the Floating Point space from HL ?
+Charge BCDE avec le nombre pointé par HL
 ;
 MS_BASIC=LOADFP
 
