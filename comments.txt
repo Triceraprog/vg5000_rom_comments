@@ -259,66 +259,151 @@ poids fort sur le port $CF soit à 0.
 
 $028a/wait_loop
 
-$030b/fp_bcde_sub/code/above
+$0302/fp_add_hl/above
+Addition flottante depuis (HL)
+
+$030b/fp_stck_sub/code/above
 Appelé via la table des priorités
 Soustrait le contenu de BCDE (pris dans la pile) du FP
 Par inversion de signe et fallthrough dans l'addition.
 
+$030d/fp_bcde_sub
+
 $0310/fp_bcde_add/above
 Appelé via la table des priorités
-Ajoute le contenu de BCDE (pris dans la pile) et de FP
+Ajoute le contenu de BCDE et de FP
 ;
 MS_BASIC=FPADD
 
+$0312:Si l'exposant de BCDE est 0, il n'y a rien à ajouter, on ne touche pas à FAC et on retourne.
+$0317:Si l'exposant dans FAC est 0, alors on copie BCDE dans FAC et c'est terminé
+$031b:Si l'exposant de BCDE (B) est plus petit que celui de FAC (A), on garde comme ça. Sinon, on les échange.
+$031e:Oppose la différence entre les expostants (complément à 2)
+$031f:Sauve DE...
+$0320:Le temps de mettre FAC sur la pile
+$0323:... et restaure DE
+$0324:Copie BCDE dans FAC
+$0328:Et récupère BCDE (l'ancien FAC) depuis la pile.
+
+$0329/no_swap
+$0329:Ici, BCDE contient le plus petit des nombres. A contient la différence (positive) entre les deux expostants.
+$032b:Si la différence est de plus de 25. BCDE est négligeable face à FAC, on a terminé.
+$032c:Sauve AF
+$032d:Extrait les signes de FAC et BCDE, A bit 7 à 1 si les signes sont opposés, 0 si identiques.
+$0330:Sauve le résultat du signe dans H
+$0331:Et récupère AF
+
+$0332:Déplace la mantisse à droite (division) d'un nombre de position égal à A
+$0336:Test le résultat de signe
+$0337:Pointe sur la mantisse
+$033a:Saute si les signes étaient différents. Dans ce cas, on doit faire une soustraction.
+$033d:Ajoute les mantisses de FAC et BCDE
+$0340:Pas d'overflow, on passe à l'arrondi du résultat (et sa normalisation)
+$0342:Sinon, il faut augmenter...
+$0343:.. l'exposant de 1
+$0344:Si l'exposant a dépassé sa limite (boucle sur zéro), on lance un Overflow.
+$0349:Sinon, il faut corriger la mantisse avec un décalage de 1 (L) vers la droite
+$034c:Puis on passe à l'arrondi
+$034e/min_bcde/above
+BCDE - FAC -> BCDE. Si un overflow (underflow) est provoqué, le nombre est complémenté à 2 à la fin. Puis fallback dans la normalisation.
+
+$0350:B ici contient le résultat du shift à droite le moins signifiant. Le nombre est sous forme CDEB
+
 $035c/retfun_4
 $035c:En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry
-$0360:HL <- EB. ?. B est forcé à 0 par bade_to_fp et E contient la partie basse du numéro de ligne quand on arrive de auto via bade_to_fp
-$0361:A = 0
+
+$035f/bcde_norm/above
+Lors de la normalisation, BCDE n'a pas le format normal. B n'est pas l'exposant, mais le poids le plus faible de la mantisse.
+
+$0360:L et H sont les plus petits signifiants de la mantisse, qui est sous la forme CDHL (l'exposant est dans FAC)
+$0361:A = 0, va servir de compteur
 
 $0362/rot_loop/above
 La partie ci-dessous prend C, D, H, L, A comme un buffer en decalage vers la gauche
 (octet par octet). A est un compteur (sauvé temporairement dans B pendant la rotation) auquel
 on soustrait 8 à chaque fois, jusqu'à attendre $e0 (ce qui fait 4 fois avec A = 0 au début)
 
-$0362:B <- A (sauvegarde de A)
-$0363:A <- C (puis rotation depuis C)
+$0362:Sauvegarde du compteur dans B
+$0363:Récupère le MSB de la mantisse dans A
 $0364:Si A est différent de 0, c'est que C (la partie la plus haute de la mantisse) était non nul
-$0365:Saut si A != 0
-$0367:C <- D, C et A était égaux à 0, on shift le tout vers la gauche (multiplication par 256)
-$0368:D <- H
-$0369:H <- L
-$036A:L <- A, A est égal à 0 tant que la boucle est exécutée.
-$036B:A <- B, récupération temporaire dans A du compteur
-$036e:Comparaison avec $e0...
-$0370:Arrêt si le compteur est arrivé à 32. On a shifté de 32 bits au max
+$0365:Si A (dont l'octet le plus haut) est 0, on peut faire le décalage d'un octet complet. Sinon, bit par bit
+$0367:On décale...
+$0368:... CDHL
+$0369:... vers
+$036A:... DHLA (et A est égal à 0 ici). On embarque L (l'exposant) dans le shift, pour tester au passage s'il était nul.
+$036B:Récupération temporaire dans A du compteur
+$036e:Soustrait 8 du compteur, puisque l'on vient de décaler de 8
+$036e:Comparaison avec -24-8
+$0370:Arrêt si le compteur est arrivé à 32. On a shifté de 32 bits au max, le résultat est donc 0. Sinon, on continue le shift
 
-$0372/clear_fp
-$0373/load_fac0:Il n'y avait rien à normaliser dans la mantisse, force l'exposant à 0.
+$0372/clear_fac
+$0372:On met 0 dans le FAC
+$0373/a_to_exp
 
-$037a:Saute s'il y a quelque chose après le premier octet de la mantisse
-$037c:Sinon, on traite C pour trouver le premier bit de poids fort
+$0377/normal
+$0379:Vérifie s'il y a des bits dans DHL (les LSBs de la mantisse).
+$037a:Si oui, il faut les traiter avec les routines complète
+$037c:Sinon, on ne traite que C pour trouver le premier bit de poids fort. Routine optimisée
 $037d/bit_find
 $037d:Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C). B est le résultat du nombre de shift de 8 effectué précédemment, en soustraction de $00.
 $0381:Bit à 1 trouvé. On remet B un cran avant.
 $0382:On remet aussi le nombre au cran d'avant (remettre le CY dans le nombre)
-$0383:C (avec son bit de poids fort à 1) est remis depuis A.
+$0383:C (MSB de la mantisse) est normalisé (avec 1 en msb)
 
-$0391:B contient le nombre de shift vers la gauche effectués pour la normalisation. C est normalisé.
-$0393: EB <- HL. Pour remettre le nombre dans BCDE
-$0395:Vérification du compteur, saute si arrivé à zéro (cas spécial où tout la mantisse a été shiftée ??)
-$039a:Ajout à l'exposant actuel du nombre flottant (B est négatif en complément à 2).
+$0386/norm_full
+$0386:Compte un bit de shift
+$0387:Décale HL à gauche de 1
+$038a:Shift D de 1 en récupérant le Carry de HL
+$038c:Shift C de 1 en récupérant le Carry de D
+
+$038e/norm_bit:Il reste quelque chose, on continu la normalisation
+
+$0391/norm_nxt
+$0391:Le compteur de shift est mis dans A. CDHL est normalisé.
+$0393:Reconstruction de CDEB contenant la mantisse
+$0395:On n'a rien shifté, on passe à l'arrondi
+$039a:Modification de l'exposant avec le compteur de décalage (B est négatif en complément à 2).
 $039b:Remise en place de l'exposant ajusté.
-$039e:Saut si l'exposant ajusté n'a pas débordé ou est à zéro (cas où l'on perd la précision ???)
+$039c:Le décalage est trop grand, on n'a plus de précision, le résultat est 0
+$039e:L'exposant est 0, le résultat est donc 0 (dans d'autres versions, un RET Z est fait ici)
 
-$03a4:Test du nombre le plus à droite de la mantisse ?
+$03a0/round
+
+$03a0:Récupère la plus petite partie de la mantisse
+$03a1/round0
+$03a4:Vérifie si la plus petite partie de la mantisse a son msb à 1
+$03a5:Dans ce cas, on arrondi vers le haut.
 $03a8:Récupération dans B de l'exposant
-$03aa:Récupération dans A du calcul temporaire
-$03ab:Récupération du bit de signe ?
-$03ae:???
+$03aa:Récupération dans A du résultat de signe
+$03ab:Récupération du bit de signe (seul le msb compte)
+$03ad:Place le bit de signe (le msb de C est forcément à 1, donc un XOR fonctionne si 1 signifie + ?)
+$03ae:Remet en place le MSB + Signe de la mantisse
+$03af:Place le résultat dans FAC
 
+$03b2/round_up
+$03b2:Incrément la partie basse de la mantisse
+$03b3:Si on n'a pas fait d'overflow (retour à zero), c'est ok, on revient
+$03b4:Sinon, on augmente la partie suivante
+$03b5:On vérifie encore
+$03b6:Si on doit toujours arrondir, on arrondie la partie suivante
+$03b7:Dernière chance
+$03b8:Tout a été arrondi, on reset C
+$03ba:Et on incrémente l'exposant
+$03bb:Retour si tout va bien. Mais si l'exposant a bouclé sur 0
+$03bc:Alors c'est que le nombre est trop grand, on lance l'erreur.
+
+$03bf/add_bcde/above
+HL pointe sur la mantisse. Ajoute avec la mantisse de BCDE (donc CDE). Les exposants doivent être identiques pour que cela ait du sens. Si la mantisse "dépasse", le CY sera à 1 en sortie.
+
+$03cb/compl2/above
+Complément à 2 de BCDE (sous forme CDEB)
 
 $03df/div_mant/above
 Division de la mantisse par le nombre A en entrée
+;
+MS_BASIC=SCALE
+
+£03df:B ne sert pas à l'exposant dans cette routine.
 
 $03ea:La mantisse a été divisée par 256 (shift left de 8)
 
@@ -331,17 +416,26 @@ $03e2:Saute si différent de 0
 
 $03ec/end_256
 
-$03fd/fp_shift_r
+$03fd/fp_shift_r/above
+Décalage vers la droite L fois
+;
+MS_BASIC=SHRLP
+
 $03fd:Boucle sur L, qui est le reste de la division par 8 de A en entrée, et qui boucle en $040c
 $03fe:Annule le +1 du +9 (revient donc à +8)
 $03ff:Si on était tombé pile à zéro, retour immédiat
 
 $0400:Cette partie jusqu'au JR est un shift vers la droite de l'ensemble CDEB
+$0401/shft_right/above
+Décalage d'un vers la droite de (B)CDE, avec C déjà dans A, puis branchement vers la routine générique de décalage vers la droite.
 
 $0404:Grace au XOR A, le CY est à 0
 
-$0478/fp_bcde_mult/code/above
+$0478/fp_stk_mult/code/above
 Appelé via la table des priorités
+
+$047a/fp_mul/above
+Multiplication flottante
 
 $04d0/fp_div_10/above
 Division de FP par 10
@@ -402,7 +496,7 @@ La valeur numérique pointée par HL sera d'abord extraite dans BCDE, puis par f
 
 
 $05d2/bcde_to_fac/above
-Place DE dans faclo et BC dans faclo+2. Préserve la valeur de HL
+Place DE (mantisse) dans faclo et B (exposant) C (le signe et la mantisse 15 bits) dans faclo+2. Préserve la valeur de HL
 
 $05dd/fac_to_bcde/above
 Extrait le contenu du buffer de virgule flottante dans BC/DE
@@ -422,14 +516,19 @@ Copie le contenu des 4 premiers octets pointés par DE vers ce que pointe HL
 
 $05ee/cpy_4_loop
 
+$05f5/ext_sign/above
+Extrait le signe de BCDE et FAC et place 1 à la place.
+Condition: BCDE est plus petit que FAC (au moins depuis l'addition)
+Sauve le signe de FAC. Retourne dans A si les signes étaient identiques (1) ou non (0)
+
 $05fb:A gauche, set CY, A droite avec Carry revient a mettre le bit de poids fort (le signe) à 1. Le CY contient le bit de signe initial.
-$05fc:Place donc le nombre version négatif dans le buffer
-$0601:Mets dans (fac+1) le résultat : (signe initial inversé)(1)(bits 7:1) de B. CY contient bit 0
-$0602:On prend à nouveau faclo2 (a priori) dans A (puisque BCDE contient le nombre)
-$0605:On effectue la même première partie du calcul (mise en négatif
-$0606:Et le résultat part dans C
+$05fc:Replace le MSB de la mantisse de FAC, sans le bit de signe, avec 1 à la place.
+$0601:Mets dans (fac+1) le résultat : le bit 7 contient le bit de signe opposé (1 = positif). CY est à 0.
+$0602:On prend le MSB du nombre de BCDE
+$0605:Mise à 1 du MSB de BCDE
+$0606:Et le résultat re-part dans C
 $0607:Apres une rotation à droite
-$0608:XOR sur le résultat du calcul précédent. Ça a l'air d'être un calcul sur les signes ???
+$0608:XOR entre les deux bits de signe (BCDE et FAC). BCDE non opposé, FAC opposé. Donc bit 7 à 1 si les signes étaient identiques.
 
 $060a/cmp_num/above
 Compare des nombres
@@ -600,6 +699,56 @@ $07ea/out_zero
 $07ff/data_what:Probablement de la donnée
 
 $0826/fp_bcde_pow
+
+$090d/inst_rnd/code
+$090e:Pointe vers la seed
+$0911:Si l'argument est négatif, reseed
+$0914:Point vers le dernier nombre généré
+$0917:Déplacement vers l'accumulateur flottant
+$091a:Pointe vers la seed à nouveau
+$091d:Retour si l'argument est 0, on renvoit le dernier nombre généré (qui est dans le FAC)
+$091e:On ajoute la seed avec le contenu de A (qui est à 1 car le sign est positif)
+$091f:... uniquement les 3 premiers bits (0 à 7)
+$0923:On sauve la seed
+$0927:Offset dans la table des coefficients (seed * 4, B étant à zéro)
+$0928:On pointe vers la table des coefficients
+$0929:Charge le coefficient en tant que FP dans BCDE
+$092c:Multiplication du nombre en FAC avec le coefficient
+$092f:Prend l'autre seed
+$0932:L'incrémente...
+$0933:Limite entre 0 et 3
+$0937:Compare la seed à 1
+$0939:Si A était zéro, alors Carry est à 1 et donc A passe à 1.
+$093a:On sauve la seed
+$093d:4 octets avant rnd_add
+$0942:Index dans la table des additions
+$0943:Pointe sur l'entrée de la table
+$0944:Addition du contenu de la table avec FAC
+
+$0947/afterreseed
+$0947:Récupération de FAC dans BCDE
+$094a:A récupère le poids faible de la mantisse
+$094b:Met le poids fort de la mantisse dans le poids faible
+$094c:Modifie des bits de A
+$094e:Met le résultat en haut de la mantisse
+$094f:HL pointe sur fac_1 (signe résultant). On y met $80 pour positif.
+$0951:HL pointe sur l'exposant
+$0952:Que l'on récupère dans B (étrange... on avait déjà récupéré dans BCDE)
+$0953:On fixe l'exposant à $80 (donc puissance 0)
+$0958:Incrémentation de la troisième seed
+$0959:Récupération de sa valeur
+$095a:Modulo 171
+$095e:Si on boucle, on bouge un peu la mantisse
+$0962/rnd_cnt
+$0962:Normalisation
+$0968:Copie FAC dans (HL), donc dans le dernier numéro généré.
+
+
+$096b/reseed
+
+$0972/rnd_add
+$0976/rnd_add_1
+$097A/rnd_add_2
 
 $0a78:Désactivation de l'affichage
 
@@ -982,7 +1131,9 @@ $1361/keyseng_c5
 $1369/keyseng_c6
 $1371/keyseng_c7
 $1379/errors_fr
+$13ef/out_mem_fr
 $153f/errors_eng
+$159e/out_mem_eng
 
 $16c6/txt_fre_fr
 $16db/txt_fre_en
@@ -999,6 +1150,8 @@ $176a/txt_break
 $1771/txt_in_fr
 $1776/txt_in_en
 $177b/txt_next
+
+$19e3/pause_msg
 
 $1aef/ok_clear:Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
 
@@ -2359,6 +2512,8 @@ $304d:Ici, on ignore le caractère qui vient d'être lu
 $3044/not_hexa:Vérification que le caractère est '"' (en cas d'arrivée par caractère non hexa, on peut voir que &"" est valide et égal à 0)
 $3046:Si ça n'est pas le cas, c'est une erreur de syntaxe.
 
+$319f/bcode_start
+
 ////////////////// 3200 /////////////////
 $3278/initscreen/above
 Réinitialisation du curseur, d'attributs
@@ -3007,9 +3162,9 @@ $3ca2:Appel au HOOK de GetLine
 $3ca4:Commence par un appel à l'input hook qui par défaut revient immédiatement.
 
 $3ca8/get_line2
-$3cac:Saute si le périphérique d'entrée actuel est le clavier. En fait, non getflg ici indique si on est en train de décoder une entrée ou bien si on exécute un stream BASIC tokénisé.
+$3cac:Saute si le périphérique d'entrée actuel est le clavier.
 
-$3cae:Traitement si inputsel ne désigne pas un clavier (!= 0)
+$3cae:Traitement si inputsel ne désigne pas un clavier (!= 0). A priori, on arrive ici lorsque l'on décode du BASICODE à travers LOAD. À vérifier.
 
 $3cb5/keyloop/above
 Fonction : Traitement du moniteur pour une entrée par le clavier
@@ -3150,9 +3305,10 @@ $482f/winwid
 $4830/ramlow
 // $4833/usrloc
 $4836/fdivc
-$4845/rndcnt
-$4846/rndcnt_1
-$4867/rndcnt_22
+$4844/rnd_seed_0
+$4845/rnd_seed_1
+$4846/rnd_seed_2
+$4867/rnd_gen
 $486e/lptpos
 $486F/prtflg:Selectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
 $4870/getflg:Entrée des caractères sur clavier (0) ou cassette (255)
@@ -3285,7 +3441,6 @@ $38b1/inst_fre/code
 $29fc/inst_lpos/code
 $2a01/inst_pos/code
 $081d/inst_sqr/code
-$090d/inst_rnd/code
 $0434/inst_log/code
 $0874/inst_exp/code
 $097e/inst_cos/code
