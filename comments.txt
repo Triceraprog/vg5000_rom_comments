@@ -305,7 +305,7 @@ $0344:Si l'exposant a dépassé sa limite (boucle sur zéro), on lance un Overfl
 $0349:Sinon, il faut corriger la mantisse avec un décalage de 1 (L) vers la droite
 $034c:Puis on passe à l'arrondi
 $034e/min_bcde/above
-BCDE - FAC -> BCDE. Si un overflow (underflow) est provoqué, le nombre est complémenté à 2 à la fin. Puis fallback dans la normalisation.
+FAC - CDEB -> BCDE. Si un overflow (underflow) est provoqué, le nombre est complémenté à 2 à la fin. Puis fallback dans la normalisation.
 
 $0350:B ici contient le résultat du shift à droite le moins signifiant. Le nombre est sous forme CDEB
 
@@ -3373,10 +3373,10 @@ $49de/datptr
 $49e0/prmnam
 $49e2/prmval
 $49e4/prmval_2
-$49e6/faclo
-$49e8/faclo_2
-$49e9/fac
-$49ea/fac_1
+$49e6/fac_lsb
+$49e8/fac_msb
+$49e9/fac_exp
+$49ea/fac_sgn
 $49eb/fbuffr
 $49f8/fmltt1
 $49f9/fmltt2
