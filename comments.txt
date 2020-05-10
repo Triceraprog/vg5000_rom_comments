@@ -508,7 +508,7 @@ MS_BASIC=LOADFP
 
 $05e7/inc_hl
 
-$05e9/cpy_faclo_hl/above
+$05e9/cpy_faclsb_hl/above
 Copie le contenu des 4 premiers octets de faclo vers ce que pointe HL
 
 $05ec/cpy_detohl_4/above
@@ -701,7 +701,7 @@ $07ff/data_what:Probablement de la donnée
 $0826/fp_bcde_pow
 
 $090d/inst_rnd/code
-$090e:Pointe vers la seed
+$090e:Pointe vers la seed (pourquoi cette instruction n'est pas dans reseed !!!)
 $0911:Si l'argument est négatif, reseed
 $0914:Point vers le dernier nombre généré
 $0917:Déplacement vers l'accumulateur flottant
@@ -1079,7 +1079,7 @@ Fonction: Effectue le reset à chaud
 $1148/vg5000_txt
 $1163/version_txt
 $1179/InitEfSeq:Séquence d'intialisation de l'EF9345 au démarrage.
-$1194/InitValues
+$1194/initvalues
 
 $11f9/keybfr_0
 $1201/keybfr_1
