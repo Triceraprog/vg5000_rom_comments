@@ -309,8 +309,8 @@ FAC - CDEB -> BCDE. Si un overflow (underflow) est provoqué, le nombre est comp
 
 $0350:B ici contient le résultat du shift à droite le moins signifiant. Le nombre est sous forme CDEB
 
-$035c/retfun_4
-$035c:En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry
+$035c/pos_norm
+$035c:Met le nombre en positif potentiellement avant de normer et compacter. En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry.
 
 $035f/bcde_norm/above
 Lors de la normalisation, BCDE n'a pas le format normal. B n'est pas l'exposant, mais le poids le plus faible de la mantisse.
@@ -553,10 +553,10 @@ $0660/above
 Fonction BASIC : INT()
 
 $0664:Comparaison avec $98, c'est à dire exposant 24, car c'est la capacité maximale de la mantisse. Au dela, il n'y a plus de précision pour les décimale.
-$0666:Pourquoi prendre (faclo) juste avant de retourner le résultat ??? (le résultat est dans le buffer flottant de toute façon)
+$0666:Pourquoi prendre FAC LSB juste avant de retourner le résultat ??? (le résultat est dans le buffer flottant de toute façon)
 $0669:La partie entière est donc trouvée immédiatement.
 $066b:En sortant de cet appel, E contient la partie basse entiere du nombre (si inférieur à 256)
-$066e:Puisque le nombre entier est complètement à droite de la mantisse, l'exposant est à $98. Le nombre se fera normalisé par la suite.
+$066e:Puisque le nombre entier est complètement à droite de la mantisse, l'exposant est à $98. Le nombre se fera normaliser par la suite.
 $0671:Mise sur la pile de l'octet le plus bas du nombre entier résultat (??? pourquoi ?)
 
 $0679/dim_compute/above
