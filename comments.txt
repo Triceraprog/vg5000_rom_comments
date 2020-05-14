@@ -863,6 +863,23 @@ $0de5
 Envoi sur $8F de $25 puis récupération sur $CF d'une valeur dans A (Read R5)
 Puis A = A + $04
 
+$0e83/inst_cursor/code
+$0e83:Récupère le caractère après 'CURSOR'.
+$0e84:HL pointe sur le caractère suivant.
+$0e8b:Si ce n'est ni X, ni Y, c'est une erreur de syntaxe
+$0e8e:Récupère l'argument suivant la commande
+$0e93:Saute si moins de 40
+$0e95:Si 40 ou plus, bloque à 39
+$0e97/set_curx
+$0e97:Met la valeur dans la variable système
+
+$0e9b/cursory
+$0e9b:Récupère l'argument suivant la commande
+$0ea0:Saute si moins de 25
+$0ea2:Si 25 ou plus, bloque à 24
+$0ea4/set_cury
+$0ea4:Met la valeur dans la variable système
+
 $0ec3/stkh_impl/above
 Fonction : vérifie la valeur STICK horizontale
 A=0 (joystick 0) 1 (joystick 1) ou 2 (clavier)
@@ -3429,7 +3446,6 @@ $0f52/inst_delim/code
 $0ced/inst_sete/code
 $0e40/inst_et/code
 $0e49/inst_eg/code
-$0e83/inst_cursor/code
 $47f4/inst_disk/code
 $47f7/inst_modem/code
 $3dce/inst_new/code
