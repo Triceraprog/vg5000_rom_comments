@@ -2163,10 +2163,10 @@ $2a74:Recalage du pointeur de parsing
 $2a82:Remise en place de la valeur et du nom du paramètre précédent
 
 
-$2a0f/retfun_impl/above
+$2a0f/func_ret_a/above
 Function : met en place la valeur de retour d'une fonction
 Prerequis : valeur dans A
-Sortie : valeur entière dans FP
+Sortie : valeur entière dans FAC
 
 $2a87/ill_direct/above
 Vérifie que la ligne courante n'est pas -1.
@@ -2829,6 +2829,11 @@ Copie le contenu mémoire d'une taille de L de BC vers DE.
 
 $37c6/move_loop
 
+$37ce/get_string/above
+Vérifie le type courant comme étant un chaine, puis fallthrough dans la récupération de la chaine
+;
+MS_BASIC=GETSTR
+
 $37ec/bc_from_tmp/above
 Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (temppt)
 Si en remontant encore de deux adresse ou tombe sur DE, alors on met à jour (temppt) avec cette nouvelle addresse.
@@ -2850,6 +2855,13 @@ $3af3/k7test
 $1e00/k7end/code
 
 $3b48/k7read
+
+$37fb/above
+Instruction BASIC len()
+;
+MS_BASIC=LEN
+
+$37fb:Adresse de retour qui renvoie l'entier qui est dans A
 
 $37ff/fetch_str
 $3802:A cet endroit, C contient la longueur de la chaine de caractères, mais on n'a pas l'air de s'en servir
@@ -3226,7 +3238,8 @@ $3dc0/initscreen1
 $3dce/above
 Instruction : NEW
 Efface le listing courant.
-Il y a une condition sur Z qui semble dire que dans certaines situations, le NEW n'est pas honoré ???
+S'il n'y a pas de paramètre, on branche directement vers le reset de la mémoire.
+S'il y a un paramètre`et que c'est un numéro de ligne, on efface à partir de ce numéro de ligne (a vérifier ???)
 ;
 MS_BASIC=NEW
 
