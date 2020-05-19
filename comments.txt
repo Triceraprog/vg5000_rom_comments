@@ -2872,6 +2872,24 @@ $3811:Saute si la longueur de la chaine est 0.
 $3818:DE <- pointeur sur la chaine
 $3819:A <- le premier caractère de la chaine, qui est aussi le résultat en numérique
 
+$388d:Appel à LEN
+$3890:Si la longueur est 0, alors le résultat est 0
+$3893:Sauve la longueur de la chaine dans E
+$3896:Se positionne sur le pointeur de chaine
+$3899:Le pointeur est à présent dans HL
+$389a:Qui est poussé sur la pile
+$389b:Se place à la fin de la chaîne + 1 (D doit être égal à 0)
+$389d:Place 0 à la fin de la chaine pour terminaison (D est toujours égal à 0)
+$389e:Met la fin de chaine sur la pile et récupère le début de la chaine.
+$389f:Pousse sur la pile l'ancien contenu de la chaine + 1
+$38a0:Positionne le pointeur un octet avant le début de la chaine pour pouvoir appeler chget.
+$38a1:Récupère le premier octet de la chaine dans A
+$38a2:Appelle la conversion de chaine vers FAC
+$38a5:Récupère l'ancien octet d'après la chaine
+$38a6:... et son adresse
+$38a7:Replace l'octet à sa place
+
+
 $3890:Saute si la longueur de la chaine est 0. Le résultat est alors 0.
 
 $38b1/above
