@@ -415,6 +415,10 @@ $03e1:Verifie si le résultat est 0 (pourquoi pas C ?)
 $03e2:Saute si différent de 0
 
 $03ec/end_256
+$03f2:S'il y a des bits à 1 dans le bas de la mantisse, on passe sur la méthode entière (plus lente) de shift vers la droite L fois.
+$03f4:Sinon, on s'occupe uniquement de la partie haute de la mantisse
+$03f5/msb_shift
+$03f6:Traitement terminé, routine terminée
 
 $03fd/fp_shift_r/above
 Décalage vers la droite L fois
@@ -429,6 +433,7 @@ $0400:Cette partie jusqu'au JR est un shift vers la droite de l'ensemble CDEB
 $0401/shft_right/above
 Décalage d'un vers la droite de (B)CDE, avec C déjà dans A, puis branchement vers la routine générique de décalage vers la droite.
 
+$0403/shift_rgt_2
 $0404:Grace au XOR A, le CY est à 0
 
 $0478/fp_stk_mult/code/above
@@ -2888,6 +2893,15 @@ $38a2:Appelle la conversion de chaine vers FAC
 $38a5:Récupère l'ancien octet d'après la chaine
 $38a6:... et son adresse
 $38a7:Replace l'octet à sa place
+
+$38a9/lf_rt_arg/above
+Récupère l'argument numérique de LEFT et RIGHT
+
+$38aa:Vérifie que la suite est une parenthèse fermante, sinon, c'est une erreur de syntaxe.
+$38ab:Caractère ')'
+$38ac/mid_arg:Récupère le deuxième argument pour MID
+$38ad:Récupère l'argement depuis la pile en préservant l'adresse de retour.
+$38af:Met l'argument (la longeur) dans B
 
 
 $3890:Saute si la longueur de la chaine est 0. Le résultat est alors 0.
