@@ -812,6 +812,9 @@ $0cd4/de_mul_a/above
 Entrée : A, DE
 Sortie : HL = DE << 8 (autrement dit, H <- E) ; DE = DE * A ; A inchangé
 
+$0cd9/next_bit
+$0cdd/dont_add
+
 $0ce6/wait_69c
 $0ce6:Wait 69 cycles, call included
 $0ce8/wait_31c
