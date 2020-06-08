@@ -966,6 +966,28 @@ $0fec/invalid_hex:set le carry et revient
 $1af8/mem_out_err
 $1afc:Affiche l'erreur "Out of Memory"
 
+$1b8a/get_bauds
+$1b8a:Replace le pointeur de texte sur le caractère précédent
+$1b8b:Afin de récupérer le caractère.
+$1b8c:Retourne tout de suite s'il n'y a rien.
+$1b8f:Retourne s'il n'y a pas une '('
+$1b90:Sinon, récupére le caractère suivant.
+$1b91:S'il n'y a rien, c'est une erreur de syntaxe
+$1b96:Saute si le paramètre est 1
+$1b9a:Si ce n'est pas 2, c'est un appel illégal.
+$1b9d:Met dans D l'argument entre parenthèses (qui est la vitesse d'enregistrement)
+$1b9d/valid_bauds
+$1b9f:Si la commande s'arrête là, c'est une erreur de syntaxe.
+$1ba2:Vérifie que le caractère suivant est ')' ou c'est aussi une erreur de syntaxe.
+$1ba2:Caractère ')'
+$1ba4:Sauve HL
+$1ba8:Met le flag de vitesse de la cassette à 0 (1200 bauds)
+$1bab:Test le bit de poids faible de l'argument ('1' ou '2' en ASCII, soit $31 ou $32).
+$1bad:Saute s'il n'est pas nul, c'est-à-dire si l'argument était '1'.
+$1baf:Sinon, passe le flag de vitesse à 1, pour '2400 bauds'
+$1bb1/bauds_keep
+$1bb1:Restaure HL
+
 $1ff3/stka_joy1
 $1ff3:Vérification de l'appuie sur la bouton action du joystick 1
 
@@ -1176,11 +1198,45 @@ $1771/txt_in_fr
 $1776/txt_in_en
 $177b/txt_next
 
+$1945/inst_save/code/above
+Sauvegarde du listing BASIC en ASCII.
+Attention, la routine efface tout le contenu mémoire à la fin.
+
+$1950:DE contient le numéro de première ligne à sauver.
+$1954:Place $0000 dans le numéro de ligne BASIC à décoder
+$1959:La sortie de caractère se fait sur K7
+$1961:Met $82 en premier octet de la zone des variables.
+$1962:Pointe sur l'octet suivant de la zone des variables.
+$1963:Met HL dans ($4810 + $10) (ft + $10) (adresse de départ dans le descripteur de K7)
+$1966:Met $82 dans ($4810 + $14) (ft + $14) (premier octet de checksum ?)
+$1969:Envoie le listing vers la K7
+$196e:Envoie le caractère $83 vers la K7
+$1971:Récupère le contenu de (fr + $14)
+$197b:Réinitialise la mémoire.
+
+
 $19e3/pause_msg
 
 $1aef/ok_clear:Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
 
 $1d97/sendchar_k7
+
+$1de0/save_asc_k7/above
+???
+
+$1de0:Récupère l'adresse sauvegardée en début de 'SAVE' ((vartab) + 1)
+$1de3:Y place A (qui contient ???)
+$1de4:Place HL un octet plus loin
+$1de5:Met (vartab) dans DE)
+$1de9:Met A à 0
+$1dea:Différence entre HL (pointeur vers... ?) et DE (vartab)
+$1dec:Valeur que l'on sauve
+$1ded:A passe à $FF (???)
+$1dee:Sauvegarde du buffer sur la K7 pour de vrai ???
+
+
+
+
 
 $1e89/fetch_next/above
 Va chercher une adresse stockée dans le compteur 'high' (normalement utilisé par les cassettes)
@@ -1190,6 +1246,26 @@ Sinon, la valeur est retournée par A pour être décodée.
 
 
 $1e97:Replace le périphérique d'entrée sur le clavier
+
+$1e9d/k7_1200/above
+Paramètre K7 pour 1200 bauds
+
+$1ea2/k7_2400/above
+Paramètre K7 pour 2400 bauds
+
+$1ea7/k7_set_prms/above
+Remet le flag 'abort' à 0.
+Si le flag de suppression LHH n'est pas mis, alors recopie les informations de cycles de la K7 vers les paramètres actuels.
+
+$1eaa:Met le flag 'abort' de la K7 à 0.
+$1ead:Test le flag de supression des informations de vitesse K7
+$1eaf:Et sort de la routine s'il est mis
+
+$1eb0:Prépare la copie des 5 octets de paramétrage de la K7
+$1ebb:Saute si le flag de vitesse de K7 est à 1200 bauds
+$1ebd:Sinon, pointe vers les 5 octets suivants pour la vitesse à 2400 bauds.
+$1ebe/k7_params:Copie les paramètres de vitesse de la K7
+
 
 
 ////////////////////
@@ -1728,7 +1804,7 @@ $25fc/rem_loop
 $25fd:Vérifie la présence d'un argument (numérique sur 16 bits?)
 $2603:S'il y a un argument, saute le marqueur et la valeur
 $2604:Puis lit dans A la valeur suivante
-$2605/no_param
+$2605/no_number
 $2606:Si la dernière valeur lue est zéro, retour immédiat. C'est la fin de la ligne.
 $2607:Compare avec le caractère spécifique cherché (: ou 0 suivant si on traite REM ou DATA)
 $2608:Retour immédiat si trouvé
@@ -2539,6 +2615,30 @@ $3046:Si ça n'est pas le cas, c'est une erreur de syntaxe.
 
 $319f/bcode_start
 
+$31b1/line_pair/above
+Récupère deux arguments de type numéro de ligne et les sauve dans (temp) et (sonsav_hi).
+Le premier numéro de ligne (trouvé) est retourné dans DE.
+
+$31b5:Lit le premier caractères du pointeur de ligne
+$31b6:Et saute s'il n'y a rien (avec DE à $0000)
+$31b8:Compare avec ','
+$31ba:Si ce n'était pas une ',', alors va lire un numéro de ligne (récupéré dans DE)
+$31bd/no_pair_1:Sauvegarde du premier numéro de ligne dans 'temp'. $0000 s'il n'y avait pas de premier paramètre.
+$31c2:Cherche le premier numéro de ligne valide à partir de DE.
+$31c6:Pousse dans la pile le premier numéro de ligne valide après celui demandé.
+$31c9:Saute s'il n'y a pas de second numéro de ligne.
+$31cd:Si le caractère suivant n'était pas une ',', alors c'est une erreur de syntaxe.
+$31d1:Sinon, récupération du deuxième argument comme un numéro de ligne.
+$31d4:Si ce n'était pas un numéro de ligne valide, c'est une erreur de syntaxe.
+$31d9:Si ce numéro n'était pas nul, on saute à la fin de la routine pour enregistrement.
+$31db/no_pair_2:Par défaut, le dernier numéro de ligne est $ffff
+$31de/save_pair_2:Sauvegarde du dernier numéro de ligne dans 'sonsav_hi'
+$31e2:Le premier numéro de ligne (valide) est récupéré dans DE.
+
+$31e4/prt_list/above
+Routine d'affichage d'un LISTING
+
+
 ////////////////// 3200 /////////////////
 $3278/initscreen/above
 Réinitialisation du curseur, d'attributs
@@ -2854,13 +2954,13 @@ MS_BASIC=GSTRCU (Current string to pool)
 $37dc:DE <- BC, l'adresse de la chaine de caractères
 $37de:C contient la taille de la chaine de caractères
 
+$3a90/k7_end:Seems to end here at the end of K7 operations (???)
+
 $3aa9/k7write
 
 $3a81/k7sync
 
 $3af3/k7test
-
-$1e00/k7end/code
 
 $3b48/k7read
 
@@ -3476,7 +3576,6 @@ $2fa0/inst_clear/code
 $3058/inst_renum/code
 $316e/inst_auto/code
 $197e/inst_load/code
-$1945/inst_save/code
 $1a39/inst_cload/code
 $19ed/inst_csave/code
 $0fad/inst_call/code
