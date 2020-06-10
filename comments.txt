@@ -966,7 +966,9 @@ $0fec/invalid_hex:set le carry et revient
 $1af8/mem_out_err
 $1afc:Affiche l'erreur "Out of Memory"
 
-$1b8a/get_bauds
+$1b8a/get_bauds/above
+Récupère le paramètre optionnel de vitesse sur les opérations K7, et place le flag correspondant dans "cascom".
+
 $1b8a:Replace le pointeur de texte sur le caractère précédent
 $1b8b:Afin de récupérer le caractère.
 $1b8c:Retourne tout de suite s'il n'y a rien.
@@ -987,6 +989,18 @@ $1bad:Saute s'il n'est pas nul, c'est-à-dire si l'argument était '1'.
 $1baf:Sinon, passe le flag de vitesse à 1, pour '2400 bauds'
 $1bb1/bauds_keep
 $1bb1:Restaure HL
+
+$1bba/name_to_ft/above
+Place le nom de fichier en paramètre dans FT
+
+$1bba:DE pointe vers l'adresse de la chaine, et C contient sa longueur.
+$1bbe:Longueur de la chaine dans B
+$1bc1:HL pointe vers fr + 1 (début du nom de fichier)
+$1bc4/cpy_name_lp:Copie le nom de fichier vers FT, 6 caractères maximum.
+$1bc9:Si le compteur dans C (6 initialement) tombe à zéro, on sort de la boucle
+$1bcb:Boucle sur la taille de la chaîne, qui s'arrêtera si B est inférieur à 6.
+$1bcd:Si on s'est arrêté avant 6 caractères, place un $00 de terminaison de chaîne.
+$1bcf/cpy_name_end
 
 $1ff3/stka_joy1
 $1ff3:Vérification de l'appuie sur la bouton action du joystick 1
@@ -1217,7 +1231,118 @@ $197b:Réinitialise la mémoire.
 
 $19e3/pause_msg
 
+$19ed/inst_csave/code
+$19ed:'M'
+$19ef:Branchement pour "CSAVEM"
+$19f1:'S'
+$19f3:Branchement pour "CSAVES"
+$19f5:???
+$19f7:Branchement pour "CSAVE ???"
+$19f9:'X'
+$19fb:Branchement pour "CSAVEX"
+$19fd:'L'
+$19ff:Branchement pour "CSAVEL"
+$1a02:L'instruction suivante est ld a,$20 en $1a05
+$1a03/csave_prm
+$1a03:Déplacement au caractère suivante. En arrivant par ici, l'instruction suivante est ld bc,$203e puis ld (ft),a (le LD BC ne sert à rien)
+$1a05:Place $20 dans le type de fichier en cas de "CSAVE" sans paramètre
+$1a07:Met le type de fichier contenu dans A dans le descripteur de type de fichier.
+$1a08:Récupère et l'argument de vitesse entre parenthèses.
+
+
 $1aef/ok_clear:Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
+
+$1c3f/k7_skip
+
+$1c45/init_ft
+$1c46:HL pointe vers FT+7 (numéro de version)
+$1c4c/zero_ft
+$1c4c:Efface FT de 7 inclus à 16 exclus en y mettant des 0 (numéro de version, numéro de ligne de départ, octet de protection, position de checksum)
+$1c4e:Fin de la boucle d'effacement
+$1c50:Récupère l'octet de proection
+$1c53:Et le place à sa position dans FT
+$1c56:Récupère le type du fichier depuis FT
+$1c5b:Branche si le type n'est pas $20
+$1c5d:Traitement du type $32 (CSAVE simple)
+$1c60:Récupération dans HL de (txttab) (début du listing BASIC)
+$1c64:Récupération dans HL de (vartab) (début des variables, et aussi fin + 1 du listing BASIC)
+$1c67:Préparation de la soustraction en effaçant la Carry
+$1c68:Soustraction des deux pointeurs pour avoir la taille de la zone BASIC
+$1c6a:Écriture de la taille du fichier dans FT + 18 (taille du fichier)
+$1c6a/write_k7_len
+
+$1c6f/ft_type_4d
+$1c71:Branchement si le type de fichier n'est pas $4d
+$1c73:Traitement du type $4d (CSAVEM). Récupération du pointeur de parsing.
+$1c74:Vérification de la présence d'une virgule ou erreur de syntaxe
+$1c76:Évaluation du paramètre numérique (S = adresse du premier octet à stocker)
+$1c79:Valeur entière dans DE
+$1c7c:Placement de l'adresse de départ dans FT+16 (adresse de départ)
+$1c80:Vérification de la présence d'une virgule ou erreur de syntaxe
+$1c82:Évaluation du paramètre numérique (T = longueur à stocker)
+$1c85:Valeur entière dans DE
+$1c88:Sauvegarde du pointeur de parsing
+$1c89:Placement de la longueur dans HL
+$1c8a:Et branchement sur la suite identique à CSAVE (pour l'écriture de la longueur et le paramètre optionnel I)
+
+$1c8c/ft_type_53
+$1c8c:Traitement du type de fichier $53 (sauvegarde de l'écran)
+$1c8e:Branchement si le type n'est pas $53
+$1c93:L'adresse de départ est celle de l'écran
+$1c96:En vrai ld hl,$07d0 (taille de l'écran)
+$1c99:Placement de la longueur comme étant $7d0
+$1c99/write_k7_len2
+
+$1c9e/ft_type_bb
+$1c9e:Récupère le pointeur de parsing. Traitement de CSAVE*
+$1ca1:Branchement si le type n'est pas $bb
+$1ca3:Récupération des informations de tableau
+$1ca6:Sauvegarde du pointeur de parsing
+$1ca7:Sauvegarde de l'adresse du tableau dans l'adresse de départ de FT
+$1cab:Placement de la longueur (DE) dans HL
+$1cac:Mutualisation d'écriture de longueur sans autre paramètre.
+
+$1cae/ft_type_58
+$1cae:Lecture de l'expression chaine de caractère
+$1cb1:Placement de l'adresse de début de chaîne
+$1cb5:Placement de la longueur de la chaîne.
+
+$1cba/k7_line_prm:Récupération du paramètre optionnel de numéro de ligne
+$1cbd:S'il n'y a pas de paramètre optionnel, on a terminé.
+$1cbe:Sinon, il doit y avoir une virgule ou bien c'est une erreur de syntaxe.
+$1cc0:DE pointe sur FT + 8 (numéro de première ligne)
+$1cc3:Récupération des 5 prochains octets directement (il n'y a pas de traduction en entier pour ce paramètre, il est sauvé directement en ASCII)
+$1cc5/prm_i_loop
+$1cc5:Sauvegarde du pointeur de parsing
+$1cc6:Récupération du pointeur de parsing
+$1cc6/ft_end
+$1cc7:Si on a terminé le parsing, on sort de la fonction
+$1cc8:Si le caractère n'était pas un chiffre, c'est une erreur de syntaxe.
+$1ccb:Copie du chiffre (en caractère) vers FT
+$1ccc:DE pointe sur le caractère suivant dans FT
+$1ccd:Lecture du prochain caractère sur la ligne à parser.
+$1cce:Il reste des caractères à parser.
+$1cd0:La limite de 5 chiffres à été atteinte, on sort.
+
+$1d79/fetch_dim/above
+Récupère le pointeur et la longueur vers un tableau DIM
+
+$1d7b:Mise à 1 de subflg pour demander la recherche d'un tableau
+$1d7e:Recherche de la variable
+$1d81:"Appel illégal" si le tableau n'a pas été trouvé
+$1d84:Remise à 0 de subflg (???)
+
+
+$1d88/read_str_expr/above
+Évalue une expression de type chaîne de caractères.
+DE pointe vers l'adresse de la chaîne.
+C contient la longueur de la chaîne.
+
+$1d88:Évaluation de l'expression
+$1d8c:DE pointe sur l'adresse de la chaine évaluée(la vérification du type chaîne est incluse)
+$1d91:Recalage de HL pour pointer vers la taille de la chaîne.
+$1d94:BC contient le taille de la chaine
+$1d95:Restauration de HL
 
 $1d97/sendchar_k7
 
@@ -2976,6 +3101,13 @@ $3802:A cet endroit, C contient la longueur de la chaine de caractères, mais on
 $3804:C'est une valeur numérique
 $3807:HL pointe vers la longueur de chaine, qui est donc mise dans A pour valeur de retour
 
+$380a/inst_asc/code/above
+Fonction BASIC ASC()
+Et sous routine pour pointer DE vers l'adresse de la chaine (indirection) avec le première caractère dans A.
+La fonction change la valeur de retour vers la routine qui met le résultat de A dans FAC. Ce qui fait un transtypage ASCII -> VALEUR ENTIERE
+
+$380e/str_to_de
+
 $3811:Saute si la longueur de la chaine est 0.
 $3818:DE <- pointeur sur la chaine
 $3819:A <- le premier caractère de la chaine, qui est aussi le résultat en numérique
@@ -3577,7 +3709,6 @@ $3058/inst_renum/code
 $316e/inst_auto/code
 $197e/inst_load/code
 $1a39/inst_cload/code
-$19ed/inst_csave/code
 $0fad/inst_call/code
 $0e51/inst_init/code
 $0c6a/inst_sound/code
@@ -3614,7 +3745,6 @@ $2ab4/inst_peek/code
 $37fb/inst_len/code
 $3636/inst_str/code
 $388d/inst_val/code
-$380a/inst_asc/code
 $0eba/inst_stickx/code
 $0ef0/inst_sticky/code
 $0f25/inst_action/code
