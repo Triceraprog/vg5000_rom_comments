@@ -1248,6 +1248,8 @@ $1a03:Déplacement au caractère suivante. En arrivant par ici, l'instruction su
 $1a05:Place $20 dans le type de fichier en cas de "CSAVE" sans paramètre
 $1a07:Met le type de fichier contenu dans A dans le descripteur de type de fichier.
 $1a08:Récupère et l'argument de vitesse entre parenthèses.
+$1a10:Initialise FT
+$1a14:Calcul et écrit le checksum et FT sur la K7
 
 
 $1aef/ok_clear:Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
@@ -1391,6 +1393,46 @@ $1ebb:Saute si le flag de vitesse de K7 est à 1200 bauds
 $1ebd:Sinon, pointe vers les 5 octets suivants pour la vitesse à 2400 bauds.
 $1ebe/k7_params:Copie les paramètres de vitesse de la K7
 
+$1ec1/k7_chksum/above
+Calcul le Checksum, synchronise la K7, écrire l'entête (D3) puis le contenu de FT
+
+$1ec1:Monte les timings en RAM
+$1ec4:DE = FT + $10 (Start address)
+$1ec8:BC = FT + $12 (Taille à sauver)
+$1ece:HL = 0
+$1ecf:Octet pointé par DE
+$1ecf/k7_sum_lp
+$1ed1:L += cet octet
+$1ed2:A = 0, sans toucher aux flags
+$1ed5:Ajout de la retenue éventuelle à H.
+$1ed6:Octet suivant
+$1ed7:Et taille diminuée de 1
+$1eda:Boucle tant que BC est différent de 0
+$1edc:Écriture de la somme de contrôle.
+$1edf:A = $FF
+$1ee0:Synchronisation de la K7
+$1ee3:Retour si BREAK (???)
+$1ee6/k7_head_lp:Ecriture de 10 fois $d3 en entête de fichier.
+$1eeb:Arrêt en cas de coupure (???)
+$1ef3/k7_ft_lp:Écriture de FT dans le fichier
+
+$1faf/k7write_reg/above
+Appel l'écriture sur la K7 en préservant les registres.
+
+$1fb6/pop_dehlret
+
+
+$1efc/k7_write_pl/above
+Écrit la synchro entre FT et le contenu (D6)
+Puis le contenu.
+
+$1f03/k7_split_lp:Écrit 10 fois $D6 sur la K7
+$1f0b:DE = Adresse de départ
+$1f0f:BC = Taille du contenu
+$1f13/payload_wrt:Boucle d'écriture du contenu sur K7
+$1f1c:Continue tant que la taille (BC) restante est non nulle
+
+$1f20/zero_wrt:Écrit 10 fois $00 après le contenu du fichier.
 
 
 ////////////////////
