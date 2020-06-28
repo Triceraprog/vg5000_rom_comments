@@ -3121,11 +3121,40 @@ MS_BASIC=GSTRCU (Current string to pool)
 $37dc:DE <- BC, l'adresse de la chaine de caractères
 $37de:C contient la taille de la chaine de caractères
 
+$3a81/k7sync
+$3a87:Boucle d'attente le temps que HL boucle de $0000 à $0000
+$3a83:Valeur 2 sortie sur port 2 (???).
+$3a8a/sync_loop
+
 $3a90/k7_end:Seems to end here at the end of K7 operations (???)
+$3a93:Si (handler) est nul, on branche (mais pourquoi ne pas faire les deux add ?). Note: 0 va donne $0000 qui va donc être décrémentée jusqu'à 0 en partant de $FFFF.
+$3a95:Si non nul, la valeur est multipliée par 4.
+$3a97/handler_0:La valeur est ensuite stockée dans B
+$3a98:Et C est mis à $00 pour former BC comme un compteur qui commence à la valeur de handler * 1024
+$3a9a:Désactivation des interruptions.
+$3a9b/k7_end_lp
+$3a9e:Attente de 8 cycles M (27 cycles T)
+$3aa1:Décrémentation du compteur BC
+$3aa4:Boucle dans que BC n'atteint pas 0.
+$3aa6:Pour terminer, branche sur la vérification de BREAK, d'anti copie et de reset des touches.
 
 $3aa9/k7write
 
-$3a81/k7sync
+$3acf/wait_8
+
+$3add/k7_send_1
+$3add:Met la valeur du timing de cycle 1 (HIGH) dans HL
+$3ae0/k7_send_hl
+$3ae0:Sauve AF
+$3ae1/k7_1_loop_l
+$3ae1:Boucle sur L
+$3ae2:Tant que L n'atteint pas 0
+$3ae7:Envoie 3 sur le port $AF (???)
+$3ae9/k7_1_loop_h
+$3ae9:Boucle sur H
+$3ae2:Tant que H n'atteint pas 0
+$3af1:Envoie 2 sur le port $AF (???)
+
 
 $3af3/k7test
 
