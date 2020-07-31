@@ -2802,7 +2802,7 @@ $111d       ---
 $111f       ---
 $1120       ---
 
-$1122       [reset]
+$1122       [hot_boot]
             Fonction: Effectue le reset à chaud
 $1122       ---
 $1125       ---
