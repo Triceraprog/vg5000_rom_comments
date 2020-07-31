@@ -1,21 +1,26 @@
-$0000       [romStart]
+$0000       [reset]
             %CODE
-            Tout commence par un saut à l'adresse $1000. Le choix de l'adresse $1000
-            semble arbitraire. D'autres machines à base de Z80 font des sauts à d'autres
-            adresses.
-            
-            Comme les adresses suivantes sont les adresses de branchement des instructions
-            RST du Z80, le code de démarrage doit se trouver plus loin. D'où le saut.
-            
-            Juste après le saut se trouve, sous forme de chaîne de caractères, le numéro
-            de version de la ROM.
-$0000       ---
-$0003       ---
+            Tout commence par un saut à l'adresse $1000.
+
+            C'est aussi `RST 0`.
+
+            Le Z80 réserve le bas de la mémoire aux branchements de type `RST`.
+            Il est donc standard que `RST 0`, le reset, branche vers une
+            adresse plus loin pour la phase démarrage du système.
+
+            Cette adresse est variable d'une machine à l'autre. Sur VG5000µ, c'est
+            $1000.
+
+$0003       %NTS
+            Numéro de la version de la ROM
 
 $0008       [chkchr]
             %CODE
-            Vérification que le caractère pointé par HL est égal au caractère qui suit exactement
-            l'instruction RST 8 appelante. Si ce n'est pas le cas, affiche un message d'erreur de syntaxe.
+            Vérifie que le caractère pointé par HL est égal au caractère qui suit exactement
+            l'instruction `RST $8`/`RST 1` appelante.
+            
+            Si ce n'est pas le cas, affiche un message d'erreur de syntaxe BASIC.
+
 $0008       Enregistre le caractère pointé par HL
 $0009       Échange le contenu sur le haut de la pile (l'adresse de retour de RST) et HL
 $000a       Compare le contenu de l'adresse de retour et la valeur sauvée dans A
@@ -24,23 +29,27 @@ $000c       Remet la nouvelle adresse de retour en place sur la pile
 $000d       Si les deux caractères comparés étaient différent, saute en stx_err_prt ; sinon, passe dans chget
 
 $0010       [chget]
-            %CODE
-            Incrémente HL et met le contenu (HL) dans A.
-            Si le caractère est supérieur à $3a (: donc juste après '9'), retourne immédiatement, sinon...
-            Retour: Flag Z si caractère NUL, Flag C si un chiffre, NC si pas un chiffre
-            
-            MS_BASIC=GETCH
-$0010       ---
-$0011       ---
-$0012       ---
-$0014       ---
-$0015       ---
+            %CODE,MS_BASIC(GETCH)
+            Incrémente HL et met le caractères pointé par le nouveau HL dans A.
+
+            Appelé par `RST $10`/`RST 2`
+
+            Retour:
+            - A = code caractère
+            - Carry = 1 si c'est un chiffre, 0 sinon
+            - Z = 1 si c'est une fin de ligne (A était égal à 0)
+$0010-$0011 A prend la valeur pointée par HL incrémenté de 1
+$0012       %CHAR
+$0014       Ce n'est pas un chiffrei (ni zéro), retour immédiat.
 
 $0018       [outdo]
             %CODE
-            Fonction : envoie d'un caractère sur le périphérique sélectionné
-            Entrée : le caractère est contenu dans A
-$0018       ---
+            Envoi d'un caractère sur le périphérique sélectionné par `prtflg`.
+
+            Appel par `RST $18`/`RST 3`.
+
+            Entrée : le caractère à envoyer est dans A.
+$0018       L'implémentation de `outdo` est plus loin.
 
 $001b       [setext]
             %CODE
