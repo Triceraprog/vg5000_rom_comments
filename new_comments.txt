@@ -1,5 +1,5 @@
 $0000       [reset]
-            %CODE
+            %CODE,SECTION(in)
             Tout commence par un saut à l'adresse $1000.
 
             C'est aussi `RST 0`.
@@ -40,7 +40,8 @@ $0010       [chget]
             - Z = 1 si c'est une fin de ligne (A était égal à 0)
 $0010-$0011 A prend la valeur pointée par HL incrémenté de 1
 $0012       %CHAR
-$0014       Ce n'est pas un chiffrei (ni zéro), retour immédiat.
+            ':' est le premier caractère après '9'
+$0014       Ce n'est pas un chiffre (ni zéro), retour immédiat.
 
 $0018       [outdo]
             %CODE
@@ -48,69 +49,105 @@ $0018       [outdo]
 
             Appel par `RST $18`/`RST 3`.
 
-            Entrée : le caractère à envoyer est dans A.
+            Entrée :
+            - le caractère à envoyer est dans A.
+
 $0018       L'implémentation de `outdo` est plus loin.
 
 $001b       [setext]
             %CODE
-            Fonction : redéfinition d'un caractère
-            Change un caractère programmable dans la mémoire vidéo.
+            Redéfinition d'un caractère programmable de la mémoire vidéo.
+
             Entrée :
-            A contient le carractère à changer (sur 7 bits).
-            A contient sur le bit 7 la nature de la palette (0 == Texte, 1 == Graphique)
-            HL pointe sur le buffer de 10 octets avec les valeurs
-            Registres modifiés :
-$001b       ---
+            - A[6:0] contient le carractère à changer (sur 7 bits).
+            - A[7] contient la nature de la palette (0 == Texte, 1 == Graphique)
+            - HL pointe sur le buffer de 10 octets avec les valeurs de caractère.
+
+            [ArticleSETEXT]
+
+$001b       L'implémentation de `setext` est plus loin.
 $001e       ---
 
-$0020       [de_compare]
+$0020       [dcompr]
             %CODE
-            Fonction : comparaison de HL et DE
+            Comparaison de HL et DE.
+
             Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
-            En sortie, C sera positionné si HL < DE
-$0020       ---
-$0021       ---
-$0022       ---
-$0023       ---
-$0024       ---
-$0025       ---
+            Aucun des deux registres n'est modifié.
+
+            Appel par `RST $20`/`RST 4`.
+
+            Entrée :
+            - HL et DE, les deux registres à comparer.
+            
+            Sortie :
+            - A est modifié
+            - Carry est à 1 si DE est supérieur à HL.
+            - Z est à 1 si les deux registres sont égaux.
+
+$0020-$0024 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
+            Aucun des deux registres n'est modifié.
+
 $0026       ---
 
 $0028       [getsign]
             %CODE
-            Renvoie $FF, $00 ou $01 en fonction du contenu du buffer flottant.
-            Préserve HL
-$0028       ---
-$002b       ---
-$002c       Saute si fac[0] != 0
-$002f       ---
+            Détermine le signe du nombre dans l'accumulateur flottant.
+
+            Appel par `RST $28`/`RST 5`.
+
+            Retour:
+            - A retourne $FF (négatif), $00 (nul) ou $01 (positif).
+            - Préserve HL
+$0028-$002b Si l'exposant est à 0, alors le nombre est nul.
+$002c       Saute si l'exposant est 0.
+$002f       Sinon sort avec 0 dans A.
+
 $0030       [usrrst]
             %CODE
+            Cette entrée de `RST` est réservée pour l'utilisateur.
+
+            Appel par `RST $30`/`RST 6`.
+
+            [ArticleRST6]
+
+$0030       Saut vers le trampoline, initialement contenant `RET`.
 
 $0033       [warmgo]
             %CODE
-            Reset
-$0033       ---
+            Indirection pour le redémarrage à chaud.
+
+            Est-ce jamais utilisé ???
+
+$0033       Saute vers l'implémentation du démarrage à chaud.
 $0036       ---
 
 $0038       [irq]
             %CODE
-            Fonction : traitement de l'interruption.
-            Sur la machine, cette interruption est dédiée à l'affichage.
-            C'est aussi l'EF9345 qui provoque l'interruption.
-            Mais un vecteur est disponible pour personnaliser les traitements dans l'irq.
-$0038       Appel au vecteur d'interruption
-$003b       ---
+            Traitement de l'interruption (IRQ) du Z80.
+
+            Le Z80 fonctionne en mode 1. Dans ce mode, un signal IRQ provoque, après
+            traitement de l'instruction en cours, un branchement à cette addresse.
+
+            Sur le VG5000µ, cette interruption est levée par le signal VBLANK (???)
+            de l'affichage, provoqué par l'EF9345.
+
+            Un vecteur est disponible pour installer une routine d'utilisateur qui
+            sera appelée lors du traitement de l'IRQ.
+
+            Appel par `RST $38`/`RST 7`. ???
+
+            [ArticleUserIRQ]
+
+$0038       Appel au vecteur utilisateur.
+$003b       Sauve AF.
 $003c       Décrémente le compteur de temporisation d'affichage
-$003f       Si le compteur n'est pas tombé à zéro, on sort immédiatement (pas de rafraichissement)
-$0042       ---
-$0045       Remise du compteur à la valeur de référence
-$0048       ---
-$004c       Test puis mise à zéro du bit 0 du flag d'affichage
-$0050       Si le flag d'affichage était à zéro, on sort immédiatement (pas de rafraichissement)
-$0053       Début du rafraichissement de l'affichage
-$0054       ---
-$0055       ---
+$003f       Si le compteur n'est pas nul, on évite le rafraichissement.
+$0042-$0045 Chargement de la valeur de référence du compteur de rafraichissement.
+$0048-$004c Test puis mise à zéro du bit 0 du flag d'affichage.
+$0050       Si le flag d'affichage était à zéro, on évite le rafraichissement.
+$0053-$0055 Début du rafraichissement de l'affichage, avec sauvegarde
+            de registres.
 $0056       Envoi à EF9345 de commandes (à décoder)
 $0058       ---
 $005a       ---
@@ -123,68 +160,333 @@ $0065       ---
 $0066       [nmi]
             %CODE
             Interruption non masquable.
-            L'interruption est lancée par l'appui de la séquence Ctrl-Delta (cf. description plus
-            complète).
-            Le code saute immédiatement, au hook, qui a pour valeur par défaut un saut en 'test_reset'
-$0066       ---
 
-$0069       [resetlang]
+            L'interruption est provoquée par l'appui sur la touche Delta, qui est branchée
+            sur l'interruption du processeur (via ???)
+
+            L'interruption branche immédiatement vers un vecteur qui, par défaut, branche à
+            son tour vers `test_reset`. Cette routine par défaut vérifie l'appuie sur la
+            touche CTRL. Si c'est le cas, un redémarrage à chaud aura lieu. Sinon, il ne
+            se passe rien de plus.
+
+            [ArticleUserNMI]
+
+$0069       [lang_to_eng]
             %CODE
             Met le système en anglais.
-            La seule entrée semble être la valeur que prend temporairemet nmihk pendant le boot.
-$0069       ---
-$006b       Messages en anglais
-$006e       ---
-$0071       Table de transcription du clavier
-$0074       ---
+
+            Le seul accès semble être via la valeur que prend temporairemet `nmihk` pendant le démarrage.
+$0069-$006b Messages en anglais.
+$006e-$0071 Table de transcription du clavier en anglais.
+$0074       Retour d'interruption NMI.
+
 $0076       ---
+
 $0080       [retfun]
             %CODE
+            Fin de fonction d'utilisateur.
+
+            Doit être appelé à la fin d'une fonction utilisateur afin de placer le contenu de A comme
+            résultat de la fonction.
+
+            Entrées : 
+            - A contient la valeur de retour de la fonction
+            - HL pointe sur le texte BASIC
+$0080       Saut vers l'implémentation.
+
 $0083       [deint]
             %CODE
+            Place l'accumulateur flottant en tant qu'entier dans DE.
+
+            Peut être appelé par une fonction utilisateur afin de récupérer le contenu de
+            l'accumulateur flottant en tant qu'entier, dans DE. Si ce n'est pas possible,
+            une erreur BASIC est provoquée.
+
+            Entrées :
+            - HL pointe généralement sur le texte BASIC (mais ne sert pas et est préservé).
+            
+            Sortie :
+            - DE contient la valeur de l'accumulateur flottant, sous forme entière.
+$0083       Saut vers l'implémentation.
 
 $0086       [getbyt]
             %CODE
-            Fonction : Prend l'argument pointé par HL et renvoi le résultat dans A (quand numérique)
-$0086       ---
+            Évalue l'expression BASIC pointée par HL et renvoie son résultat dans A.
+
+            Le résultat de l'expression doit être numérique et tenir sur 8 bits.
+            Dans le cas contraire, une erreur BASIC sera levée.
+
+            Entrées :
+            - HL pointe sur le texte BASIC.
+
+            Sortie :
+            - DE contient l'évaluation de l'expression, sous forme entière.
+            - HL est avancé après l'expression.
+$0086       Saut vers l'implémentation.
+
 $0089       [frmnum]
             %CODE
+            Évalue l'expression BASIC pointée par HL et renvoie son résultat dans FAC.
+
+            Si l'expression n'est pas numérique, une erreur BASIC sera levée.
+            
+            Cette opération peut être enchaînée avec un appel à `deint` pour récupérer le
+            résultat sous forme d'entier 16 bits dans DE.
+
+            Entrées :
+            - HL pointe sur le texte BASIC.
+
+            Sortie :
+            - FAC contient l'évaluation de l'expression.
+            - HL est avancé après l'expression.
+$0089       Saut vers l'implémentation.
 $008c       [beep]
             %CODE
+            Produit un son.
+
+            Entrées :
+            - DE contient la durée du son.
+            - (sonsav_hi) contient le temps "mark" du son (trouver un nom en francais) ???
+            - (sonsav_lo) contient le temps "space" du son (trouver un nom en francais) ???
+
+            [ArticleBeep]
+$008c       Saut vers l'implémentation.
+
 $008f       [play]
             %CODE
+            Joue une séquence sonore codée par une chaîne de caractères selon le format de la commande
+            BASIC `PLAY`.
+
+            Entrées :
+            - BC pointe vers la chaîne de commande.
+            - E contient la taille de la chaîne de commande en octets.
+
+            [ArticleVDP]
+$008f       Saut vers l'implémentation.
+
 $0092       [putahl]
             %CODE
+            Place une paire « caractère / attribut » sur 16 bits en s'adressant directement au VDP.
+            La position est spécifiée.
+
+            Le BASIC n'utilise pas cette commande et passe par une mémoire intermédiaire.
+
+            Entrées :
+            - H contient la ligne du curseur (0 = première ligne, 8-31 = lignes 1 à 24)
+            - L contient la colonne du curseur (0-39)
+            - D contient le code caractère
+            - E contient l'attribut
+            Modifie :
+            - BC et AF
+
+            [ArticleVDP]
+$0092       Saut vers l'implémentation.
+
 $0095       [putici]
             %CODE
+            Place une paire « caractère / attribut » sur 16 bits en s'adressant directement au VDP.
+            Le caractère est placé à la position courante du curseur.
+
+            Le BASIC n'utilise pas cette commande et passe par une mémoire intermédiaire.
+
+            Entrées :
+            - D contient le code caractère
+            - E contient l'attribut
+            Modifie :
+            - BC et AF
+
+            [ArticleVDP]
+$0095       Saut vers l'implémentation.
+
 $0098       [getahl]
             %CODE
+            Lit une paire « caractère / attribut » sur 16 bits en s'adressant directement au VDP.
+            La position est spécifiée.
+
+            Entrées :
+            - H contient la ligne du curseur (0 = première ligne, 8-31 = lignes 1 à 24)
+            - L contient la colonne du curseur (0-39)
+            Sorties :
+            - D contient le code caractère
+            - E contient l'attribut
+            Modifie :
+            - BC DE, et AF
+
+            [ArticleVDP]
+$0098       Saut vers l'implémentation.
+
 $009b       [getici]
             %CODE
+            Lit une paire « caractère / attribut » sur 16 bits en s'adressant directement au VDP.
+            Le caractère est lu depuis la position courante du curseur.
+
+            Entrées :
+            - H contient la ligne du curseur (0 = première ligne, 8-31 = lignes 1 à 24)
+            - L contient la colonne du curseur (0-39)
+            Sorties :
+            - D contient le code caractère
+            - E contient l'attribut
+            Modifie :
+            - BC DE, et AF
+
+            [ArticleVDP]
+$009b       Saut vers l'implémentation.
+
 $009e       [cls]
             %CODE
+            Efface la mémoire tampon de l'écran.
+
+            L'effacement se fait en effçant la première selon la procédure `cll` qui suit, puis
+            en recopiant son contenu dans le reste de la mémoire tampon.
+
+            Entrées :
+            - (attbak) contient la couleur de fond.
+            - (attcar) contient les attributs de caractères.
+
+            [ArticleScreenBuffer]
+$009e       Saut vers l'implémentation.
+
 $00a1       [cll]
             %CODE
+            Efface une ligne donnée de la mémoire tampon de l'écran.
+
+            L'effacement se fait en plaçant en début de ligne un caractère de délimitation dont les paramètres
+            se trouvent en (attbak). Puis en remplissant la ligne avec $20 (espace ASCII) en mode
+            texte, ou $00 en mode graphique, avec un attribut, selon la directive (attcar).
+
+            Entrées :
+            - A contient le numéro de la ligne.
+            - (attbak) contient la couleur de fond.
+            - (attcar) contient les attributs de caractères.
+
+            [ArticleScreenBuffer]
+$00a1       Saut vers l'implémentation.
+
 $00a4       [wait]
             %CODE
+            Attente que le VDP soit prêt.
+
+            Modifie :
+            - AF
+
+            [ArticleVDP]
+$00a4       Saut vers l'implémentation.
+
 $00a7       [fndadr]
             %CODE
+            Calcule de l'adresse dans le tampon vidéo de coordonnées.
+
+            Entrées :
+            - H contient le numéro de la ligne (Y)
+            - L contient le numéro de la colonne (X)
+            Sortie :
+            - HL contient l'adresse correspondante dans le tampon vidéo
+
+            [ArticleScreenBuffer]
+$00a7       Saut vers l'implémentation.
+
 $00aa       [kbscan]
             %CODE
+            Renvoi le numéro de la touche clavier appuyée, ou 0.
+
+            Effectue un scan du clavier sur le moment.
+
+            Sortie :
+            - A contient le caractère ASCII produit par la touche appuyée, ou bien 0.
+            - Le Carry Flag indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
+
+            [ArticleKeyboard]
+$00aa       Saut vers l'implémentation.
+
 $00ad       [regst]
             %CODE
+            Envoie au VDP une liste de paires (registres, valeur).
+
+            Le premier élément de la liste est le nombre de paires de la table.
+            Suivent les paires sous forme de deux octets, le premier contenant l'adresse de selection de registre et le deuxième la valeur à transmettre.
+
+            Entrées :
+            - HL pointe vers la table des valeurs.
+
+            Modifie :
+            - HL, BC, AF
+            [ArticleVDP]
+$00ad       Saut vers l'implémentation.
+
 $00b0       [stkv]
             %CODE
+            Vérification de l'axe vertical pour les déplacements.
+
+            L'axe vertical est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+
+            Entrées :
+            - A contient le choix du périphérique à scanner. A pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
+            
+            Sortie :
+            - A = 0, aucune action selon l'axe vertical.
+            - A = 1, action vers le bas.
+            - A = 255, action vers le haut.
+
+            Modifie :
+            - AF, B
+
+            [ArticleActions]
+$00b0       Saut vers l'implémentation.
+
 $00b3       [stkh]
             %CODE
+            Vérification de l'axe horizontal pour les déplacements.
+
+            L'axe horizontal est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+
+            Entrées :
+            - A contient le choix du périphérique à scanner. A pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
+            
+            Sortie :
+            - A = 0, aucune action selon l'axe horizontal.
+            - A = 1, action vers la droite.
+            - A = 255, action vers la gauche.
+
+            Modifie :
+            - AF, B
+
+            [ArticleActions]
+$00b3       Saut vers l'implémentation.
+
 $00b6       [stka]
             %CODE
+            Vérification du bouton d'action.
+
+            Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+
+            Entrées :
+            - A contient le choix du périphérique à scanner. A pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
+            
+            Sortie :
+            - A = 0, aucune action.
+            - A = 1, bouton actif.
+
+            Modifie :
+            - AF, B
+
+            [ArticleActions]
+$00b6       Saut vers l'implémentation.
+
 $00b9       [break]
             %CODE
+            Vérification de la séquence `break` (shift + stop appuyés au clavier).
+
+            Sortie :
+            - A = 1 si `stop` n'était pas pressé
+            - A = 4 si `stop` était pressé, mais pas `shift`.
+            - A = 0 si `stop` et `shift` étaient pressés, le Carry est à mis à 1.
+$00b9       Saut vers l'implémentation.
 
 $00bc       [disp_refrsh]
             Rafraichissement de l'état de l'affichage sur l'EF9345 en fonction
             du contenu de la mémoire vidéo en RAM ($4000)
+
+            Le séquence commence avant le branchement à la fin de `irq:`.
 $00bc       ---
 $00bf       Séquence EF9345 à décoder
 $00c1       ---
@@ -293,8 +595,7 @@ $018a       ---
 $018b       ---
 
 $018c       [putahl_impl]
-            Fonction : affiche un caractère en s'adressant directement à l'EF9345
-            Entrées : HL=position, D=char, E=attr
+            Implémentation de `putahl:`.
 $018c       ---
 $018e       ---
 $0190       ---
@@ -304,8 +605,7 @@ $0196       ---
 $0198       Place le curseur sur le colonne L
 
 $019a       [putici_impl]
-            Fonction : affiche un caractère en s'adressant directement à l'EF9345
-            Entrées : D=char, E=attr
+            Implémentation de `putici:`.
 $019a       ---
 $019d       ---
 $019f       ---
@@ -329,9 +629,7 @@ $01c1       ---
 $01c3       ---
 
 $01c4       [getahl_impl]
-            Fonction : Récupère une paire caractère/attribut en s'adressant directement à l'EF9345
-            Entrées : HL=position
-            Sortie : D=char, E=attr
+            Implémentation de `getahl:`.
 $01c4       ---
 $01c6       ---
 $01c8       ---
@@ -341,9 +639,7 @@ $01ce       ---
 $01d0       ---
 
 $01d2       [getici_impl]
-            Fonction : Récupère une paire caractère/attribut en s'adressant directement à l'EF9345
-            Entrées : -
-            Sortie : D=char, E=attr
+            Implémentation de `getici:`.
 $01d2       ---
 $01d5       ---
 $01d7       ---
@@ -413,10 +709,7 @@ $0251       ---
 $0254       ---
 
 $0255       [cls_impl]
-            Fonction: Efface l'écran
-            Efface tout d'abord la ligne 0
-            Puis recopie le contenu mémoire de cette ligne sur le reste de l'écran
-            L'effacement est celui de la mémoire vidéo en RAM BASIC.
+            Implémentation de `cls:`.
 $0255       ---
 $0256       ---
 $0259       ---
@@ -426,9 +719,7 @@ $0262       ---
 $0264       ---
 
 $0265       [cli_impl]
-            Fonction: Efface une ligne
-            Entrées : A contient un numéro de ligne
-            L'effacement est celui de la mémoire vidéo en RAM BASIC.
+            Implémentation de `cli:`.
 $0265       ---
 $0267       ---
 $0268       ---
@@ -454,9 +745,7 @@ $0283       ---
 $0285       ---
 
 $0286       [wait_impl]
-            Fonction: Attente d'état « prêt » de l'EF9345
-            '$20' est envoyé sur le port $8F puis on attend que le le bit de
-            poids fort sur le port $CF soit à 0.
+            Implémentation de `wait:`.
 $0286       ---
 $0288       ---
 $028a       [wait_loop]
@@ -465,83 +754,86 @@ $028d       ---
 $0290       ---
 
 $0291       [fndadr_impl]
-            Fonction: renvoie l'adresse écran à partir des coordonnées X et Y
-            Entrées : H contient y, L contient x
-            Retour : HL contient $4000 + 80y + 2x
+            Implémentation de `fndadr:`.
+
+            Effectue le calcul $4000 + (80 * y) + (2 * x).
 $0291       C contient x
-$0292       L contient Y
-$0293       ---
-$0295       ---
-$0296       ---
-$0297       HL = L * 8 (c'est-à-dire y * 8)
-$0298       ---
-$0299       DE = HL = y * 8
-$029a       ---
-$029b       ---
-$029c       HL = 32 * y + 8 * y = 40 * y
+$0292       L contient y
+$0293-$0297 HL = L * 8 (c'est-à-dire y * 8)
+$0298-$0299 DE = HL = y * 8
+$029a-$029c HL = 32 * y + 8 * y = 40 * y
 $029d       HL = 80 * y
 $029e       C contient x
-$02a0       ---
-$02a1       HL = 80 * y + 2 * x
-$02a2       ---
-$02a5       HL = $4000 + 80 * y + 2 * x
-$02a6       ---
+$02a0-$02a1 HL = 80 * y + 2 * x
+$02a2-$02a5 HL = $4000 + 80 * y + 2 * x
 
 $02a7       [kbscan_impl]
-            Fonction : scanne le clavier
-            En commençant par le port $87 jusqu'au port $80
-            La valeur obtenu est dans A. Le carry flag est à 1 si ?
-$02a7       ---
+            Implémentation de `kbscan:`.
+
+            Les touches sont branchées sur une matrice de 8 lignes de 8 colonnes.
+
+            La première étape est de trouver la premier ligne contenant une touche appuyée,
+            puis dans cette ligne, trouver laquelle des 8 touches est appuyée.
+
+            À partir de la ligne et de la colonne, un index est calculé et cet index sert
+            à lire la valeur de la touche dans une table.
+
+            Il y a trois tables consécutives.
+            - Table standard
+            - Table avec `shift` appuyée.
+            - Table avec `control` appuyée.
+
+            Ces tables sont en RAM et remplies à l'initialisation en fonction de la langue
+            du sytème.
+
+$02a7       Prépare C avec le premier port à scanner ($87) et B avec le nombre de ports (7).
 $02aa       [kb_row_loop]
             lecture de l'entrée
-$02ac       la ligne est à l'état haut lorsque la touche n'est pas pressée.
-$02ad       test si un signal a été reçu
-$02ae       ---
-$02b0       ---
-$02b1       boucle sur les ports
-$02b3       ---
+$02ac-$02ad La ligne est à l'état haut lorsque la touche n'est pas pressée.
+            En prenant son complément, un résultat à 0 signifie qu'aucune touche de la rangée n'est pressée.
+$02ae       Branche si une touche est pressée sur cette ligne.
+$02b0       Vise le port précédent.
+$02b1       Boucle sur le nombre de ports (7).
+$02b3       Quel est le port ici ???
 $02b5       ---
-$02b6       Masque avec b10111011
+$02b6       Masque avec b10111011 de la dernière ligne lue.
 $02b8       [key_pressed]
-            Si aucune touche pressée (moyennant le masque), saut
+$02b8       Branche si aucune touche n'est pressée.
 $02ba       ---
 $02bc       [col_count]
-            Calcul le rang du bit à 1
-$02bd       ---
-$02bf       ---
+$02bc-$02bf Cherche la 'colonne' de la touche appuyée et décalant
+            vers la gauche A jusqu'à ce que Carry passe à 1, tout
+            en comptant depuis 7 à rebours.
 $02c1       [col_exit]
-            Place dans A le rang du bit à 1 (et donc la colonne)
-$02c2       A=2 * col
-$02c3       A=4 * col
-$02c4       A=8 * col
-$02c5       A=(8 * col) + row_port ($80 à $87)
-$02c6       A=(8 * col) + row_port - $80 (0 à 7)
+$02c1       Place dans A la colonne de la touche pressée.
+$02c2       A=2 * colonne
+$02c3       A=4 * colonne
+$02c4       A=8 * colonne
+$02c5       A=(8 * colonne) + (port de la ligne) ($80 à $87)
+$02c6       A=(8 * colonne) + (port de la ligne - $80) (0 à 7)
+            Cela donne l'index dans la table de décodage.
 $02c8       ---
-$02ca       Lecture du rang 0 dans B
-$02cc       ---
-$02cf       ---
-$02d2       Vérification de la touche SHIFT appuyée
-$02d4       ---
-$02d6       Si SHIFT est appuyé, ajoute $40 à l'adresse de la table de traduction
-$02d7       Si SHIFT est appyyé, CTRL est ignorée
+$02ca       Lecture du rang 0 dans B pour vérifier l'appui sur `shift` et `control`.
+$02cc-$02cf Préparation de la table de décodage dans HL et du potentiel décalage.
+$02d2       Vérification de la touche `shift` appuyée.
+$02d4       Branchement si `shift` n'est pas appuyée.
+$02d6       Déplacement du pointeur vers la table de décodage avec `shift` appuyée.
+$02d7       Si `shift` est appuyée, `control` est ignorée.
 $02d9       [key_noshift]
-            Vérification de la touche CTRL appuyée
-$02db       ---
-$02dd       ---
-$02de       Ajoute $80 (2 * $40) à l'adresse de la table de traduction
+$02d9       Vérification de la touche `control` appuyée.
+$02db       Branchement si la touche `control` n'est pas appuyée.
+$02dd-$02de Ajoute $80 (2 * $40) à l'adresse de la table de décodage.
 $02df       [key_noctrl]
-            A qui contient l'index dans la table est passé dans E
-$02e0       ---
-$02e2       L'index est ajouté au pointeur de la table
-$02e3       La valeur de la table est récupérée dans A
+$02df-$02e0 L'index de la table, dans A, est copié dans DE.
+$02e2       L'index est ajouté au pointeur de la table.
+$02e3       La valeur de la table est lue dans A.
 $02e4       [key_changed]
-            récupération de la valeur précédente du clavier
-$02e7       set carry flag
-$02e8       si la nouvelle touche est la même que l'ancienne saute à la fin pour retour
-$02ea       sinon, on enregistre la nouvelle valeur
-$02ed       et le carry flag est enlevé
+$02e4       Comparaison avec la valeur précédente lue au clavier.
+$02e7       Set Carry flag
+$02e8       Branche si la nouvelle touche pressée est identique à la précédente.
+$02ea       Sinon, on enregistre la nouvelle valeur
+$02ed       Et le Carry flag est enlevé
 $02ee       [kbscan_exit]
-            Le Carry Flag indique si la touche a changé (C reset) ou n'a pas changé (C set)
 
 $02ef       [regst_impl]
             Fonction: Envoi d'une séquence à l'EF9345
@@ -557,6 +849,7 @@ $02fa       ---
 $02fc       ---
 $02fe       ---
 $02ff       [call02FF]
+            %SECTION(f4i)
 
 $0302       [fp_add_hl]
             Addition flottante depuis (HL)
@@ -1049,7 +1342,7 @@ $0592       ---
 $0595       Incrémente directement l'exposant dans FP
 $0596       Retour si on n'a pas fait passer l'exposant à zéro
 $0597       Sinon, c'est un Overflow
-$059a       [getsign2]
+$059a       [getsign_2]
 $059d       Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
 $059e       %CODE
             Appelé depuis une routine à cause de $060f
@@ -1827,7 +2120,7 @@ $0a4c       ---
 $0a4f       ---
 $0a50       ---
 $0a75       [inst_play]
-            %CODE
+            %CODE,SECTION(gr)
 $0a78       Désactivation de l'affichage
 $0a7c       ---
 $0a7f       ---
@@ -2602,7 +2895,8 @@ $0fec       [invalid_hex]
 $0fed       ---
 $0fee       ---
 
-$1000       [Start]
+$1000       [start]
+            $SECTION(biinit)
             C'est ici que commence l'intialisation complète de la machine.
             La première étape est de recopier le contenu de la ROM dans
             l'espace RAM adressable. Adressable ne signifie pas que de la RAM
@@ -2802,7 +3096,7 @@ $111d       ---
 $111f       ---
 $1120       ---
 
-$1122       [hot_boot]
+$1122       [warm_boot]
             Fonction: Effectue le reset à chaud
 $1122       ---
 $1125       ---
@@ -2825,6 +3119,7 @@ $1179       [InitEfSeq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 $1194       [initvalues]
 $11f9       [keybfr_0]
+            %SECTION(txtfil)
 $1201       [keybfr_1]
 $1209       [keybfr_2]
 $1211       [keybfr_3]
@@ -2889,7 +3184,7 @@ $1776       [txt_in_en]
 $177b       [txt_next]
 
 $1945       [inst_save]
-            %CODE
+            %CODE,SECTION(bicset)
             Sauvegarde du listing BASIC en ASCII.
             Attention, la routine efface tout le contenu mémoire à la fin.
 $1945       ---
@@ -3872,6 +4167,7 @@ $1ffc       ---
 $1ffd       ---
 $1ffe       ---
 $2000       [instructions]
+            $SECTION(bintrp)
 $2064       [functions]
 $209d       [prekeywords]
 $209e       [keywords]
@@ -5348,7 +5644,7 @@ $2a07       ---
 $2a0a       ---
 $2a0c       [skip2A0C]
 
-$2a0f       [func_ret_a]
+$2a0f       [retfun_impl]
             Function : met en place la valeur de retour d'une fonction
             Prerequis : valeur dans A
             Sortie : valeur entière dans FAC
@@ -5503,6 +5799,7 @@ $2ad2       ---
 $2ad3       ---
 
 $2ad4       [acquirekey]
+            $SECTION(te)
             Fonction: décode une touche du clavier et l'affiche à l'écran à la position du curseur.
             Attends un refresh (HALT) puis scrute le clavier.
             Si rien n'a été appuyé, sort immédiatement. A == 0
@@ -5900,6 +6197,7 @@ $2d9b       ---
 $2d9e       [accel_keys]
 
 $2ead       [mem_move_chk]
+            $SECTION(bimisc)
             Fonction : vérify la mémoire
             Entrée : DE < BC < HL trois pointeurs de mémoire
             Copie la zone [DE, BC] vers [DE+(HL-BC), HL] depuis la fin (permet le recouvrement)
@@ -6569,6 +6867,7 @@ $3272       ---
 $3275       ---
 
 $3278       [initscreen]
+            $SECTION(co)
             Réinitialisation du curseur, d'attributs
             Redéfinition de deux caractères: $20 et $7F
             Efface l'écran, remise en colonne 1
@@ -7067,6 +7366,10 @@ $35f3       [jump_ret]
             Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
 $35f4       [char20]
 $35fe       [char7f]
+$3609       [bistrs]
+            %CODE,SECTION(bistrs)
+            This seems to be code, but where is it called from ???
+            It's also the first part of the bistrs section.
 $3636       [inst_str]
             %CODE
 $3639       ---
@@ -7584,7 +7887,7 @@ $38ca       HL contient (fretop) et DE contient (stktop)
 $38cd       ---
 
 $38d0       [dim_cont]
-            %CODE
+            %CODE,SECTION(biptrg)
             L'appel est induit par le push en $38d8, lors de l'exécution de l'instruction DIM.
 $38d0       ---
 $38d1       Si la zone de parsing contient 0, alors retour de l'instruction
@@ -7889,6 +8192,7 @@ $3a55       [end_dim]
             Récupération dans HL du pointeur de parsing
 $3a58       En cas de lecture du tableau, DE contient le pointeur vers l'entrée cherchée.
 $3a59       [jump3A59]
+            $SECTION(caset)
 $3a5b       ---
 $3a5d       ---
 $3a5e       [loop3A5E]
@@ -8122,6 +8426,7 @@ $3bca       ---
 $3bcd       ---
 
 $3bd0       [outdo_impl]
+            $SECTION(bio)
             Fonction : envoie d'un caractère sur le périphérique sélectionné
             Entrée : le caractère est contenu dans A
 $3bd0       ---
@@ -8310,6 +8615,7 @@ $3ccf       [hl_incbuf]
             HL pointe sur la position suivante dans le buffer de crunch
 $3cd0       ---
 $3cd2       [jump3CD2]
+            $SECTION(biprtr)
 $3cd3       ---
 $3cd4       ---
 $3cd5       ---
