@@ -11,6 +11,8 @@ $0000       [reset]
             Cette adresse est variable d'une machine à l'autre. Sur VG5000µ, c'est
             $1000.
 
+            == DEBUT DE SECTION IN (bas niveau et interruptions) ==
+
 $0003       %NTS
             Numéro de la version de la ROM
 
@@ -836,101 +838,108 @@ $02ed       Et le Carry flag est enlevé
 $02ee       [kbscan_exit]
 
 $02ef       [regst_impl]
-            Fonction: Envoi d'une séquence à l'EF9345
-            Entrée: HL pointe sur la séquence de données à envoyer.
-            Le premier octet de la séquence est sa longueur en octet.
-$02ef       ---
-$02f0       ---
+            Implémentation de `regst:`.
+$02ef       Lecture dans B de la longueur (nombre de paires) de la table.
+$02f0       Place HL sur l'octet suivant de la séquence.
 $02f1       [regst_loop]
-$02f4       ---
-$02f6       ---
-$02f8       ---
-$02fa       ---
-$02fc       ---
-$02fe       ---
-$02ff       [call02FF]
-            %SECTION(f4i)
+$02f4-$02dc Utilisation de `outi` pour enoyer les paires vers le VDP.
+            À chaque tour de boucle, le premier octet est envoyé vers le port `$8f`
+            et le second vers le port `$cf`. Chaque envoie est précédé d'une attente
+            d'état `prêt` du VDP.
+
+$02ff       [add_half]
+            %SECTION(f4i),MSBASIC(ROUND)
+            Ajoute `0.5` à FAC (l'accumulateur flottant).
+
+            Est utilisé pour faire un arrondi à l'entier le plus proche.
+
+            == DEBUT DE SECTION F4I (mathématiques flottantes) ==
 
 $0302       [fp_add_hl]
-            Addition flottante depuis (HL)
-$0302       ---
-$0305       ---
-$0307       ---
+            %MS_BASIC(ADDPHL)
+            Addition flottante : (HL) + FAC
+
+            Entrées :
+            - FAC
+            - Le nombre flottant pointé par HL.
+
+            Sortie :
+            - FAC contient le résultat.
+$0302       Charge les quatre octetcs pointés par HL dans BCDE.
+$0305       Branche vers l'addition entre BCDE et FAC.
+$0307       [fp_sub_hl]
+            %MS_BASIC(SUBPHL)
+            Soustraction flottante : (HL) - FAC
+
+            Entrées :
+            - FAC
+            - Le nombre flottant pointé par HL.
+
+            Sortie :
+            - FAC contient le résultat.
+
+            La suite se décode comme :
+            - call     hl_to_bcde ; (cd e0 05)
+            - ld       hl,$d1c1   ; (21 c1 d1)
+            La deuxième instructon saute par dessus les deux `pop` pour arriver directement sur
+            l'inversion de signe de `fp_bcde_sub`.
 
 $030b       [fp_stck_sub]
-            %CODE
-            Appelé via la table des priorités
-            Soustrait le contenu de BCDE (pris dans la pile) du FP
-            Par inversion de signe et fallthrough dans l'addition.
-$030b       ---
-$030c       ---
+            %CODE,MS_BASIC(PSUB)
+            Appelé via la table des priorités lors de l'évaluation d'une expression.
+            Soustrait FAC du contenu de la pile, placé dans BCDE.
+$030b-$030c Récupère le nombre flottante depuis la pile puis continue
+            sur l'inversion de signe et l'ajout de BCDE à FAC.
+
 $030d       [fp_bcde_sub]
+            %MS_BASIC(SUBBCDE)
+            Inverse le contenu de FAC puis y ajoute BCDE.
+            Ce qui revient à faire BCDE - FAC.
 
 $0310       [fp_bcde_add]
-            Appelé via la table des priorités
-            Ajoute le contenu de BCDE et de FP
-            
-            MS_BASIC=FPADD
-$0310       ---
-$0311       ---
-$0312       Si l'exposant de BCDE est 0, il n'y a rien à ajouter, on ne touche pas à FAC et on retourne.
-$0313       ---
-$0316       ---
-$0317       Si l'exposant dans FAC est 0, alors on copie BCDE dans FAC et c'est terminé
-$031a       ---
-$031b       Si l'exposant de BCDE (B) est plus petit que celui de FAC (A), on garde comme ça. Sinon, on les échange.
-$031d       ---
-$031e       Oppose la différence entre les expostants (complément à 2)
+            %MS_BASIC(FPADD)
+            Appelé via la table des priorités lors de l'évaluation d'une expression.
+            Ajoute le contenu de BCDE et de FAC.
+$0310-$0312 Si l'exposant de BCDE est 0, il n'y a rien à ajouter, on ne touche pas à FAC et on sort.
+$0313-$0317 Si l'exposant dans FAC est 0, alors on copie BCDE dans FAC et c'est terminé
+$031a-$031b Si l'exposant de BCDE (B) est plus petit que celui de FAC (A), on garde comme ça. Sinon, on les échange.
+$031d-$031e Oppose la différence entre les expostants (complément à 2)
 $031f       Sauve DE...
 $0320       Le temps de mettre FAC sur la pile
 $0323       ... et restaure DE
 $0324       Copie BCDE dans FAC
-$0327       ---
-$0328       Et récupère BCDE (l'ancien FAC) depuis la pile.
+$0327-$0328 Et récupère BCDE (l'ancien FAC) depuis la pile.
 $0329       [no_swap]
-            Ici, BCDE contient le plus petit des nombres. A contient la différence (positive) entre les deux expostants.
-$032b       Si la différence est de plus de 25. BCDE est négligeable face à FAC, on a terminé.
+            Ici, BCDE contient le plus petit des nombres. A contient la différence (positive) entre les deux exposants.
+$0328-$032b Si la différence est de plus de 25. BCDE est négligeable face à FAC, on a terminé.
 $032c       Sauve AF
 $032d       Extrait les signes de FAC et BCDE, A bit 7 à 1 si les signes sont opposés, 0 si identiques.
 $0330       Sauve le résultat du signe dans H
 $0331       Et récupère AF
 $0332       Déplace la mantisse à droite (division) d'un nombre de position égal à A
-$0335       ---
-$0336       Test le résultat de signe
+$0335-$0336 Test le résultat de signe
 $0337       Pointe sur la mantisse
-$033a       Saute si les signes étaient différents. Dans ce cas, on doit faire une soustraction.
+$033a       Branche si les signes étaient différents. Dans ce cas, on doit faire une soustraction.
 $033d       Ajoute les mantisses de FAC et BCDE
 $0340       Pas d'overflow, on passe à l'arrondi du résultat (et sa normalisation)
 $0342       Sinon, il faut augmenter...
 $0343       .. l'exposant de 1
-$0344       Si l'exposant a dépassé sa limite (boucle sur zéro), on lance un Overflow.
-$0347       ---
-$0349       Sinon, il faut corriger la mantisse avec un décalage de 1 (L) vers la droite
+$0344       Si l'exposant a dépassé sa limite (boucle sur zéro), branche sur une erreur de dépassement de capacité.
+$0347-$0349 Sinon, il faut corriger la mantisse avec un décalage de 1 (L) vers la droite
 $034c       Puis on passe à l'arrondi
 
 $034e       [min_bcde]
             FAC - CDEB -> BCDE. Si un overflow (underflow) est provoqué, le nombre est complémenté à 2 à la fin. Puis fallback dans la normalisation.
-$034e       ---
-$034f       ---
 $0350       B ici contient le résultat du shift à droite le moins signifiant. Le nombre est sous forme CDEB
-$0351       ---
-$0352       ---
-$0353       ---
-$0354       ---
-$0355       ---
-$0356       ---
-$0357       ---
-$0358       ---
-$0359       ---
-$035a       ---
-$035b       ---
 $035c       [pos_norm]
-            Met le nombre en positif potentiellement avant de normer et compacter. En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry.
+            Met le nombre en positif potentiellement avant de normer et compacter.
+$035c       En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry. ???
 
 $035f       [bcde_norm]
             Lors de la normalisation, BCDE n'a pas le format normal. B n'est pas l'exposant, mais le poids le plus faible de la mantisse.
-$035f       ---
-$0360       L et H sont les plus petits signifiants de la mantisse, qui est sous la forme CDHL (l'exposant est dans FAC)
+
+            C'est donc une mantisse sous forme CDEB qui est traitée. L'exposant est celui de FAC.
+$035f-$0360 L et H sont les plus petits signifiants de la mantisse, qui est sous la forme CDHL (l'exposant est dans FAC)
 $0361       A = 0, va servir de compteur
 
 $0362       [rot_loop]
@@ -946,63 +955,49 @@ $0368       ... CDHL
 $0369       ... vers
 $036a       ... DHLA (et A est égal à 0 ici). On embarque L (l'exposant) dans le shift, pour tester au passage s'il était nul.
 $036b       Récupération temporaire dans A du compteur
-$036c       ---
-$036e       Soustrait 8 du compteur, puisque l'on vient de décaler de 8
-            Comparaison avec -24-8
+$036c-$036e Soustrait 8 du compteur, puisque l'on vient de décaler de 8, et comparaison avec -24-8.
 $0370       Arrêt si le compteur est arrivé à 32. On a shifté de 32 bits au max, le résultat est donc 0. Sinon, on continue le shift
 $0372       [clear_fac]
-            On met 0 dans le FAC
+$0372       On met 0 dans le FAC
 $0373       [a_to_exp]
-$0376       ---
+$0376       Charge A dans l'exposant de FAC.
 $0377       [normal]
-$0378       ---
-$0379       Vérifie s'il y a des bits dans DHL (les LSBs de la mantisse).
+$0378-$0379 Vérifie s'il y a des bits dans DHL (les LSBs de la mantisse).
 $037a       Si oui, il faut les traiter avec les routines complète
 $037c       Sinon, on ne traite que C pour trouver le premier bit de poids fort. Routine optimisée
 $037d       [bit_find]
-            Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C). B est le résultat du nombre de shift de 8 effectué précédemment, en soustraction de $00.
-$037e       ---
-$037f       ---
+$037d-$037f Diminue B jusqu'à trouver le premier bit à 1 dans A (qui vient de C). B est le résultat du nombre de shift de 8 effectué précédemment, en soustraction de $00.
 $0381       Bit à 1 trouvé. On remet B un cran avant.
 $0382       On remet aussi le nombre au cran d'avant (remettre le CY dans le nombre)
 $0383       C (MSB de la mantisse) est normalisé (avec 1 en msb)
-$0384       ---
 $0386       [norm_full]
-            Compte un bit de shift
+$0386       Compte un bit de shift
 $0387       Décale HL à gauche de 1
-$0388       ---
-$0389       ---
-$038a       Shift D de 1 en récupérant le Carry de HL
-$038b       ---
-$038c       Shift C de 1 en récupérant le Carry de D
-$038d       ---
+$0388-$038a Shift D de 1 en récupérant le Carry de HL
+$038b-$038d Shift C de 1 en récupérant le Carry de D
 $038e       [norm_bit]
-            Il reste quelque chose, on continu la normalisation
+$038e       Il reste quelque chose, on continu la normalisation
 $0391       [norm_nxt]
-            Le compteur de shift est mis dans A. CDHL est normalisé.
-$0392       ---
-$0393       Reconstruction de CDEB contenant la mantisse
-$0394       ---
-$0395       On n'a rien shifté, on passe à l'arrondi
-$0397       ---
-$039a       Modification de l'exposant avec le compteur de décalage (B est négatif en complément à 2).
+$0391       Le compteur de shift est mis dans A. CDHL est normalisé.
+$0392-$0393 Reconstruction de CDEB contenant la mantisse
+$0394-$0395 On n'a rien shifté, on passe à l'arrondi
+$0397-$039a Modification de l'exposant avec le compteur de décalage (B est négatif en complément à 2).
 $039b       Remise en place de l'exposant ajusté.
 $039c       Le décalage est trop grand, on n'a plus de précision, le résultat est 0
 $039e       L'exposant est 0, le résultat est donc 0 (dans d'autres versions, un RET Z est fait ici)
 $03a0       [round]
-            Récupère la plus petite partie de la mantisse
+$03a0       Récupère la plus petite partie de la mantisse
 $03a1       [round0]
 $03a4       Vérifie si la plus petite partie de la mantisse a son msb à 1
 $03a5       Dans ce cas, on arrondi vers le haut.
 $03a8       Récupération dans B de l'exposant
-$03a9       ---
-$03aa       Récupération dans A du résultat de signe
+$03a9-$03aa Récupération dans A du résultat de signe
 $03ab       Récupération du bit de signe (seul le msb compte)
 $03ad       Place le bit de signe (le msb de C est forcément à 1, donc un XOR fonctionne si 1 signifie + ?)
 $03ae       Remet en place le MSB + Signe de la mantisse
 $03af       Place le résultat dans FAC
 $03b2       [round_up]
-            Incrément la partie basse de la mantisse
+$03b2       Incrément la partie basse de la mantisse
 $03b3       Si on n'a pas fait d'overflow (retour à zero), c'est ok, on revient
 $03b4       Sinon, on augmente la partie suivante
 $03b5       On vérifie encore
@@ -1014,317 +1009,287 @@ $03bb       Retour si tout va bien. Mais si l'exposant a bouclé sur 0
 $03bc       Alors c'est que le nombre est trop grand, on lance l'erreur.
 
 $03bf       [add_bcde]
-            HL pointe sur la mantisse. Ajoute avec la mantisse de BCDE (donc CDE). Les exposants doivent être identiques pour que cela ait du sens. Si la mantisse "dépasse", le CY sera à 1 en sortie.
-$03bf       ---
-$03c0       ---
-$03c1       ---
-$03c2       ---
-$03c3       ---
-$03c4       ---
-$03c5       ---
-$03c6       ---
-$03c7       ---
-$03c8       ---
-$03c9       ---
-$03ca       ---
+            Ajoute les mantisses de FAC et CDE. Le résultat dans FAC, et Carry à 1 si dépassement de capacité.
 
-$03cb       [compl2]
-            Complément à 2 de BCDE (sous forme CDEB)
-$03cb       ---
-$03ce       ---
-$03cf       ---
-$03d0       ---
-$03d1       ---
-$03d2       ---
-$03d3       ---
-$03d4       ---
-$03d5       ---
-$03d6       ---
-$03d7       ---
-$03d8       ---
-$03d9       ---
-$03da       ---
-$03db       ---
-$03dc       ---
-$03dd       ---
-$03de       ---
+$03bf-$03ca HL pointe sur la mantisse de FAC. Y ajoute la mantisse CDE.
 
-$03df       [div_mant]
-            Division de la mantisse par le nombre A en entrée
+            Les exposants des deux nombres doivent être identiques pour que cela ait du sens.
+            Si la mantisse provoque un dépassement de capacité, le Carry sera à 1 en sortie.
+
+$03cb       [cpl_2]
+            Complément à 2 de la mantisse sous forme CDEB.
+$03cb-$03cd Inverse le bit de signe temporaire.
+
+$03df       [scale]
+            %MS_BASIC(SCALE)
+            Décalage vers la gauche de la mantisse CDEB d'un nombre donné par A.
+
+            Le décalage se fait d'abord par groupe de 8 bits tant que c'est possible, puis continue bit à bit.
             
-            MS_BASIC=SCALE
-$03df       ---
-$03e1       [div_256_24b]
-            Boucle sur A divisé par 8 (entier). Décale un nombre stocké dans CDE d'un vers la droite à chaque fois. B sert de récupération temporaire à droite du nombre.
-            Verifie si le résultat est 0 (pourquoi pas C ?)
-$03e3       ---
-$03e5       ---
-$03e6       ---
-$03e7       ---
-$03e8       ---
-$03ea       La mantisse a été divisée par 256 (shift left de 8)
+$03df       Initialise B à 0. B contiendra les bits les moins significatifs de la mantisse.
+$03e1       [shiftr_8]
+$03e1-$03ea Décale la mantisse de 8 bits (un registre complet) vers la droite.
 $03ec       [end_256]
-            La denière soustractiona fait passer A négatif, on y ajoute 9 (8 + 1 ?)
+$03ec       La denière soustractiona a fait passer A négatif, on y ajoute 8+1.
 $03ee       Sauvegarde de l'exposant restant dans A
-$03ef       ---
-$03f0       ---
-$03f1       ---
-$03f2       S'il y a des bits à 1 dans le bas de la mantisse, on passe sur la méthode entière (plus lente) de shift vers la droite L fois.
-$03f4       Sinon, on s'occupe uniquement de la partie haute de la mantisse
+$03ef-$03f2 S'il y a des bits à 1 dans le bas de la mantisse (DEB), on passe sur la méthode complète (plus lente) de shift vers la droite L fois.
+$03f4       Sinon, on s'occupe uniquement de la partie haute de la mantisse (C)
 $03f5       [msb_shift]
-$03f6       Traitement terminé, routine terminée
-$03f7       ---
-$03f8       ---
-$03f9       ---
-$03fb       ---
+$03f5       Décrémentation du nombre de décalage restant (la boucle commence par le test, ce qui explique le 8+1 ajouté à A).
+$03f6       Traitement terminé, routine terminée.
+$03f7       Décalage à droite.
+$03f8       Résultat dans C.
+$03f9       Si le décalage a fait sortir un bit à 1, branchement vers la méthode complète.
+$03fb       Le décalage n'a pas fait sortir de bit à 1, on continue avec le décalage de C uniquement.
 
 $03fd       [fp_shift_r]
-            Décalage vers la droite L fois
+            %MS_BASIC(SHRLP)
+            Décalage vers la droite L fois de la mantisse CDEB.
+            Méthode complète.
             
-            MS_BASIC=SHRLP
-$03fd       Boucle sur L, qui est le reste de la division par 8 de A en entrée, et qui boucle en $040c
-$03fe       Annule le +1 du +9 (revient donc à +8)
-$03ff       Si on était tombé pile à zéro, retour immédiat
-$0400       Cette partie jusqu'au JR est un shift vers la droite de l'ensemble CDEB
+$03fd       A prend 0. Et Carry est à 0 (important pour initialiser le décalage à droite)
+$03fe       Décrémentation du nombre de décalage restant (la boucle commence par le test, ce qui explique le 8+1 ajouté à A).
+$03ff       Traitement terminé, routine terminée.
+$0400       Début du décalage du groupe CDEB vers la droite de 1.
 
 $0401       [shft_right]
-            Décalage d'un vers la droite de (B)CDE, avec C déjà dans A, puis branchement vers la routine générique de décalage vers la droite.
-$0401       ---
-$0402       ---
+$0401-$0402 Décalage d'un bit vers la droite de CDEB, partie C.
 $0403       [shift_rgt_2]
-$0404       Grace au XOR A, le CY est à 0
-$0405       ---
-$0406       ---
-$0407       ---
-$0408       ---
-$0409       ---
-$040a       ---
-$040b       ---
-$040c       ---
-$040e       ---
+$0403-$0405 Décalage d'un bit vers la droite de CDEB, partie D.
+$0406-$0408 Décalage d'un bit vers la droite de CDEB, partie E.
+$0409-$040B Décalage d'un bit vers la droite de CDEB, partie B.
+$040e       [unity]
+$0412       [logtab]
+$0412       Longueur du tableau.
+$0413       [logtab_0]
+$0413       4.811474800109863
+$0417       [logtab_1]
+$0417       6.105852127075195
+$041b       [logtab_2]
+$041b       -8.86266040802002
+$041f       [logtab_3]
+$041f       -2.054666757583618
+$0423       [logtab2]
+$0423       Longueur du tableau.
+$0424       [logtab2_0]
+$0424       1.0
+$0428       [logtab2_1]
+$0428       6.427842140197754
+$042c       [logtab2_2]
+$042c       4.545170783996582
+$0430       [logtab2_3]
+$0430       0.3535534143447876
 $0434       [inst_log]
             %CODE
-$0435       ---
-$0436       ---
+$0434-$0426 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
 $0439       ---
-$043c       ---
-$043f       ---
+$043c-$043f BCDE = ln(2)
 $0442       ---
-$0444       [call0444]
-$0447       ---
-$0449       ---
-$044c       ---
-$044d       ---
-$044e       ---
-$0451       ---
-$0454       ---
-$0457       ---
-$0458       ---
-$0459       ---
-$045c       ---
-$045d       ---
-$0460       ---
-$0463       ---
-$0466       ---
-$0467       ---
-$0468       ---
-$046b       ---
-$046c       ---
-$046f       ---
-$0472       ---
-$0473       ---
-$0474       ---
-$0477       ---
+$0444       [log]
+$0444       L'argument de l'instruction log est ramenée dans BCDE.
+$0447-$0449 Initialise l'exposant de FAC avec $80 (c'est-à-dire exposant 0)
+$044c       Opération sur l'exposant de FAC pour en retirer la valeur entière, qui sera utilisée plus loin.
+            Note : le bit 7 de l'exposant, inversé, se retrouvera dans le bit de signe du nombre monté dans FAC (???)
+$044d       Sauvegarde de AF
+$044e       Pousse FAC (l'argument du `log` avec son exposant à `$80`) sur la pile.
+$0451       Fait pointer HL vers la table de facteurs pour `log`.
+$0454       Calcule le polynome avec les facteurs de `logtab`.
+$0457-$0458 Récupère l'argument dans BCHL (car DE va être utilisé)
+$0459       Pousse le résultat du polynome sur la pile.
+$045c       Reconstitue BCDE, argument du `log`.
+$045d       Monte BCDE dans FAC.
+$0460-$0463 Calcule le second polynome avec les facteurs de `logtab2`.
+$0466-$0467 Récupère BCDE, l'argument du `log`.
+$0468       Division de l'argument dans BCDE par le polynome.
+$046b       Récupération de l'opération sur l'exposant de FAC (inversion du bit 7).
+$046c       Résultat de la division dans la pile.
+$046f       Placement du nombre dans A dans FAC (qui était la valeur de l'exposant)
+$0472-$0473 Récupération du résultat du calcul qui avait été mis sur la pile.
+$0474       Ajout avec FAC.
+$0477       Saute les deux `pop` suivant pour aller vers la multiplication.
 
-$0478       [fp_stk_mult]
+$0478       [fp_stk_mul]
             %CODE
             Appelé via la table des priorités
-$0478       ---
-$0479       ---
 
-$047a       [fp_mul]
+            Multiplication du nombre flottant sur la pile avec FAC.
+$0478-$0479 Récupération du nombre flottant sur la pile dans BCDE.
+
+$047a       [fp_bcde_mul]
             Multiplication flottante
-$047a       ---
-$047b       ---
-$047c       ---
-$047e       ---
-$0481       ---
-$0482       ---
-$0485       ---
-$0486       ---
-$0489       ---
-$048c       ---
-$048d       ---
-$048e       ---
-$0491       ---
-$0492       ---
-$0495       ---
-$0496       ---
-$0497       ---
-$049a       ---
-$049b       ---
-$049c       ---
-$049d       ---
-$049f       ---
-$04a0       ---
-$04a2       [loop04A2]
-$04a3       ---
-$04a4       ---
-$04a5       ---
-$04a7       ---
-$04a8       ---
-$04ab       ---
-$04ac       ---
-$04ad       ---
-$04ae       ---
-$04b1       ---
-$04b2       [skip04B2]
-$04b3       ---
-$04b4       ---
-$04b5       ---
-$04b6       ---
-$04b7       ---
-$04b8       ---
-$04b9       ---
-$04ba       ---
-$04bb       ---
-$04bc       ---
-$04bd       ---
-$04bf       ---
-$04c1       ---
-$04c2       ---
-$04c4       ---
-$04c5       [skip04C5]
-$04c6       ---
-$04c7       ---
+
+            Multiplication de BCDE et de FAC.
+$047a       Récupère le signe de FAC.
+$047b       Retourne immédiatement si c'est 0.
+$047c-$047e Ajoute les exposants de FAC et BCDE
+$0481-$0482 Sauve le MSB de BCDE dans le premier buffer de travail.
+$0485-$0486 Sauve le reste de BCDE dans le second buffer de travail.
+            Ces deux buffers servent à garder l'argument de la multiplication.
+$0489-$048d BCDE = 0
+$048e-$0491 Place l'adresse de retour sur la pile vers la normalisation de BCDE.
+$0492       Charge l'adresse de la multiplication sur 8 bits
+$0495-$0496 Et la place sur la pile comme deux adresses de retour.
+            Ainsi, les trois prochains RET provoqueront deux appels à `mul_8b` puis un appel à `bcde_norm`.
+$0497       HL pointe vers le LSB de FAC.
+$049a       [mul_8b]
+$049a       Début de la multiplication sur 8 bits. Récupération de la partie FAC du nombre.
+$049b       Et déplacement de HL vers l'octet suivant.
+$049c-$049d Branchement si cette partie est nulle.
+$049f       Sauvegarde de HL, qui pointe vers l'octet suivant de FAC.
+$04a0       Compteur de 8 bits pour la multiplication partielle par A.
+$04a2       [mul_8b_loop]
+$04a2       Récupération du bit de poids faible dans le Carry.
+$04a3       Sauvegarde du multiplicateur dans A
+$04a4       Copie du MSB de BCDE dans A.
+$04a5       Branche si le bit du multiplicateur était à zéro : pas d'addition.
+$04a7       Sauvegarde de l'octet du multiplicateur et du compteur de bits.
+$04a8       Récupération des deux octets bas de l'accumulateur pour la multiplication.
+$04ab       Addition de cette partie basse avec la partie basse de BCDE (l'accumulateur de résultat)
+$04ac       Le résultat devient le nouveau DE.
+$04ad       Restauration de H (multiplicateur) et L (compteur de bits)
+$04ae-$04b1 Addition des deux MSB (argument et accumulateur) en tenant compte de la retenue des parties basses.
+$04b2       [no_add]
+$04b2       
+$04b2-$04bc Décalage du résultat vers la droite de CDEB.
+            Dans l'opération, les bits les plus faibles de la mantisse peuvent être perdus.
+$04bd       Test si le décalage a amené un bit en position 5 de B (l'octet de récupération de la précision).
+$04bf       Branche si ça n'est pas le cas.
+$04c1-$04c4 Sinon, place un bit en position 6 de B, pour faire un arrondi vers le haut.
+$04c5       [no_lost]
+$04c5       Décrémente le compteur de bits
+$04c6       Ramène l'octet de multiplicateur dans A
+$04c7       Boucle s'il reste des bits à traiter
 $04c9       [pop_hl_ret]
-$04ca       ---
-$04cb       [skip04CB]
-$04cc       ---
-$04cd       ---
-$04ce       ---
-$04cf       ---
+$04c9       Restaure l'adresse de l'octet de FAC à traiter.
+$04ca       Ce RET va rappeler deux fois la multiplication puis la normalisation de BCDE (cf. le commentaire plus haut)
+$04cb       [byte_shift]
+$04cc-$04ce Décalage d'un octet complet de l'accumulateur CDEB.
+$04cf       Voir les commentaires ci-dessus sur l'effet de RET dans cette routine de multiplication.
 
 $04d0       [fp_div_10]
             Division de FP par 10
             
             MS_BASIC=DIV10
-$04d0       ---
-$04d3       ---
-$04d6       ---
-$04d9       ---
+$04d0       Place FAC sur la pile
+$04d3-$04d6 Monte le nombre "10" dans BCDE
+$04d9       Monte BCDE dans FAC
 
-$04dc       [fp_bcde_div]
+$04dc       [fp_stk_div]
             Appelé via la table des priorités
-$04dc       ---
-$04dd       ---
-$04de       [call04DE]
-$04df       ---
-$04e2       ---
-$04e4       ---
-$04e7       ---
-$04e8       ---
-$04eb       ---
-$04ec       ---
-$04ef       ---
-$04f0       ---
-$04f1       ---
-$04f4       ---
-$04f5       ---
-$04f6       ---
-$04f9       ---
-$04fa       ---
-$04fb       ---
-$04fe       ---
-$04ff       ---
-$0500       ---
-$0501       ---
-$0502       ---
-$0503       ---
-$0504       ---
-$0507       [loop0507]
-$0508       ---
-$0509       ---
-$050a       ---
-$050d       ---
-$050f       ---
-$0510       ---
-$0512       ---
-$0515       ---
-$0516       ---
-$0517       ---
-$0518       ---
-$0519       [skip0519]
-$051a       ---
-$051b       ---
-$051c       ---
-$051d       ---
-$051e       ---
-$051f       ---
-$0522       ---
-$0523       ---
-$0526       ---
-$0527       ---
-$0529       ---
-$052a       ---
-$052b       ---
-$052c       ---
-$052d       ---
-$052f       ---
-$0531       [skip0531]
-$0532       ---
-$0533       ---
-$0536       [jump0536]
-$0537       ---
-$0538       ---
-$0539       ---
-$053a       ---
-$053b       ---
-$053c       ---
-$053d       ---
-$053e       ---
-$053f       ---
-$0540       ---
-$0541       ---
-$0542       ---
-$0543       ---
-$0544       ---
-$0547       ---
-$0548       ---
-$054b       ---
-$054c       ---
-$054d       ---
-$054e       ---
-$0550       ---
-$0551       ---
-$0554       ---
-$0555       ---
-$0556       ---
-$0558       ---
-$055b       [call055B]
-$055c       ---
-$055d       ---
-$055f       ---
-$0560       ---
-$0563       ---
-$0564       ---
-$0565       ---
-$0566       ---
-$0567       ---
-$0568       ---
-$0569       ---
-$056c       ---
-$056e       ---
-$056f       ---
-$0572       ---
-$0575       ---
-$0576       ---
-$0577       ---
-$0578       ---
-$057b       [jump057B]
-$057c       [skip057C]
-$057d       ---
-$0580       ---
+
+            Division du nombre flottant sur la pile par FAC.
+$04dc-$04dd Extrait BCDE depuis la pile.
+$04de       [fp_bcde_div]
+            Division du nombre BCDE par FAC.
+$04df-$04e2 Branche vers une erreur de division par zéro si FAC est nul.
+$04e4-$04e7 Soustrait les exposants des deux nombres (celui de BCDE par celui de FAC)
+$04e8       Ajoute 1 à l'exposant
+$04eb       Si boucle sur zéro, branche vers un dépassement de capacité.
+$04ec       Ajoute 1 à l'exposant à nouveau
+$04ef       Et vérifie à nouveau un dépassement de capacité.
+$04f0       Fait pointer HL sur le MSB de FAC.
+$04f1       Charge le MSB de FAC dans A.
+$04f4       Et le sauve dans la mémoire de travail de la division.
+$04f5-$04f6 Fait de même pour l'octet du milieu de FAC
+$04f9-$04fb Et enfin pour l'octet le moins signifiant.
+$04fe       Charge le MSB de BCDE dans B.
+$04ff       Sauve la partie basse de BCDE dans HL.
+$0500-$0503 CDE = 0. Contiendra le quotient de la division.
+$0504       Dépassement/VLSB
+$0507       [fp_div_loop]
+$0507       Sauve la partie basse du dividende
+$0508       Sauve la partie haute (B) du dividende.
+$0509       Prend le LSB du dividende
+$050a       Soustrait le diviseur (injecté dans la routine) du dividende (LHB).
+            La routine de division, copiée en RAM au démarrage, est la suivante :
+
+                div_subr:    sub      a,$00 ; LSB
+                             ld       l,a
+                             ld       a,h
+                             sbc      a,$00 ; Middle
+                             ld       h,a
+                             ld       a,b
+                             sbc      a,$00 ; MSB
+                             ld       b,a
+                             ld       a,$00 ; VLSB
+                             ret
+
+$050d       Continue la soustraction en accumulant les dépassements dans `fdivc_4`
+$050f       Complémente le Carry
+$0510       Branche si le diviseur était plus grand que le dividende.
+$0512       Sinon, sauve le compteur de dépassement.
+$0515-$0516 Supprime le diviseur de la pile.
+$0517       Met le Carry à 1
+$0518       Saute par dessus les deux `pop` suivant
+$0519       [restore_div]
+$0519-$051a Restaure le diviseur depuis la pile.
+$051b       Prend le MSB du quotient.
+$051c       Incrémente
+$051d       Décrémente
+$051e       Amène le Carry vers le bit 7 et le bit 0 vers le Carry.
+$051f       Branche si le résultat est positive.
+$0522       Rotation dans l'autre sens pour restaurer A.
+$0523       Récupération du nombre de dépassements.
+$0526       Rotation vers la droite.
+$0527       Masque avec $c0
+$0529       Sauve AF
+$052a-$052d Branche si L = H = B = 0, c'est-à-dire qu'il n'y a plus rien à diviser.
+$052f       Sinon, A = $20
+$0531       [div_end]
+$0531       Restaure HL (qui était AF)
+$0532       Prépare les drapeaux pour l'arrondi.
+$0533       Branche vers l'arrondie.
+$0536       [div_2]
+$0536       Pour initialiser un flag ???
+$0537-$0539 Décale E vers la gauche
+$053a-$053c Décale D vers la gauche (avec le bit sorti de E)
+$053d-$053f Décale C vers la gauche (avec le bit sorti de D)
+$0540       Double HL
+$0541-$0543 Décale B vers la gauche (avec le bit sorti du doublement de HL)
+$0544-$0548 Décale `fdivc_4` vers la gauche (avec le bit sorti du doublement de B)
+$054b-$054e Saute si C, D ou E contiennent encore des bits à 1 (la division continue)
+$0550       Sauve HL
+$0551       Pointe vers l'exposant de FAC.
+$0554       Décrémente l'exposant
+$0555       Restaure HL
+$0556       Si l'exposant est non nul, on boucle vers la suite de la division.
+$0558       Sinon, on a perdu toute précision, FAC passe à zéro et la division est terminée.
+$055b       [add_exp]
+            %MS_BASIC(ADDEXP)
+            Ajoute ou soustrait l'exposant de BCDE à celui de FAC.
+
+            Entrée :
+            - L = 0, ajoute
+            - L = $FF, soustrait
+
+$055b-$055d Branche si l'exposant du dividende est zéro.
+$055f       Place l'argument (ajoute ou soustrait) dans A.
+$0560       HL pointe vers l'exposant de FAC.
+$0563       Si l'argument était L = 0, ne fait rien, si L = FF, complément à 1 de l'exposant.
+$0564       Ajoute les deux exposants.
+$0565       Résultat des exposants dans BCDE.
+$0566       Récupération de Carry dans le bit de poids fort de A
+$0567       Détection du dépassement de capacité de l'addition précédente.
+$0568       Copie l'exposant dans A.
+$0569       Branche en cas de possible dépassement de capacité.
+$056c       Normalise l'exposant autour de 128.
+$056e       Et le place dans FAC.
+$056f       Branche si l'exposant est zéro.
+$0572       Sinon, extrait le bit de signe.
+$0575       Place le nouvel exposant.
+$0576       Fait pointer HL juste avant l'exposant (MSB de FAC)
+$0578       [truc]
+            %CODE
+$0578       [ovrflw_tst1]
+$0578       Chercher le signe de FAC.
+$0578       Prend son opposé
+$0578       Nettoie la pile
+$057b       [ovrflw_tst2]
+$057b       Vérifie si la valeur est nulle (l'exposant ou le signe)
+$057c       [exp_no_add]
+$057c       Retire l'adresse de retour de la pile.
+$057d       Si le résultat est positif, le résultat est zéro, on branche vers FAC = 0
+$0580       Sinon, c'est un dépassement de capacité, on branche vers l'erreur.
 
 $0583       [fp_x_10]
             Multiplication de FP par 10
@@ -1379,18 +1344,18 @@ $05c0       ---
 $05c1       ---
 
 $05c2       [fac_to_stck]
-            Function : Place le contenu de faclo et faclo+2 sur la pile
-            en préservant la valeur de retour pour RET.
-            La valeur de HL est préservée
-$05c2       ---
-$05c3       ---
-$05c6       ---
-$05c7       ---
-$05c8       ---
-$05cb       ---
-$05cc       ---
-$05cd       ---
-$05ce       ---
+            Place le contenu de FAC sur la pile.
+
+            Modifie :
+            - DE
+$05c2       Préserve HL.            
+$05c3       Récupère les deux premiers octets de FAC.
+$05c6       Les place sur la pile.
+$05c7       Restaure l'adresse de retour.
+$05c8       Récupère les deux octets suivants de FAC.
+$05cb       Les place sur la pile.
+$05cc       Restaure l'adresse de retour.
+$05cd       Restaure HL
 
 $05cf       [hl_to_fac]
             La valeur numérique pointée par HL sera d'abord extraite dans BCDE, puis par fallthrough sera transmis au FP
@@ -1837,8 +1802,9 @@ $07f9       ---
 $07fa       ---
 $07fb       ---
 $07fe       ---
-$07ff       [data_what]
-            Probablement de la donnée
+$07ff       [fp_half]
+            %DATA
+            Contient le nombre `0.5` flottant.
 $0800       ---
 $0801       ---
 $0802       ---
@@ -1945,35 +1911,55 @@ $08b5       [jump08B5]
 $08b8       [skip08B8]
 $08bb       ---
 $08be       ---
-$08c1       ---
-$08de       [call08DE]
+$08c1       [exptab]
+$08c1       Taille de la table utilisée par l'exponentielle.
+$08c2       [exptab_0]
+$08c2       0.0002074557705782354
+$08c6       [exptab_1]
+$08c6       0.0012710057199001312
+$08ca       [exptab_2]
+$08ca       0.00965065136551857
+$08ce       [exptab_3]
+$08ce       0.055496565997600555
+$08d2       [exptab_4]
+$08d2       0.2402271330356598
+$08d6       [exptab_5]
+$08d6       0.6931471824645996
+$08da       [exptab_6]
+$08da       1.0
+$08de       [sum_series]
+            %MS_BASIC(SUMSER)
 $08e1       ---
 $08e4       ---
 $08e5       ---
 $08e6       ---
 $08e9       ---
 $08ec       ---
-$08ed       [call08ED]
-$08f0       ---
-$08f1       ---
-$08f2       ---
-$08f5       ---
-$08f6       [loop08F6]
-$08f7       ---
-$08f8       ---
-$08f9       ---
-$08fa       ---
-$08fb       ---
-$08fc       ---
-$08fd       ---
-$08fe       ---
-$08ff       ---
-$0902       ---
-$0903       ---
-$0906       ---
-$0907       ---
-$090a       ---
-$090b       ---
+$08ed       [sum_ser_1]
+            Effectue une somme polynomiale.
+
+            Avec 4 coefficients, on a :
+            c1.x^4 + c2.x^3 + c3.x + c4
+$08ed       Pousse FAC sur la pile.
+$08f0       Récupère le nombre de coefficients.
+$08f1       Pointe vers le premier coefficient.
+$08f2-$08f2 Charge le premier coefficient dans FAC. HL est avancé vers le coefficient suivant.
+$08f5       Saute par dessus le `pop af` pour arriver sur le `pop bc`.
+$08f6       [sum_ser_lp]
+$08f6       Restaure AF.
+$08f7-$08f8 Lit BCDE depuis la pile. Contient toujours l'argument initial.
+$08f9       Décrémente le nombre de facteurs restants.
+$08fa       Retourne si le nombre restant est de 0.
+$08fb-$08fc Place BCDE sur la pile.
+$08fd-$08fe Sauve les autres registres (HL pointe sur le coefficient suivant de la table, A est le compteur de coefficients).
+$08ff       Multiplie BCDE (l'argument) et FAC (l'accumulateur de résultat)
+$0902       Retrouve le pointeur sur les coefficients.
+$0903       Charge le nombre suivant de la table dans BCDE. HL pointe sur le nombre qui suit.
+$0906       Sauve le pointeur sur la table.
+$0907       Ajoute le nombre à FAC.
+$090a       Restaure le pointeur vers la table.
+$090b       Et boucle
+
 $090d       [inst_rnd]
             %CODE
 $090e       Pointe vers la seed (pourquoi cette instruction n'est pas dans reseed !!!)
@@ -3118,6 +3104,12 @@ $1163       [version_txt]
 $1179       [InitEfSeq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 $1194       [initvalues]
+$119a       [div_subr]
+            %CODE
+$119a-$11a7 Cette routine fait partie des valeurs montées en RAM au démarrage.
+            Elle contient la soustraction du dividende par le diviseur.
+            Les valeurs sont injectées à la place des $00 par la routine de
+            division.
 $11f9       [keybfr_0]
             %SECTION(txtfil)
 $1201       [keybfr_1]
@@ -8882,6 +8874,10 @@ $4830       [ramlow]
 $4833       [inst_usr]
             %CODE
 $4836       [fdivc]
+$4837       [fdivc_1]
+$483b       [fdivc_2]
+$483f       [fdivc_3]
+$4842       [fdivc_4]
 $4844       [rnd_seed_0]
 $4845       [rnd_seed_1]
 $4846       [rnd_seed_2]
@@ -8965,7 +8961,9 @@ $49e9       [fac_exp]
 $49ea       [fac_sgn]
 $49eb       [fbuffr]
 $49f8       [fmltt1]
+$49f8       Valeur temporaire pour la multiplication (`fp_bcde_mul`)
 $49f9       [fmltt2]
+$49f9       Valeur temporaire pour la multiplication (`fp_bcde_mul`)
 $49fb       [end_vars]
             Adresse juste après la dernière des variables système.
 $e1c1       [jumpE1C1]
