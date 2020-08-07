@@ -933,7 +933,7 @@ $034e       [min_bcde]
 $0350       B ici contient le résultat du shift à droite le moins signifiant. Le nombre est sous forme CDEB
 $035c       [pos_norm]
             Met le nombre en positif potentiellement avant de normer et compacter.
-$035c       En venant du traitement d'auto via bade_to_fp, A étant à zero, la rotation à gauche n'a pas généré de Carry. ???
+$035c       Si Carry est à 1, fait le complément à 2 de CDEB.
 
 $035f       [bcde_norm]
             Lors de la normalisation, BCDE n'a pas le format normal. B n'est pas l'exposant, mais le poids le plus faible de la mantisse.
@@ -1082,9 +1082,9 @@ $0430       0.3535534143447876
 $0434       [inst_log]
             %CODE
 $0434-$0426 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
-$0439       ---
+$0439       Appel le calcul du log.
 $043c-$043f BCDE = ln(2)
-$0442       ---
+$0442       Multiplie le résultat par ln(2)
 $0444       [log]
 $0444       L'argument de l'instruction log est ramenée dans BCDE.
 $0447-$0449 Initialise l'exposant de FAC avec $80 (c'est-à-dire exposant 0)
@@ -1292,56 +1292,62 @@ $057d       Si le résultat est positif, le résultat est zéro, on branche vers
 $0580       Sinon, c'est un dépassement de capacité, on branche vers l'erreur.
 
 $0583       [fp_x_10]
-            Multiplication de FP par 10
+            Multiplication de FAC par 10
             
             MS_BASIC=MLSP10
-$0583       Récupère FP dans BCDE
-$0586       ---
-$0587       ---
-$0588       Si l'exposant est à zéro, retour immédiat
+$0583       Récupère FAC dans BCDE
+$0586-$0588 Si BCDE est nul, retour immédiat (il suffit de vérifier l'exposant B)
 $0589       En ajoutant 2 à l'exposant, on multiplie le nombre par 4
 $058b       Sortie si Overflow avec le message d'erreur
-$058e       Si ok, on remet l'exposant en place dans BCDE
-$058f       Ce nombre x4 est ajouté au FP actuel, pour un résultat de x5
-$0592       ---
-$0595       Incrémente directement l'exposant dans FP
-$0596       Retour si on n'a pas fait passer l'exposant à zéro
-$0597       Sinon, c'est un Overflow
+$058e       Sinon, on remet l'exposant en place dans BCDE
+$058f       Ce nombre x4 est ajouté à FAC, pour un résultat de x5
+$0592-$0595 Incrémente directement l'exposant dans FAC, pour obtenir x10.
+$0596       Retour si on n'a pas fait passer l'exposant à zéro, cela s'est bien passé.
+$0597       Sinon, c'est un dépassement de capacité.
+
 $059a       [getsign_2]
-$059d       Compare faclo[2] avec $2f (afin de mettre 1 dans Carry si faclo[2] est inférieur à $2f)
+$059d       Saute le `cpl` qui suit
+$059e       [ret_cmp]
 $059e       %CODE
-            Appelé depuis une routine à cause de $060f
-$059f       Rotation à gauche via Carry
+            Prend le complément de A.
+$059f       Rotation à gauche via Carry, qui contient donc le bit de poids fort de A.
+$05a0       [flag_diff]
 $05a0       Soustraction de A avec A avec retenu.
 $05a1       Saute si la rotation avait débordée dans la retenue.
 $05a2       Sinon, augmente A de 1 (autrement, dit A = 1 puisque la soustraction avait donné 0)
-$05a3       ---
+            Au final, le bit de poids fort de A est transformé en -1 (si bit à 0) ou 1 (si bit à 1)
 $05a4       [inst_sgn]
-            %CODE
-$05a5       [a_to_fp]
-            Prépare le placement des valeurs $88,$80 dans le buffer de virgule flottante
-$05a7       ---
-$05aa       [bade_to_fp]
-            Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro de ligne
-$05ad       ---
-$05ae       ---
-$05af       ---
-$05b1       ---
-$05b2       Mets dans le buffer 'fac' les octets B et $80, B est assigné à 0. C est à 0 (depuis A) en venant du traitement d'auto.
-$05b4       ---
-$05b5       ---
+            %CODE,MS_BASIC(SGN)
+            Fonction BASIC `SGN()`.
+
+            Place dans FAC le nombre entier dépendant du signe initial de FAC (-1, 0 ou 1).
+
+$05a5       [a_to_fac]
+            Place le contenu de A en tant qu'entier sur 8 bit vers FAC.
+$05a5-$05a7 BCDE est préparé avec les valeurs $80,xx,$00,$00. A prendra la place de xx.
+$05aa       [bade_to_fac]
+            Place BADE sous format de nombre flottant dans FAC.
+$05aa       Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro de ligne ???
+$05ad       Place la partie manquante de BCDE.
+$05ae       Place l'exposant dans FAC.
+$05af       Initialise B comme VLSB, à 0, pour donner CDEB.
+$05b1       Pointe HL vers le bit de signe de FAC.
+$05b2       Bit de signe à 1 (ce qui signifie positif, ce bit étant inversé par rapport à la forme normalisée BCDE)
+$05b4       Place le bit de signe réel de A dans Carry
+$05b5       Puis normalise.
 
 $05b8       [inst_abs]
-            %CODE
-            Fonction BASIC : ABS()
-$05b8       ---
+            %CODE,MS_BASIC(ABS)
+            Fonction BASIC `ABS()`.
+
+            Place dans FAC la valeur absolue de FAC.
+$05b8       Prend le signe de FAC
 $05b9       Retour immédiat si le signe est positif
 $05ba       [inv_sign]
-            Change le signe de l'accumulateur FAC par son opposé
-$05bd       ---
-$05be       Le signe est donc stocké dans le troisième octet de faclo, sur le bit de poids fort.
-$05c0       ---
-$05c1       ---
+            Change le signe de FAC par son opposé
+$05ba-$05bd Prend le MSB de FAC, dont le bit de poids fort est le bit de signe.
+$05be       Inverse le bit de poids fort.
+$05c0       Replace MSB avec le nouveau bit de signe.
 
 $05c2       [fac_to_stck]
             Place le contenu de FAC sur la pile.
@@ -1358,150 +1364,138 @@ $05cc       Restaure l'adresse de retour.
 $05cd       Restaure HL
 
 $05cf       [hl_to_fac]
-            La valeur numérique pointée par HL sera d'abord extraite dans BCDE, puis par fallthrough sera transmis au FP
-$05cf       ---
+$05cf       La valeur numérique pointée par HL est extraite dans BCDE.
 
 $05d2       [bcde_to_fac]
-            Place DE (mantisse) dans faclo et B (exposant) C (le signe et la mantisse 15 bits) dans faclo+2. Préserve la valeur de HL
-$05d2       ---
-$05d3       ---
-$05d6       ---
-$05d7       ---
-$05d8       ---
-$05db       ---
-$05dc       ---
+            Place BCDE dans FAC.
+            
+            Préserve HL et BCDE.
+$05d2       Échange DE et HL pour préserver HL et récupérer la partie basse du nombre
+$05d3       Place la partie basse du nombre dans le début de FAC.
+$05d6-$05d7 Charge HL avec BC, la partie haute du nombre et son exposant.
+$05d8       Les place dans la seconde partie de FAC.
+$05db       Restaure HL et DE.
 
 $05dd       [fac_to_bcde]
-            Extrait le contenu du buffer de virgule flottante dans BC/DE
-$05dd       ---
+            Extrait le contenu de FAC vers BCDE
+$05dd       HL pointe vers le début de FAC.
 
 $05e0       [hl_to_bcde]
-            Charge BCDE avec le nombre pointé par HL
-            
-            MS_BASIC=LOADFP
-$05e0       ---
-$05e1       ---
-$05e2       ---
-$05e3       ---
-$05e4       ---
-$05e5       ---
-$05e6       ---
+            %MS_BASIC(LOADFP)
+            Charge BCDE avec le nombre pointé par HL.
+$05e0-$05e6 Place le contenu de FAC octet par octet dans BCDE
 $05e7       [inc_hl]
-$05e8       ---
+$05e8       Incrémente une dernière fois HL.
 
-$05e9       [cpy_faclsb_hl]
-            Copie le contenu des 4 premiers octets de faclo vers ce que pointe HL
-$05e9       ---
+$05e9       [fac_to_hl]
+            Copie le contenu FAC vers ce que pointe HL.
+$05e9       Fait pointer DE sur FAC
 
 $05ec       [cpy_detohl_4]
-            Copie le contenu des 4 premiers octets pointés par DE vers ce que pointe HL
-$05ec       ---
+            Copie le contenu des 4 premiers octets pointés par DE vers ce que pointe HL.
+$05ec       Initialise le compteur de boucle à 4.
 $05ee       [cpy_4_loop]
-$05ef       ---
-$05f0       ---
-$05f1       ---
-$05f2       ---
-$05f4       ---
+$05ee       Récupère l'octet pointé par DE
+$05ef       Le copie vers ce que pointe HL
+$05f0       Incrémente DE
+$05f1       Incrémente HL
+$05f2       Boucle selon le compteur B
 
 $05f5       [ext_sign]
             Extrait le signe de BCDE et FAC et place 1 à la place.
-            Condition: BCDE est plus petit que FAC (au moins depuis l'addition)
-            Sauve le signe de FAC. Retourne dans A si les signes étaient identiques (1) ou non (0)
-$05f5       ---
-$05f8       ---
-$05f9       ---
-$05fa       ---
-$05fb       A gauche, set CY, A droite avec Carry revient a mettre le bit de poids fort (le signe) à 1. Le CY contient le bit de signe initial.
-$05fc       Replace le MSB de la mantisse de FAC, sans le bit de signe, avec 1 à la place.
-$05fd       ---
-$05fe       ---
-$05ff       ---
-$0600       ---
-$0601       Mets dans (fac+1) le résultat : le bit 7 contient le bit de signe opposé (1 = positif). CY est à 0.
-$0602       On prend le MSB du nombre de BCDE
-$0603       ---
-$0604       ---
-$0605       Mise à 1 du MSB de BCDE
-$0606       Et le résultat re-part dans C
-$0607       Apres une rotation à droite
-$0608       XOR entre les deux bits de signe (BCDE et FAC). BCDE non opposé, FAC opposé. Donc bit 7 à 1 si les signes étaient identiques.
-$0609       ---
+            Sauve le signe de FAC dans l'octet de signe.
+
+            Condition: BCDE est plus petit que FAC.
+
+            Sortie :
+            - Bit 7 de A à 1 si les signes de BCDE sont identiques, ou 0 si non.
+            - HL pointe sur l'octet de signe
+$05f5       Fait pointer HL vers le MSB de FAC
+$05f8       Copie MSB vers A
+$05f9       Rotation à gauche, ce qui place le btit de signe de FAC dans Carry et dans le bit 0 de A.
+$05fa       Met le Carry à 1.
+$05fb       Puis rotation à droite. Le MSB à donc son bit de poids fort à 1 et Carry contient le bit de signe initial.
+$05fc       Replace le MSB de FAC, avec le 1 implicite de la mantisse explicité.
+$05fd       Inverse le Carry (positif devient 1, négatif devient 0)
+$05fe       Met le Carry dans le bit 7 de A, par rotation.
+$05ff-$0600 Place HL après l'exposant, sur l'octet contenant le signe.
+$0601       Place l'octet de signe.
+$0602-$0607 Effectue la même opération avec BCE.
+$0608       XOR entre les deux bits de signe (celui de BCDE et de FAC). BCDE non opposé, FAC opposé.
+            Le bit 7 de A est donc à 1 si les deux nombres étaient de même signe, 0 sinon.
 
 $060a       [cmp_num]
-            Compare des nombres
-            
-            MS_BASIC=CMPNUM
-$060a       ---
-$060b       ---
-$060c       ---
-$060f       ---
-$0612       ---
-$0613       ---
-$0614       ---
-$0615       ---
-$0616       ---
-$0619       ---
-$061a       ---
-$061b       ---
-$061c       ---
-$061f       ---
-$0620       ---
-$0621       ---
-$0622       [call0622]
-$0623       ---
-$0624       ---
-$0625       ---
-$0626       ---
-$0627       ---
-$0628       ---
-$0629       ---
-$062a       ---
-$062b       ---
-$062c       ---
-$062d       ---
-$062e       ---
-$062f       ---
-$0630       ---
-$0631       ---
-$0632       ---
-$0633       ---
-$0634       ---
+            %MS_BASIC(CMPNUM)
+            Compare les nombres BCDE et FAC (-1 si FAC < BCDE, 0 si FAC = BCDE, 1 si FAC > BCDE)
+$060a-$060c Si BCDE est nul, revient à calculer le signe de FAC.
+$060f-$0612 Place sur la pile l'adresse de retour qui sera donc appelée au prochain RET.
+$0613       Prend le signe de FAC.
+$0614       Prend le MSB de BCDE (avec son signe)
+$0615       Si FAC est nul, termine ici (et donc appelle ret_cmp qui transforme le bit de signe de BCDE en résultat -1/1)
+$0616       Fait pointer HL sur le MSB de FAC.
+$0619       Combine les deux signes (seul le bit 7 est important ici). Si les deux signes sont identiques, alors le bit 7 est à 0, sinon, il est à 1 et le drapeau M est à 1.
+$061a       Remet le MSB de BCDE dans A
+$061b       Termine si les signes étaient différents (le résultat est donc fonction du signe de BCDE)
+$061c       Les nombres sont de même signe, on appel la comparaison générique.
+$061f       Amène le Carry dans le bit 7.
+$0620       Le combine avec le bit de signe de BCDE
+$0621       Branche sur le calcul du résultat.
+$0622       [cmp_fp]
+            Compare les nombres flottants BCDE et FAC de même signe.
+
+            Préserve BCDE et FAC.
+$0622       HL pointait sur MSB à l'appel, on le décal vers l'octet de signe de FAC
+$0623       Charge l'exposant de BCDE dans A.
+$0624       Compare les exposants.
+$0625       Termine le calcul pour un résultat -1/1 si les exposants sont différents.
+$0626       HL pointe à nouveau sur MSB
+$0627-$0628 Compare les deux MSB.
+$0629       Termine le calcul pour un résultat -1/1 si les exposants sont différents.
+$062a       HL pointe sur l'octet du milieu de FAC
+$062b-$062c Compare les deux octets du milieu.
+$062d       Termine le calcul pour un résultat -1/1 si les exposants sont différents.
+$062e       HL pointe sur le LSB de FAC.
+$062f-$0630 Compare les deux LSB.
+$0631       Termine le calcul pour un résultat -1/1 si les exposants sont différents.
+$0632       Arrivé ici, les deux nombres sont identiques, on retire de la pile l'adresse de retour vers `cmp_num`
+$0633       Puis on retire l'adresse de retour qui branche vers `ret_cmp`.
+$0634       Termine la comparaison avec A = 0.
 
 $0635       [fp_to_int]
-            Transforme le nombre flottant en décalant la mantisse jusqu'à ne garder que la partie entière.
-$0635       ---
-$0636       ---
-$0637       ---
-$0638       ---
-$0639       ---
-$063a       Retour lors du cas 0
-$063b       Sauvegarde de HL (qui contient fac)
-$063c       En sortie, BCDE est chargé avec le nombre flottant sur 32 bits
-$063f       ---
-$0642       ---
-$0643       ---
-$0644       Quelque chose dans le cas négatif
-$0647       ---
-$0649       Soustraction de l'exposant actuel de l'exposant maximum
-$064a       Après l'appel, la CDE contient sur 24 bits le nombre entier.
-$064d       Récupération dans A du calcul sauvé en $0643
-$064e       ---
-$064f       Traitement spéciaux en cas de ??? (négatif ?)
-$0652       ---
-$0654       ---
-$0657       ---
-$0658       ---
-$0659       [call0659]
-$065a       ---
-$065b       ---
-$065c       ---
-$065d       ---
-$065e       ---
-$065f       ---
+            %MS_BASIC(FPINT)
+            Transforme un nombre flottant en décalant la mantisse jusqu'à ne garder que la partie entière.
+
+            Entrées :
+            - A contient l'exposant du nombre.
+            - HL pointe sur FAC
+$0635-$0638 Initialise B, C, D et E avec l'exposant.
+$0639-$063a Si l'exposant est nul, retourne immédiatemet (avec BCDE à zéro par la méme occasion)
+$063b       Sauvegarde de HL qui pointe sur FAC
+$063c       BCDE prend la valeur de FAC.
+$063f       Sortie des signes des nombres et mise en place des 1 de mantisse explicite.
+$0642       Effectue à nouveau le XOR présent en fin de `ext_sign` pour retrouver le signe de BCDE (et FAC, qui sont identiques)
+$0643       Met l'octet de signe dans H
+$0644       Décrémente BCDE si le nombre est négatif.
+$0647       Exposant maximal significatif pour un entier ($80 + 24)
+$0649       Exposant maximum - exposant du nombre donne le nombre de bits de décalage.
+$064a       Effectue le décalage de A bits. Après l'appel, on a donc le nombre sous forme entière 24 bits dans CDE.
+$064d       Récupération du signe (en tant que bit de signe normal, non inversé)
+$064e       Place le signe dans Carry.
+$064f       Si le signe était 1 (donc négatif), appel l'arrondi vers le haut.
+$0652       L'exposant de BCDE est mis à 0.
+$0654       Si le nombre est négatif, prend son complément à 2.
+$0657       Restaure HL
+
+$0659       [dec_bcde]
+            Soustrait 1 de BCDE
+
+            Modifie :
+            - A
+$065d       Continue si la soustraction de 1 de DE nécessite une soustraction de DE.
 
 $0660       [inst_int]
-            %CODE
-            Fonction BASIC : INT()
+            %CODE,MS_BASIC(INT)
+            Fonction BASIC `INT()`.
 $0660       ---
 $0663       ---
 $0664       Comparaison avec $98, c'est à dire exposant 24, car c'est la capacité maximale de la mantisse. Au dela, il n'y a plus de précision pour les décimale.
