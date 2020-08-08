@@ -1496,228 +1496,255 @@ $065d       Continue si la soustraction de 1 de DE nécessite une soustraction d
 $0660       [inst_int]
             %CODE,MS_BASIC(INT)
             Fonction BASIC `INT()`.
-$0660       ---
-$0663       ---
-$0664       Comparaison avec $98, c'est à dire exposant 24, car c'est la capacité maximale de la mantisse. Au dela, il n'y a plus de précision pour les décimale.
-$0666       Pourquoi prendre FAC LSB juste avant de retourner le résultat ??? (le résultat est dans le buffer flottant de toute façon)
-$0669       La partie entière est donc trouvée immédiatement.
-$066a       ---
-$066b       En sortant de cet appel, E contient la partie basse entiere du nombre (si inférieur à 256)
+$0660       Faite pointer HL vers l'exposant de FAC.
+$0663       Charge l'exposant dans A.
+$0664       Comparaison avec l'exposant maximal intéressant pour une partie décimale ($80 + 24). Au delà, on est assuré que le nombre est un entier.
+$0666       Il semble que l'appel par la fonction 'exp' ait besoin du LSB de FAC ???
+$0669       Si le nombre est déjà un entier, on retourne immédiatement.
+$066a       Prend à nouveau l'exposant.
+$066b       Transforme FAC en nombre entier dans CDE.
 $066e       Puisque le nombre entier est complètement à droite de la mantisse, l'exposant est à $98. Le nombre se fera normaliser par la suite.
-$0670       ---
-$0671       Mise sur la pile de l'octet le plus bas du nombre entier résultat (??? pourquoi ?)
-$0672       ---
-$0673       ---
-$0674       ---
-$0677       ---
-$0678       ---
+$0670-$0671 Mise sur la pile de l'octet le plus bas du nombre entier résultat (pour 'exp' probablement encore ???)
+$0672       Octet de poids fort de l'entier dans A.
+$0673       Récupération du signe dans Carry
+$0674       Normalisation du nombre.
+$0677       Récupération de l'entier sur 8 bits dans A.
 
 $0679       [dim_compute]
-            Calcul la taille mémoire nécessaire pour stocker une dimension de tableau
+            %MS_BASIC(MLDEBC)
+            Calcule l'index pour accéder à une entrée d'un tableau.
+
+            La fonction sert aussi pour calculer l'espace nécessaire pour le tableau complet.
+            Si l'index est trop grand, provoque une erreur BASIC d'Index hors des limites.
+
             Entrées :
-            BC == taille d'une dimension (ou index) du tableau
-            DE == taille d'une entrée pour cette dimension (4 pour la première dimension, puis la taile d'une dimension pour les suivantes)
-            Si une taille devient trop grande, lance une erreur Subscript Out of Range
+            - BC contient l'index dans le tableau (ou dimension totale)
+            - DE contient la taille d'une entrée pour cette dimension (4 octets pour la première dimension)
+
             Retour :
-            HL contient la taille nécessaire (ou le déplacement)
-            DE == 0
-            BC n'est pas touché
-$0679       ---
-$067c       ---
-$067d       ---
-$067e       Si BC == 0, retour immédiat
-$067f       Préparation d'une boucle de 16 itérations
-$0681       [loop0681]
-            HL <- HL * 2
-$0682       ---
-$0685       ---
-$0686       ---
-$0687       DE <- DE * 2
-$0688       ---
-$068a       ---
-$068b       ---
-$068e       [skip068E]
-$068f       Boucle sur A (16 fois)
-$0691       ---
+            - HL contient le pointeur vers l'emplacement mémoire (ou la taille). C'est BC * DE.
+            - DE contient 0
+            - BC est conservé
+$0679       HL est initialisé à 0. Accumulateur pour la multiplication.
+$067c-$067e Si BC == 0, retour immédiat.
+$067f       Multiplication sur 16 bits.
+$0681       [dim_loop]
+$0681       Double HL (décalage vers la gauche)
+$0682       Si dépasse la capacité, branche sur une erreur.
+$0685-$0687 Double DE
+$0688       Pas de Carry signifie que le bit de poids fort était 0, donc pas d'addition.
+$068a       Sinon, ajout de BC à HL.
+$068b       En cas de dépassement de capacité, branche sur une erreur.
+$068e       [dim_no_add]
+$068f       Boucle sur A (16 fois, pour les 16 bits)
 
 $0692       [str_to_num]
-            Function: transforme le texte pointé par HL en nombre dans l'accumulateur FP
-            
-            MS_BASIC=ASCTFP
-$0692       Cas hexa (commence par `&`)
-$0694       On branche immédiatement dans ce cas, c'est une autre routine qui se charge de ça. (à noter que parse_value fait déjà ce test, qui n'est pas inutile car cherche d'autres préfixes)
-$0697       Cas négatif qui commence par '-'
+            %MS_BASIC(ASCTFP)
+            Transforme le texte pointé par HL en nombre dans l'accumulateur flottant FAC.
+
+            Entrée :
+            - HL pointe sur le buffer contenant la chaine à transformer.
+
+            Sortie :
+            - Nombre dans FAC
+
+$0692       %CHAR
+            Cas hexa (commence par `&`)
+$0694       Branchement vers le décodage hexadécimal.
+$0697       %CHAR
+            Nombre négatif.
 $0699       Sauvegarde des flags de la comparaison avec '-'
-$069a       ---
-$069c       Cas positif qui commence par '+'
-$069e       ---
-$06a0       Positionne HL un caractère avant dans les autres cas (car chget avance d'un avant toute chose)
+$069a       Branche si '-'
+$069c       %CHAR
+            Nombre positif spécifié
+$069e       Branche si '+'
+$06a0       Positionne HL un caractère avant dans les autres cas, car chget avance d'un avant la lecture.
 $06a1       [skip_sign]
-            Initialise l'exposant de FP à 0. Effet de bord, A = 0
+$06a1       Initialise l'exposant de FAC à 0. Effet de bord, A = 0
 $06a4       Nombre de chiffres après le point (la virgule) (B = 0)
 $06a5       Signe de l'exposant (D = 0)
 $06a6       Puissance de 10 (E = 0)
-$06a7       ---
-$06a8       Met C à FF, flag pour situer le parsing avant ou après le point
+$06a7       Met A à FF
+$06a8       Met C à FF, drapeau pour situer le parsing avant ou après le point.
 $06a9       [prse_flt_lp]
-            Lecture du caractère suivant
+$06a9       Lecture du caractère suivant
 $06aa       Cas d'un chiffre
-$06ac       ---
-$06ae       Cas du caractère `.`
-$06b0       ---
-$06b2       Cas du caractère `e`
-$06b4       ---
-$06b6       Cas du caractère pas `E`
+$06ac-$06ae %CHAR
+            Cas du caractère `.`
+$06b0-$06b2 %CHAR
+            Cas du caractère `e`
+$06b4-$06b6 %CHAR
+            Cas du caractère pas `E`
 $06b8       [case_exp]
-$06b9       Au retour, le signe de l'exposant est dans D
+$06b8       Lit le caractère suivant.
+$06b9       Récupére le signe de l'exposant.
 $06bc       [exp_loop]
+$06bc       Lecture d'un caractère de l'exposant.
 $06bd       C'est un chiffre, on l'ajoute à l'exposant
 $06bf       Ce n'est pas un chiffre, on vérifie le signe de l'exposant
 $06c0       Saut s'il était positif, on a fini
-$06c2       ---
-$06c3       ---
-$06c4       S'il était négatif, on inverse E (l'exposant)
-$06c5       Le flag de passage de point est augmenté pour s'assurer qu'on ne bouclera plus dans le parsing
+$06c2-$06c4 S'il était négatif, on inverse la valeur dans E (l'exposant)
+$06c5       Le drapeau de passage de point est augmenté pour s'assurer qu'on ne bouclera plus dans le parsing. La chaine est terminée.
 $06c6       [case_dot]
-            Le flag du passage du point est incrémenté (pour le premier point, passe de FF à 00)
-$06c7       Si le flag est passé à 0, alors on boucle pour parser la suite, le flag est maintenant sur 0.
+$06c6       Le drapeau du passage du point est incrémenté (pour le premier point, passe de FF à 00)
+$06c7       Le drapeau vient de passer à 0, on entame donc une nouvelle partie du nombre.
 $06c9       [exp_end]
-            Que ce soit avec un deuxième point ou la fin de l'exposant, le parsing du nombre est terminé. Il faut le finaliser. On sauve le pointeur d'execution.
-$06ca       ---
-$06cb       A contient l'exposant moins le nombre de chiffre après le point. L'exposant est donc tel que tous les chiffres significatifs sont à gauche du point
+$06c9       Que ce soit avec un deuxième point ou la fin de l'exposant, le parsing du nombre est terminé. Il faut le finaliser. On sauve le pointeur du buffer de texte.
+$06ca-$06cb Soustrait le nombre de chiffre après la virgule de l'exposant. A contient donc l'exposant corrigé pour qu'il n'y ait pas de nombre après la virgule.
 $06cc       [adj_loop]
-            Saute si l'exposant ajusté est positif
-$06cf       Si A toujours positif, vérifie la fin de boucle
-$06d2       ---
-$06d3       L'exposant est négatif, on divise FP par 10 et on augmente A
-$06d6       ---
-$06d7       ---
-$06d8       [adj_div_10]
-$06da       Restaure le pointeur d'execution.
-$06db       Restaure le signe du nombre
-$06dc       S'il était négatif, appel l'inversion de signe
-$06df       Récupère le pointeur d'execution dans HL
-$06e0       ---
+$06cc       Si ce nombre est positif, on multiplie le nombre par autant de fois 10.
+$06cf       Si ce nombre est positif, on a terminé (le drapeau ici est forcément positif si l'appel précédent a été fait)
+$06d2       Met sur la pile le nombre de divisions par 10 à faire.
+$06d3       Division par 10 du nombre
+$06d6       Récupération de A
+$06d7       Que l'on augmente
+$06d8       [adjust_loop]
+$06d8       Boucle autant de fois que nécessaire.
+$06da       Restaure le pointeur vers le buffer de texte.
+$06db       Restaure le test de la présence de '-' en début de nombre.
+$06dc       S'il y avait un signe négatif, alors on inverse le signe de FAC.
+$06df       Récupère le pointeur de buffer de texte dans HL.
 
 $06e1       [adj_x_10]
-            Ajuste en multipliant par 10 et en décrémentant A
+            Multiplie FAC par 10 et décrémente A (si A est supérieur à 1)
 $06e1       Si A était 0, retour immédiat
-$06e2       [fp_x_10_dec_a]
-$06e3       ---
-$06e6       ---
-$06e7       ---
-$06e8       ---
+$06e2       [fac_x_10]
+$06e2-$06e7 Multiplie FAC par 10 et décrémente A.
 
 $06e9       [case_digit]
-            Parses a digit loaded in A
-$06e9       Sauve l'exposant
-$06ea       Sauve le chiffre dans D
-$06eb       Récupère le nombre de chiffres après le point
-$06ec       On est arrivé dans cette routine avec le Carry Flag Set. Si C == FF, alors on ajoute zéro, si C == 0, alors on ajoute 1
-$06ed       Compteur après le point ajusté, remis dans B
-$06ee       Sauvegarde des informations sur la position du oint
-$06ef       Sauvegarde du pointeur d'execution.
-$06f0       Sauvegarde du chiffre (qui est dans D)
-$06f1       ---
-$06f4       Récupération de la valeur du caractère
-$06f5       Transformation en valeur numérique
-$06f7       Ajoute A à FP
-$06fa       ---
-$06fb       ---
-$06fc       Restaure le contexte du parsing
-$06fd       Va chercher le caractère suivant.
-$06ff       [add_a_to_fp]
-            Met le FP sur la pile
-$0702       Met le digit dans A dans FP
-$0705       [eval_add]
-            Appelé a travers la table des priorités ; MS_BASIC=PADD
-$0706       Récupère le nombre depuis la pile
-$0707       ---
+            Traitement d'un chiffre en ASCII dans A pour l'ajouter à FAC.
+
+            B le nombre de chiffres après la virgule
+            C est FF avant la virgule, 0 après (ou dans l'exposant)
+            D est l'exposant
+            E la puissance de 10
+
+            HL pointe sur le buffer de texte
+
+            Carry est à 1 car `chget` a récupéré un chiffre.
+
+$06e9       Sauve l'exposant et la puissance de 10.
+$06ea       D prend le caractère ASCII à traiter.
+$06eb-$06ed Après la virgule, le compteur de chiffres décimaux est incrémenté (Carry = 1, C = 0)
+$06ee-$06f0 Sauvegarde des registres
+$06f1       Multiplie FAC par 10.
+$06f4       Récupération de la valeur du caractère (depuis DE)
+$06f5       %CHAR
+            Transformation du chiffre en ASCII vers sa valeur numérique.
+$06f7       Ajoute A à FAC
+$06fa-$06fc Restaure les registres
+$06fd       Continue la lecture.
+
+$06ff       [add_a]
+            Ajoute le nombre entier A à FAC
+$06ff       Pousse FAC sur la pile
+$0702       Monte A dans FAC
+$0705       [fp_stk_add]
+            MS_BASIC(PADD)
+            Ajoute le nombre flottant sur la pile à FAC.
+
+            Appelé a travers la table des priorités
+$0705-$0706 Récupère le nombre depuis la pile dans BCDE
+$0707       Ajoute BCDE à FAC.
 
 $070a       [add_to_exp]
+            %MS_BASIC(EDIGIT)
+            Ajoute le caractère ASCII dans A à l'exposant du nombre analysé.
+
+            E la puissance de 10 du nombre analysé.
+
+            HL pointe sur le buffer de texte
+
             Prend l'exposant actuel E et le multiplie par 10, ajoute le caractère de (HL) et en soustrait '0'
             Puis va chercher un autre chiffre pour l'exposant
-            
-            MS_BASIC=EDIGIT
-$070a       ---
-$070b       ---
-$070c       ---
-$070d       ---
-$070e       ---
-$070f       ---
-$0710       ---
-$0712       ---
-$0713       ---
+$070a       Exposant dans A.
+$070b-$070e Multiplie par 10
+$070f       Ajoute le caractère pointé
+$0710       %CHAR
+            Et le transforme en sa valeur numerique.
+$0712       Sauve le résultat dans E
+$0713       Continue l'analyse de l'exposant.
 
 $0715       [out_in]
-            Affiche à l'écran le texte " en "/" in " suivant la langue, suivi du numéro de ligne présent dans HL
-            
-            MS_BASIC=LINEIN
-$0715       ---
-$0716       ---
-$0719       ---
-$071c       ---
-$071d       ---
-$071f       ---
+            %MS_BASIC(LINEIN)
+            Affiche le texte " en " (ou " in ", suivant la langue), suivi du numéro de ligne présent dans HL
+
+            L'affichage se fait via `out_str` et donc dépend du périphérique selectionné.
+$0715       Sauve HL
+$0716       Pointe vers les messages en français.
+$0719       Récupère la langue configurée.
+$071c-$071d Branche si c'est zéro (français)
+$071f       Sinon pointe vers les messages en anglais.
 $0722       [out_in_fr]
-$0725       ---
+$0722       Affiche le message.
+$0725       Restaure HL
 
 $0726       [out_number]
-            Affiche à l'écran un nombre contenu dans HL
-$0726       DE contient une adresse de retour
-$0729       Sauvegarde de la valeur dans la pile pour un prochain RET
-$072a       Et échange de HL et DE (HL contient donc l'adresse du signe '#'. DE contient le numéro de ligne d'AUTO
-$072b       ---
-$072c       ---
-$072e       À l'appel, A = 0 et B = $98
-$0731       [out_fp]
-            Affiche à l'écran le contenu de l'accumulateur flottant
-$0734       ---
-$0735       ---
-$0736       Place $20 dans fbuffr (un espace)
-$0738       ---
-$073b       Place $2d dans fbuffr (le signe '-') si le flag M est levé (résultat M dans le test des flottants)
+            Affiche un nombre contenu dans HL sur le périphérique selectionné.
+$0726-$0729 Met sur la pile une adresse de retour vers `sharp_char`.
+$072a       Envoie HL (l'argument) vers DE.
+$072b       A = 0
+$072c       B = $98 ($80 + 24), l'exposant pour nombre entier.
+$072e       Monte le nombre dans FAC, préparé avec le nombre entier correspondant à ce qui était dans HL.
+
+$0731       [fout]
+            Affiche le contenu de FAC sur le périphérique selectionné.
+$0731       HL pointe vers le buffer de travail (de 13 caractères de long)
+$0734       Sauve le pointeur
+$0735       Prend le signe de FAC
+$0736       %CHAR
+            Place un espace dans le buffer de travail.
+$0738       Branche si le nombre est positif.
+$073b       %CHAR
+            Remplace l'espace par le signe moins.
 $073d       [pos_sign]
-$073e       place $30 dans fbuffr[1] (le chiffre '0')
-$0740       Saut si le résultat était 0
-$0743       ---
-$0744       Saut si le résultat était < 0
-$0747       ---
-$0748       ---
-$0749       ---
-$074c       [loop074C]
-            Aussi appelé (jp (hl))depuis $07fe
-$074f       ---
-$0752       ---
-$0755       ---
-$0756       ---
-$0759       ---
-$075a       ---
-$075d       ---
-$075e       ---
-$0760       [jump0760]
-$0763       ---
-$0764       ---
-$0765       ---
-$0766       ---
-$0769       [jump0769]
-$076c       ---
-$076d       ---
-$0770       ---
-$0773       ---
-$0776       ---
-$0777       ---
-$0778       ---
-$0779       ---
-$077c       ---
-$077e       ---
-$0780       ---
-$0781       ---
-$0782       ---
-$0784       [skip0784]
-$0785       ---
-$0786       ---
-$0787       ---
+$073d       Pointe sur le caractère suivant du buffer.
+$073e       %CHAR
+            Place un '0' dans le buffer.
+$0740       Branche si le nombre à afficher est nul.
+$0743       Sauve le pointeur de travail
+$0744       Branche si FAC est négatif.
+$0747       A = 0, le nombre de divisions par 0 qui vont être faites pour ramener la partie entière sur une zone affichable (6 chiffres)
+$0748       Sauve AF
+$0749       Vérifie si le nombre est inférieur à 999999.
+            La suite de la routine cherche quel est le facteur multiplicatif de 10 pour que le nombre soit un entier de 6 chiffres.
+            Ceci afin de trouver quelle est la partie significative affichable.
+$074c       [six_digit]
+$074c-$074f %CODE
+            BCDE = 99999.9
+$0752       Compare BCDE et FAC
+$0755-$0756 Le nombre est plus grand que 99999.9, on a la partie affichable.
+$0759       Récupération du compteur
+$075a       Multiplication du nombre par 10 (la routine décrémente aussi A)
+$075d       Sauvegarde du compteur
+$075e       Boucle pour obtenir les 6 chiffres
+$0760       [fout_big]
+            Appelé lorsque FAC est trop grand pour être affiché en entier.
+$0760       Divise FAC par 10
+$0763-$0765 Augmente le compteur qui est sur la pile.
+$0766       Vérifie à nouveau si le nombre est sous la bourne affichable.
+            Ce `call` est une recursion terminale. Lorsque le nombre aura été assez divisé, le dernier `jp (hl)` reviendra à l'instruction suivante.
+$0769       [is_in_range]
+$0769       Arrivé ici, la partie entière de FAC est sur 6 chiffres.
+            Le compteur sur la pile contient l'inverse la puissance de 10 qu'il a fallu appliquer.
+            Ajoute 0.5 à FAC pour arrondire.
+$076c       Que contient A ???
+$076d       Ramène FAC dans un entier dans BCDE
+$0770       Remonte BCDE dans FAC
+$0773       Initialise des bornes
+$0776       Ramène le compteur du nombre de division par 10 ayant été faites
+$0777       Y ajoute la borne C (6)
+$0778       +1
+$0779       Branche vers l'ecriture en 'E' si A + 6 + 1 < 0, donc si on a fait 8 multiplications par 10, ou plus (nombre inférieur à 0.0000000999999)
+$077c       Compare avec 8
+$077e       Branche si A + 6 + 1 >= 8, donc si on a fait 1 division ou plus (nombre strictement supérieur à 999999)
+$0780       A est à présent égal à l'inverse des puissances de 10 faites + 8.
+$0781       Place ce nombre dans B (à la place du $03)
+$0782       Place $02 dans A.
+$0784       [form_ready]
+$0784-$0785 Décrémente A deux fois.
+$0786       Restaure le pointeur vers le buffer de travail.
+$0787       Sauve A
 $0788       ---
 $078b       ---
 $078c       ---
@@ -1789,13 +1816,15 @@ $07ec       ---
 $07ed       [skip07ED]
 $07ee       ---
 $07ef       ---
-$07f0       [call07F0]
-$07f3       ---
-$07f6       ---
-$07f9       ---
-$07fa       ---
-$07fb       ---
-$07fe       ---
+$07f0       [in_range]
+            Vérifie que FAC est inférieur ou égal à 999999.
+$07f3-$07f6 BCDE = 999999.
+$07f6       Compare BCDE et FAC.
+$07f9       Prépare le ŕesultat.
+$07fa       Récupère l'adresse de retour
+$07fb       Branche si le nombre est trop grand
+$07fe       `ret` simulé.
+
 $07ff       [fp_half]
             %DATA
             Contient le nombre `0.5` flottant.
@@ -1805,20 +1834,24 @@ $0802       ---
 $0803       ---
 $0804       ---
 $0805       ---
-$0806       ---
-$0807       ---
-$0808       ---
-$080b       ---
-$080c       ---
-$080d       ---
-$080e       ---
-$080f       ---
-$0810       ---
-$0811       ---
-$0812       ---
-$0813       ---
-$0814       ---
-$0815       ---
+$0806       [powers_5]
+            %DATA
+$0806       100000
+$0809       [powers_4]
+            %DATA
+%0809       10000
+$080c       [powers_3]
+            %DATA
+$080c       1000
+$080f       [powers_2]
+            %DATA
+$080f       100
+$0812       [powers_1]
+            %DATA
+$0812       10
+$0815       [powers_0]
+            %DATA
+$0815       1
 $0818       [call0818]
 $081b       ---
 $081c       ---
