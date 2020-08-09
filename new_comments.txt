@@ -1009,7 +1009,10 @@ $03bb       Retour si tout va bien. Mais si l'exposant a bouclé sur 0
 $03bc       Alors c'est que le nombre est trop grand, on lance l'erreur.
 
 $03bf       [add_bcde]
-            Ajoute les mantisses de FAC et CDE. Le résultat dans FAC, et Carry à 1 si dépassement de capacité.
+            Ajoute les mantisses de FAC (plus exactemet, de ce qui est pointé par HL) et CDE.
+            
+            Le résultat est dans CDE, et Carry à 1 si dépassement de capacité.
+            FAC n'est pas modifié.
 
 $03bf-$03ca HL pointe sur la mantisse de FAC. Y ajoute la mantisse CDE.
 
@@ -1688,7 +1691,7 @@ $072c       B = $98 ($80 + 24), l'exposant pour nombre entier.
 $072e       Monte le nombre dans FAC, préparé avec le nombre entier correspondant à ce qui était dans HL.
 
 $0731       [fout]
-            Affiche le contenu de FAC sur le périphérique selectionné.
+            Construit la représentation ASCII contenu de FAC dans le buffer `fbuffr`.
 $0731       HL pointe vers le buffer de travail (de 13 caractères de long)
 $0734       Sauve le pointeur
 $0735       Prend le signe de FAC
@@ -1732,10 +1735,10 @@ $076c       Que contient A ???
 $076d       Ramène FAC dans un entier dans BCDE
 $0770       Remonte BCDE dans FAC
 $0773       Initialise des bornes
-$0776       Ramène le compteur du nombre de division par 10 ayant été faites
+$0776       Ramène le compteur du nombre de multiplcations/divisions par 10 ayant été faites
 $0777       Y ajoute la borne C (6)
 $0778       +1
-$0779       Branche vers l'ecriture en 'E' si A + 6 + 1 < 0, donc si on a fait 8 multiplications par 10, ou plus (nombre inférieur à 0.0000000999999)
+$0779       Branche vers l'ecriture en 'E' si A + 6 + 1 < 0, donc si on a fait 8 multiplications par 10, ou plus (nombre strictement inférieur à 0.01)
 $077c       Compare avec 8
 $077e       Branche si A + 6 + 1 >= 8, donc si on a fait 1 division ou plus (nombre strictement supérieur à 999999)
 $0780       A est à présent égal à l'inverse des puissances de 10 faites + 8.
@@ -1744,78 +1747,84 @@ $0782       Place $02 dans A.
 $0784       [form_ready]
 $0784-$0785 Décrémente A deux fois.
 $0786       Restaure le pointeur vers le buffer de travail.
-$0787       Sauve A
-$0788       ---
-$078b       ---
-$078c       ---
-$078e       ---
-$0790       ---
-$0791       ---
-$0793       ---
-$0794       [loop0794]
-$0795       ---
-$0797       ---
-$079a       ---
-$079b       ---
-$079c       ---
-$079d       ---
-$07a0       ---
-$07a1       ---
-$07a3       [loop07A3]
-$07a4       ---
-$07a5       ---
-$07a6       ---
-$07a7       ---
-$07a8       ---
-$07a9       ---
-$07aa       ---
-$07ab       ---
-$07ac       ---
-$07ad       ---
-$07ae       ---
-$07af       ---
-$07b0       ---
-$07b1       ---
-$07b3       ---
-$07b6       ---
-$07b7       ---
-$07ba       ---
-$07bb       ---
-$07bc       ---
-$07bd       ---
-$07be       ---
-$07bf       ---
-$07c0       ---
-$07c2       ---
-$07c3       ---
-$07c5       [loop07C5]
-$07c6       ---
-$07c7       ---
-$07c9       ---
-$07cb       ---
-$07cd       ---
-$07d0       [skip07D0]
-$07d1       ---
-$07d3       ---
-$07d5       ---
-$07d6       ---
-$07d8       ---
-$07db       ---
-$07dd       ---
-$07de       ---
-$07df       [jump07DF]
-$07e1       [loop07E1]
-$07e2       ---
-$07e4       ---
-$07e6       ---
-$07e8       ---
-$07e9       ---
+$0787       Sauve AF. S'il n'y a pas besoin de nottation 'E', A est à 0 et Z est à 1.
+            Sinon, A contient la valeur de l'exposant.
+$0788       Pointe sur le tableau des puissances de 10
+$078b       Décrémente B, le nombre de chiffre avant la virgule.
+$078c       Branche s'il reste des chiffres à afficher avant la virgule + 1.
+$078e       %CHAR
+            Sinon, place un point dans le buffer de travail.
+$0790       Avance dans le buffer de travail.
+$0791       %CHAR
+            Prépare un zéro
+$0793       Avance dans le buffer de travail.
+$0794       [out_digit]
+$0794       Décrémente le nombre de chiffres avant la virgule.
+$0795       %CHAR
+            Place un point dans le buffer de travail.
+$0797       S'il n'y a plus de chiffre à afficher sur la partie entière, avance dans le buffer.
+$079a-$079c Sauvegarde les registres (B = chiffres avant le point, HL = buffer de travail, DE = table des puissances de 10)
+$079d       Ramène FAC vers BCDE
+$07a0       Restaure le pointeur vers la table des puissances de 10.
+$07a1       %CHAR
+            '/' est ('0' - 1)
+$07a3       [try_digit]
+$07a3       Incrémente B
+$07a4       LSB de BCDE
+$07a5       Y soustrait le LSB dans la table des puissances
+$07a6       Sauve le résutat
+$07a7-$07aa Fait de même avec l'octet central (en tenant compte de la retenue)
+$07ab-$07ae Puis avec le MSB (en tenant compte de la retenue)
+$07af-$07b0 Revient au début de l'entrée courante dans la table des puissances de 10.
+$07b1       La soustraction a réussi, on essai une nouvelle fois avec la même puissance de 10.
+$07b3       La dernière soustraction a fait passer le nombre dans CDE négatif. On l'annule.
+$07b6       L'addition précédente a amené HL sur le dernier octet de la puissance de 10, un octet plus loin pointe vers la puissance de 10 suivante.
+$07b7       Le reste du nombre est remonté vers FAC.
+$07ba       Le pointeur vers la table de puissances repasse dans DE
+$07bb       Récupération du buffer de travail.
+$07bc       Placement du chiffre en ASCII dans le buffer de travail.
+$07bd       Pointe vers l'emplacement suivante du buffer.
+$07be       Restaure le compte de chiffres avant la virgule (B) et total (C)
+$07bf       Décrémente le compteur des puissances
+$07c0       Boucle s'il en reste.
+$07c2       Un chiffre avant la virgule de moins à afficher.
+$07c3       Branche La partie avant la virgule est terminée, les 6 chiffres étaient de la partie entière.
+$07c5       [strip_0]
+$07c5-$07c9 Revient en arrière pour ignorer les '0' à droite de la partie décimale.
+$07c7       %CHAR
+$07cb       %CHAR
+            Vérifie s'il y a un point.
+$07cd       Si ce n'est pas le cas, remet la fin du buffer de travail un octet plus loin (conserve le chiffre)
+$07d0       [fout_exp]
+$07d0       Récupère AF pour savoir s'il y a besoin de la notation 'E'
+$07d1       Branche si pas besoin.
+$07d3       %CHAR
+            Inscrit 'E' dans le buffer
+$07d5       Avance dans le buffer.
+$07d6       %CHAR
+            Inscrit '+' dans le bufer
+$07d8       Branche plus loin si l'exposant est positif.
+$07db       %CHAR
+            Remplace le '+' par un '-'
+$07dd-$07de Complémente à 2 le registre A (prend l'opposé de la valeur de l'exposant)
+$07df       [exp_pos]
+            %CHAR
+$07df       Initialise B avec '0' - 1, sur le même principe que précédemment
+$07e1       [fout_e_loop]
+$07e1       Passe au caractère ASCII suivant.
+$07e2       Soustrait 10 de l'exposant
+$07e4       Boucle tant que le résultat est positif
+$07e6       Annule la dernière soustraction augmenté de $30 ('0' en ASCII), pour préparer l'affichage des unités.
+$07e8       Avance dans le bufer de travail.
+$07e9       Inscrit les dizaines.
 $07ea       [out_zero]
-$07eb       ---
-$07ec       ---
-$07ed       [skip07ED]
-$07ee       ---
-$07ef       ---
+$07ea       Avance dans le buffer de travail.
+$07eb       Inscrit les unités
+$07ec       Avance dans le buffer de travail.
+$07ed       [fout_no_exp]
+$07ed       C est nul à ce niveau là, ce qui permet de terminer la chaîne.
+$07ee       Restaure HL à l'adresse initiale, c'est-à-dire le début du buffer de travail.
+
 $07f0       [in_range]
             Vérifie que FAC est inférieur ou égal à 999999.
 $07f3-$07f6 BCDE = 999999.
@@ -1826,20 +1835,13 @@ $07fb       Branche si le nombre est trop grand
 $07fe       `ret` simulé.
 
 $07ff       [fp_half]
-            %DATA
-            Contient le nombre `0.5` flottant.
-$0800       ---
-$0801       ---
-$0802       ---
-$0803       ---
-$0804       ---
-$0805       ---
+$07ff       Contient le nombre `0.5` flottant.
 $0806       [powers_5]
             %DATA
 $0806       100000
 $0809       [powers_4]
             %DATA
-%0809       10000
+$0809       10000
 $080c       [powers_3]
             %DATA
 $080c       1000
@@ -1852,9 +1854,12 @@ $0812       10
 $0815       [powers_0]
             %DATA
 $0815       1
-$0818       [call0818]
-$081b       ---
-$081c       ---
+$0818       [neg_fac]
+            Stock un appel à l'inversion de signe au prochain `ret` de l'appelant.
+$0818       Adresse de la routine qui sera appelée
+$081b       Récupère l'adresse de retour dans HL et stock l'adresse de la routine sur la pile.
+$081c       `ret` simulé.
+
 $081d       [inst_sqr]
             %CODE
 $0820       ---
@@ -6989,15 +6994,10 @@ $3349       [sd_a_ff]
             
             Cela agit comme un remapping des caractères qui étaient normalement non affichables.
 $3349       ---
-$334b       ---
 $334c       [sd_a_0d]
-$334e       ---
 $334f       [sd_a_08]
-$3351       ---
 $3352       [sd_a_04]
-$3354       ---
 $3355       [sd_a_1f]
-$3357       ---
 $3358       [sd_a_03]
 $335a       [sdchar_pass]
 $335b       $33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
