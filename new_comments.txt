@@ -1861,68 +1861,70 @@ $081b       Récupère l'adresse de retour dans HL et stock l'adresse de la rout
 $081c       `ret` simulé.
 
 $081d       [inst_sqr]
-            %CODE
-$0820       ---
-$0823       ---
+            %CODE,MS_BASIC(SQR)
+            Fonction BASIC `SQR()`.
+
+            Calcul la racine carrée de FAC.
+$081d       Met FAC sur la pile
+$0820-$0823 Mais 0.5 dans FAC. Ce qui prépare à l'exponentiation qui suit.
 $0826       [fp_bcde_pow]
-$0827       ---
-$0828       ---
-$0829       ---
-$082a       ---
-$082c       ---
-$082f       ---
-$0830       ---
-$0833       [jump0833]
-$0834       ---
-$0837       ---
-$0838       ---
-$0839       ---
-$083a       ---
-$083c       ---
-$083f       ---
-$0842       ---
-$0843       ---
-$0846       ---
-$0848       ---
-$084a       ---
-$084b       ---
-$084d       [skip084D]
-$084e       ---
-$084f       ---
-$0850       ---
-$0853       ---
-$0854       ---
-$0855       ---
-$0856       ---
-$0859       ---
-$085a       ---
-$085b       ---
-$085c       [skip085C]
-$085d       ---
-$0860       ---
-$0861       ---
-$0864       ---
-$0867       ---
-$086a       ---
-$086b       ---
-$086c       ---
-$086f       ---
-$0870       ---
-$0871       ---
+            %MS_BASIC(POWER)
+            Calcul la puissance FAC du nombre flottant sur la pile.
+$0826-$0827 Récupère le nombre sur la pile dans BCDE.
+$0828       Prend le signe de FAC (ne s'intéresse qu'aux drapeaux, puisque A est écrasé juste après)
+$0829       A prend l'exposant de BCDE.
+$082a       Si la puissance est 0, branche vers l'instruction `EXP`. (??? pour donner 1)
+$082c       Branche si la puissance est positive.
+$082f-$0830 Erreur si on tente de prendre une puissance négative de 0.
+$0833       [pos_pow]
+$0833-$0834 Si le nombre est nul avec une puissance positive, alors le résultat est zéro, que l'on construit à partir de A mis dans l'exposant de FAC.
+$0837-$0838 Sauve le nombre sur la pile.
+$0839       MSB de BCDE dans A.
+$083a       Garde le bit de signe, met tout le reste à 1.
+$083c       Met la puissance dans BCDE
+$083f       Branche si le nombre de base est positif
+$0842       Sauve le résultat du OR précédent.
+$0843       Charge l'exposant de la puissance dans A.
+$0846       La compare avec $99 (= $80 + 31)
+$0848       Branche si l'exposant de la puissance est 32 ou plus.
+$084a       Sinon, dépile le signe de la base
+$084b       Et continue le calcul plus loin.
+$084d       [big_power]
+$084d       Dépile le signe de la base
+$084e-$084f Pousse la puissance sur la pile
+$0850       Prend la valeur entière de la puissance
+$0853-$0854 Récupère la puissance dans BCDE
+$0855       Sauve AF, A contient le MSB de la base (pourquoi ???)
+$0856       Compare la puissance et sa valeur entière
+$0859-$085a Récupère A sans toucher aux drapeaux
+$085b       Récupère un drapeau dans A (résultat de la comparaison ???)
+$085c       [pos_base]
+$085c-$0861 Montre le nombre dans la pile dans FAC
+$0864       En fonction de la comparaison, prend l'opposé dans FAC (??? perdu le fil...)
+$0867       En fonction de la comparaison, inverse le signe de FAC (??? perdu le fil...)
+$086a-$086b Sauve la puissance dans la pile
+$086c       Prend le `log` de FAC (la base)
+$086f-$0870 Restaure la puissance
+$0871       Multiplie FAC et BCDE (log(base) * power)
+            Le fait d'enchaîner sur `inst_exp` va donner exp(log(base) * power),
+            c'est-à-dire base * exp(power).
+            ??? Il faut reprendre quelles sont les calculs, car tel quel, il manque des choses.
 $0874       [inst_exp]
             %CODE
-$0877       ---
-$087a       ---
-$087d       ---
-$0880       ---
-$0882       ---
-$0884       ---
-$0886       ---
-$0888       ---
-$088b       ---
-$088e       ---
-$0890       ---
-$0891       ---
+            Fonction BASIC `EXP()`
+
+            Retourne l'exponentielle de FAC.
+$0874-$0877 BCDE = 1/ln(2)
+$087a       Multiplie FAC par 1/ln(2)
+$087d       Prend l'exposant de FAC
+$0880       Compare avec $80 + 8.
+$0882       Branche si plus grand : overflow
+$0884       Compare avec $80 - 24
+$0886       Branche si plus petit : le résultat est 1.
+$0888       Amène FAC sur la pile
+$088b       Prend la partie entière de FAC
+$088e       Ajoute $81 à... ???
+$0890-$0891 Récupère le nombre en argument.
 $0892       ---
 $0894       ---
 $0895       ---
@@ -1932,15 +1934,15 @@ $089e       ---
 $089f       ---
 $08a2       ---
 $08a3       ---
-$08a6       [skip08A6]
+$08a6       [exp_too_big]
 $08a9       [skip08A9]
 $08ac       ---
 $08ad       ---
 $08b0       ---
 $08b1       ---
 $08b2       ---
-$08b5       [jump08B5]
-$08b8       [skip08B8]
+$08b5       [over_redir]
+$08b8       [fac_to_1]
 $08bb       ---
 $08be       ---
 $08c1       [exptab]
