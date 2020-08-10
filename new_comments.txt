@@ -1923,28 +1923,33 @@ $0884       Compare avec $80 - 24
 $0886       Branche si plus petit : le résultat est 1.
 $0888       Amène FAC sur la pile
 $088b       Prend la partie entière de FAC
-$088e       Ajoute $81 à... ???
+$088e       Ajoute $81 au LSB en entier. On sait que le nombre entier tient forcément sur 8 bits grâve aux bornes d'exposants précédents.
 $0890-$0891 Récupère le nombre en argument.
-$0892       ---
-$0894       ---
-$0895       ---
-$0898       ---
-$089b       ---
-$089e       ---
-$089f       ---
-$08a2       ---
-$08a3       ---
+$0892       Si l'ajout précédent a donné zéro, c'est que l'exposant était $79, on branche sur overflow.
+$0894       En on sauve le résultat.
+$0895       Soustrait BCDE (l'exposant) de FAC (l'exposant en entier)
+$0898       Pointe sur la table utilisée pour l'exponentiation.
+$089b       Appelle le calcul du polynome.
+$089e       Récupère l'exposant 
+$089f       DE = 0
+$08a2       C = 0, pour former BCDE avec une mantisse nulle et B l'exposant.
+$08a3       Multiplie BCDE et FAC.
 $08a6       [exp_too_big]
-$08a9       [skip08A9]
-$08ac       ---
-$08ad       ---
-$08b0       ---
-$08b1       ---
-$08b2       ---
+$08a6       Met FAC sur la pile
+$08a9       [exp_big2]
+$08a9       Prend l'exposant
+$08ac       Test l'exposant
+$08ad       Si l'exposant est positive, alors c'est un overflow
+$08b0-$08b1 Restaure la pile
+$08b2       Le résultat est 0
 $08b5       [over_redir]
+$08b5       Trampoline vers l'erreur de dépassement de capacité.
+
 $08b8       [fac_to_1]
-$08bb       ---
-$08be       ---
+            Assigne 1 à FAC.
+$08b8-$08bb BCDE = 1.0
+$08be       Monte BCDE dans FAC.
+
 $08c1       [exptab]
 $08c1       Taille de la table utilisée par l'exponentielle.
 $08c2       [exptab_0]
@@ -1961,14 +1966,18 @@ $08d6       [exptab_5]
 $08d6       0.6931471824645996
 $08da       [exptab_6]
 $08da       1.0
+
 $08de       [sum_series]
             %MS_BASIC(SUMSER)
-$08e1       ---
-$08e4       ---
-$08e5       ---
-$08e6       ---
-$08e9       ---
-$08ec       ---
+            Prépare la somme polynomiale pour `sin` et `cos`.
+
+            Met le paramètre (FAC) au carré et programme une multiplication par le paramètre à la sortie du calcul du polynome.
+$08de       Pousse FAC dans la pile.
+$08e1-$08e4 Insère une opération de multiplication 'pile * FAC' au prochain `ret`.
+$08e5       Sauve HL
+$08e6       Met FAC dans BCDE
+$08e9       Met FAC au carré
+$08ec       Restaure HL
 $08ed       [sum_ser_1]
             Effectue une somme polynomiale.
 
@@ -2004,30 +2013,27 @@ $091a       Pointe vers la seed à nouveau
 $091d       Retour si l'argument est 0, on renvoit le dernier nombre généré (qui est dans le FAC)
 $091e       On ajoute la seed avec le contenu de A (qui est à 1 car le sign est positif)
 $091f       ... uniquement les 3 premiers bits (0 à 7)
-$0921       ---
+$0921       Pourquoi ???
 $0923       On sauve la seed
-$0924       ---
-$0925       ---
-$0926       ---
-$0927       Offset dans la table des coefficients (seed * 4, B étant à zéro)
+$0924       Avance dans la table des coefficients
+$0925-$0927 Offset dans la table des coefficients (seed * 4, B étant à zéro)
 $0928       On pointe vers la table des coefficients
 $0929       Charge le coefficient en tant que FP dans BCDE
 $092c       Multiplication du nombre en FAC avec le coefficient
 $092f       Prend l'autre seed
 $0932       L'incrémente...
 $0933       Limite entre 0 et 3
-$0935       ---
+$0935       Prépare B pour l'`adc` (addition avec retenue) qui suit.
 $0937       Compare la seed à 1
 $0939       Si A était zéro, alors Carry est à 1 et donc A passe à 1.
 $093a       On sauve la seed
 $093d       4 octets avant rnd_add
-$0940       ---
-$0941       ---
-$0942       Index dans la table des additions
+$0940-$0942 Index dans la table des additions
 $0943       Pointe sur l'entrée de la table
 $0944       Addition du contenu de la table avec FAC
+
 $0947       [afterreseed]
-            Récupération de FAC dans BCDE
+$0947       Récupération de FAC dans BCDE
 $094a       A récupère le poids faible de la mantisse
 $094b       Met le poids fort de la mantisse dans le poids faible
 $094c       Modifie des bits de A
@@ -2036,33 +2042,39 @@ $094f       HL pointe sur fac_1 (signe résultant). On y met $80 pour positif.
 $0951       HL pointe sur l'exposant
 $0952       Que l'on récupère dans B (étrange... on avait déjà récupéré dans BCDE)
 $0953       On fixe l'exposant à $80 (donc puissance 0)
-$0955       ---
-$0958       Incrémentation de la troisième seed
+$0955-$0958 Incrémentation de la troisième seed
 $0959       Récupération de sa valeur
 $095a       Modulo 171
-$095c       ---
-$095e       Si on boucle, on bouge un peu la mantisse
-$095f       ---
-$0960       ---
-$0961       ---
+$095c       Branchement sauf si le modulo passe par zéro
+$095e-$0961 Dans ce cas, on bouge un peu la mantisse
 $0962       [rnd_cnt]
-            Normalisation
-$0965       ---
-$0968       Copie FAC dans (HL), donc dans le dernier numéro généré.
+$0962       Normalisation
+$0965-$0968 Copie FAC dans (HL), donc dans le dernier numéro généré.
 $096b       [reseed]
-$096c       ---
-$096d       ---
-$096e       ---
-$096f       ---
-$0970       ---
+            Réinitialisation du générateur aléatoire.
+$096c-$096f Place A dans les trois octets du nombre précédemment généré.
+$0970       Puis continue avec le prochain nombre généré.
 $0972       [rnd_add]
+            Table utilisée par le générateur aléatoire.
+$0972       environ 4.626181748790259e-08
 $0976       [rnd_add_1]
+$0976       environ -6.841145960834183e-08
 $097a       [rnd_add_2]
+$097a       environ 5.723364893128746e-08
+
 $097e       [inst_cos]
-            %CODE
-$0981       ---
+            %CODE,MS_BASIC(COS)
+            Fonction BASIC `COS()`
+
+            Place le cosinus de FAC dans FAC.
+$097e       Pointe vers la valeur PI/2
+$0981       Ajoute PI/2 à FAC, car cos(x) = sin(x + pi/2)
 $0984       [inst_sin]
             %CODE
+            %CODE,MS_BASIC(SIN)
+            Fonction BASIC `SIN()`
+
+            Place le sinus de FAC dans FAC.
 $0987       ---
 $0989       ---
 $098a       ---
@@ -2110,7 +2122,22 @@ $09f1       ---
 $09f4       ---
 $09f6       ---
 $09f9       ---
-$09fa       ---
+$09fa       [half_pi]
+$09fa       PI/2
+$09fe       [quarter]
+$09fe       0.25
+$0a02       [sintab]
+$0a02       Taille de la table pour le sinus
+$0a03       [sintab_0]
+$0a03       Environ : 39.71091842651367
+$0a07       [sintab_1]
+$0a07       Environ : -76.57498931884766
+$0a0b       [sintab_2]
+$0a0b       Environ : 81.60223388671875
+$0a0f       [sintab_3]
+$0a0f       Environ : -41.341678619384766
+$0a13       [sintab_4]
+$0a13       Environ : 6.2831854820251465
 $0a17       [inst_tan]
             %CODE
 $0a1a       ---
@@ -2138,7 +2165,27 @@ $0a46       [skip0A46]
 $0a49       ---
 $0a4c       ---
 $0a4f       ---
-$0a50       ---
+$0a50       [atantan]
+$0a50       Taille de la table pour atan
+$0a51       [atantan_0]
+$0a51       1/17
+$0a55       [atantan_1]
+$0a55       -1/15
+$0a59       [atantan_2]
+$0a59       1/13
+$0a5d       [atantan_3]
+$0a5d       -1/11
+$0a61       [atantan_4]
+$0a61       1/9
+$0a65       [atantan_5]
+$0a65       -1/7
+$0a69       [atantan_6]
+$0a69       1/5
+$0a6d       [atantan_7]
+$0a6d       -1/3
+$0a71       [atantan_8]
+$0a71       1/1
+
 $0a75       [inst_play]
             %CODE,SECTION(gr)
 $0a78       Désactivation de l'affichage
