@@ -2070,58 +2070,52 @@ $097e       [inst_cos]
 $097e       Pointe vers la valeur PI/2
 $0981       Ajoute PI/2 à FAC, car cos(x) = sin(x + pi/2)
 $0984       [inst_sin]
-            %CODE
             %CODE,MS_BASIC(SIN)
             Fonction BASIC `SIN()`
 
             Place le sinus de FAC dans FAC.
-$0987       ---
-$0989       ---
-$098a       ---
-$098d       ---
-$098e       ---
-$0991       ---
-$0993       ---
-$0996       ---
-$0999       ---
-$099a       [jump099A]
-$099d       ---
-$09a0       ---
-$09a3       ---
-$09a6       ---
-$09a9       ---
-$09aa       ---
-$09ab       ---
-$09ae       ---
-$09b1       ---
-$09b4       ---
-$09b7       ---
-$09ba       ---
-$09bd       ---
-$09c0       ---
-$09c3       ---
-$09c6       ---
-$09c9       ---
-$09cc       ---
-$09cd       ---
-$09d0       ---
-$09d3       ---
-$09d6       ---
-$09d9       ---
-$09dc       [jump09DC]
-$09df       ---
-$09e0       ---
-$09e1       ---
-$09e4       ---
-$09e6       ---
-$09e9       [jump09E9]
-$09ec       ---
-$09ef       ---
-$09f0       ---
-$09f1       ---
-$09f4       ---
-$09f6       ---
-$09f9       ---
+$0987       Prends l'exposant de FAC.
+$0989       Le compare avec $77 ($80 - 9)
+$098a       Retourne avec FAC non touché si l'exposant est petit.
+            En effet, pour des petits nombres, x est une approximation de sin(x)
+$098d       Récupèration du MSB dans A.
+$098e       Branche plus loin si c'est un nombre positif
+$0991       Comme sin(-a) = -sin(a), on rend le paramètre positif.
+$0993       On remote le MSB dans FAC
+$0996-$0999 En retour de fonction, `ret` branchera vers la routine qui prendra l'opposée de FAC.
+$099a       [sin_pos]
+$099a-$099d Presque pi/20... ???
+$09a0       ... multiplié au paramètre (l'angle)
+$09a3       Le résultat est sauvé sur la pile.
+$09a6       Et on prend la valeur entière de FAC.
+$09a9-$09aa On récupère le résultat de la multiplication dans BCDE
+$09ab       Afin d'en obtenir la partie décimale.
+$09ae-$09b1 BCDE = 0.25
+$09b4       Comparaison de 0.25 et le résultat dans FAC.
+$09b7       Si FAC est inférieur à 0.25, on branche plus loin.
+$09ba-$09bd BCDE = -0.25
+$09c0       Ajout de -0.25 à FAC
+$09c3-$09c6 BCDE = -0.5
+$09c9       Ajout de -0.5 à FAC. Pour un total de -.75
+$09cc       Récupère le signe de FAC
+$09cd       S'il est positif (le nombre entre 0 et 1 était donc supérieur à 0.75), inverse le signe.
+$09d0-$09d3 BCDE = 0.25
+$09d6       Ajout de 0.25 à FAC
+$09d9       Inverse le signe
+$09dc       [min_quarter]
+$09dc       Prend le MSB de FAC
+$09df       Le test
+$09e0       Et pousse le résultat dans la pile.
+$09e1       S'il est positif, branche plus loin
+$09e4       Sinon, inverse le signe.
+$09e6       Et remonte la nouvelle valeur dans FAC.
+$09e9       [sin_pos_2]
+$09e9       Pointe vers la table des coefficients pour le sinus.
+$09ec       Calcul du polynome.
+$09ef       Récupère le signe du MSB initial.
+$09f0       S'il était positif, on s'arrête là.
+$09f1-$09f6 Sinon, on inverse le signe.
+$09f9       Ici, si l'angle était initialement négatif, un appel à `inv_sign` est effectué.
 $09fa       [half_pi]
 $09fa       PI/2
 $09fe       [quarter]
@@ -2139,108 +2133,122 @@ $0a0f       Environ : -41.341678619384766
 $0a13       [sintab_4]
 $0a13       Environ : 6.2831854820251465
 $0a17       [inst_tan]
-            %CODE
-$0a1a       ---
-$0a1d       ---
-$0a1e       ---
-$0a1f       ---
-$0a22       ---
-$0a23       ---
-$0a26       ---
-$0a29       ---
+            %CODE,MS_BASIC(TAN)
+            Fonction BASIC `TAN()`
+
+            Place la tangeante de FAC dans FAC par calcul du sinus, du cosinus, puis de la division du premier par le second.
+$0a17       Pousse FAC sur la pile
+$0a1a       Calcule le sinus de FAC.
+$0a1d-$0a1e Récupèration de l'angle initial dans BCHL
+$0a1f       Pousse le sinus sur la pile
+$0a22       Echange HL et DE pour reconstituer BCDE
+$0a23       Monte BCDE dans FAC
+$0a26       Calcule son cosinus.
+$0a29       Divise sinus (sur la pile) par cosinus (dans FAC).
 $0a2c       [inst_atn]
-            %CODE
-$0a2d       ---
-$0a30       ---
-$0a33       ---
-$0a36       ---
-$0a38       ---
-$0a3a       ---
-$0a3d       ---
-$0a3e       ---
-$0a3f       ---
-$0a42       ---
-$0a45       ---
-$0a46       [skip0A46]
-$0a49       ---
-$0a4c       ---
-$0a4f       ---
-$0a50       [atantan]
+            %CODE,MS_BASIC(ATN)
+            Fonction BASIC `ATN()`
+
+            Place l'arctangeante de FAC dans FAC.
+$0a2c       Récupère le signe de FAC
+$0a2d-$0a30 Si le nombre est négatif, on prend l'opposé de son signe ainsi que du signe de son exposant (-1/x)
+$0a33       Récupère le MSB de FAC
+$0a36       Comparaison avec $80 ($80 + 1)
+$0a38       Branche si le nombre est inférieur à 1.
+$0a3a-$0a3e BCDE = 1
+$0a3f       Calcule 1/x
+$0a42-$0a45 Après le calcul, `ret` branchera sur une soustration de l'angle par ce que pointera HL
+$0a46       [atn_1]
+$0a46       Pointe HL sur la table des coefficients pour `atn`.
+$0a49       Calcule le polynome.
+$0a4c       Fait pointer HL sur pi/2, pour le cas où `ret` branche vers la soustraction.
+$0a4f       Retour, ou branchement sur la soustraction.
+
+$0a50       [atantab]
 $0a50       Taille de la table pour atan
-$0a51       [atantan_0]
+$0a51       [atantab_0]
 $0a51       1/17
-$0a55       [atantan_1]
+$0a55       [atantab_1]
 $0a55       -1/15
-$0a59       [atantan_2]
+$0a59       [atantab_2]
 $0a59       1/13
-$0a5d       [atantan_3]
+$0a5d       [atantab_3]
 $0a5d       -1/11
-$0a61       [atantan_4]
+$0a61       [atantab_4]
 $0a61       1/9
-$0a65       [atantan_5]
+$0a65       [atantab_5]
 $0a65       -1/7
-$0a69       [atantan_6]
+$0a69       [atantab_6]
 $0a69       1/5
-$0a6d       [atantan_7]
+$0a6d       [atantab_7]
 $0a6d       -1/3
-$0a71       [atantan_8]
+$0a71       [atantab_8]
 $0a71       1/1
 
 $0a75       [inst_play]
             %CODE,SECTION(gr)
-$0a78       Désactivation de l'affichage
-$0a7c       ---
-$0a7f       ---
-$0a80       ---
-$0a83       ---
-$0a86       ---
+            Commande BASIC `PLAY`
+
+            Joue une séquence de notes dans un langage spécialisé contenu dans la chaîne de caractères en paramètre.
+$0a75       Appel du `hook` de PLAY.
+$0a78       Désactivation du rafraichissement.
+$0a7c       Lecture de l'expression en paramètre.
+$0a7f       Sauve le pointeur.
+$0a80       Récupère le pointeur vers le descripteur de chaine résultante.
+$0a83       BCDE contient les informations de chaine. BC = pointeur vers les données, E = nombre de caractères.
+$0a86       Augmente de 1 le nombre de caractères.
 
 $0a87       [play_impl]
             Joue une séquence sonore
-            BC = Pointeur vers la séquence ASCII
-            E = taille du buffer
-$0a87       ---
-$0a8a       lecture du caractère suivant
-$0a8b       ---
-$0a8c       ---
-$0a8d       saute si le buffer est épuisé
-$0a90       ---
-$0a92       Cas de ','
-$0a94       ---
-$0a96       Cas de codage de fin de ligne (?)
-$0a98       ---
-$0a9a       Cas de l'espace
-$0a9c       ---
-$0a9e       Cas inférieur à 'A'
-$0aa1       ---
-$0aa3       ---
-$0aa5       ---
-$0aa8       ---
-$0aaa       ---
-$0aad       ---
-$0aaf       ---
-$0ab2       ---
-$0ab4       ---
-$0ab7       ---
-$0ab9       ---
-$0aba       ---
-$0abb       ---
-$0abc       ---
-$0abd       ---
-$0abf       ---
-$0ac1       ---
-$0ac2       ---
-$0ac3       ---
-$0ac4       [skip0AC4]
-$0ac6       ---
-$0ac8       ---
-$0ac9       ---
-$0aca       ---
-$0acb       [skip0ACB]
-$0ace       ---
-$0acf       ---
-$0ad0       ---
-$0ad3       ---
+
+            Entrées :
+            - BC = Pointeur vers la séquence ASCII
+            - E = taille du buffer
+            - Le pointeur vers le texte BASIC a été poussé sur la pile.
+$0a87       Vérifie si l'utilisateur demande d'arrêter le programme.
+$0a8a       Lecture du caractère suivant de la chaine.
+$0a8b       Pointe vers le caractère suivant.
+$0a8c       Réduit le nombre de caractères restant.
+$0a8d       Branche si le buffer est épuisé.
+$0a90       %CHAR
+$0a90-$0a92 Branche si le caractère est ','
+$0a94       %CHAR
+$0a94-$0a96 Branche si le caractère est '|'
+$0a98       %CHAR
+$0a98-$0a9a Branche si le caractère est ' '
+$0a9c       %CHAR
+$0a9c-$0a9e Erreur de syntaxe si le caractère est inférieur à 'A'
+$0aa1       Passe les caractères en majuscules.
+$0aa3       %CHAR
+$0aa3-$0aa5 Branche si le caractère est 'O'
+$0aa8       %CHAR
+$0aa8-$0aaa Branche si le caractère est 'R'
+$0aad       %CHAR
+$0aad-$0aaf Branche si le caractère est 'T'
+$0ab2       %CHAR
+$0ab2-$0ab4 Erreur de syntaxe si le caractère est supérieur ou égal à 'H'
+$0ab7       %CHAR
+            Soustraction par 'A' pour avoir la hauteur de la note.
+$0ab9-$0aba hauteur = (A * 2) + 1
+$0abb       Sauve la hauteur dans D
+$0abc       Lit le caractère suivant.
+$0abd       %CHAR
+$0abd-$0abf Branche plus loin si ce n'est pas un '+'
+$0ac1       Si c'est un '+', incrémente le pointeur vers la chaine de commandes.
+$0ac2       Augmente la hauteur de 1
+$0ac3       Réduit le nombre de caractères restant.
+$0ac4       [not_sharp]
+$0ac4       %CHAR
+$0ac4-$0ac6 Branche plus loin si le caractère suivant la note n'est pas '-'
+$0ac8       Incrémente le pointeur vers la chaine de commandes.
+$0ac9       Réduire la hauteur de 1.
+$0aca       Réduit le nombre de caractères restant.
+$0acb       [not_flat]
+            Récupère l'information sur l'octave.
+$0ace       Ajoute la note à l'octave.
+$0acf       Sauve le résultat dans D.
+$0ad0       Récupère le paramètre de longueur de note dans HL
+$0ad3       Sauve la valeur sur la pile
 $0ad4       ---
 $0ad5       ---
 $0ad6       ---
@@ -2280,7 +2288,7 @@ $0b11       [play_exit]
 $0b12       provoque un rafraichissement 3 IRQ plus tard.
 $0b16       ---
 $0b1a       ---
-$0b1b       [jump0B1B]
+$0b1b       [octave]
 $0b1c       ---
 $0b1d       ---
 $0b1e       ---
@@ -2297,7 +2305,7 @@ $0b31       ---
 $0b32       ---
 $0b33       ---
 $0b36       ---
-$0b39       [jump0B39]
+$0b39       [tempo]
 $0b3a       ---
 $0b3c       ---
 $0b3f       ---
@@ -2347,7 +2355,7 @@ $0b77       ---
 $0b78       ---
 $0b79       ---
 $0b7c       ---
-$0b7f       [jump0B7F]
+$0b7f       [play_pause]
 $0b82       ---
 $0b83       ---
 $0b84       ---
@@ -2362,37 +2370,33 @@ $0b92       ---
 $0b93       ---
 $0b95       ---
 $0b96       ---
-$0b99       [call0B99]
-$0b9c       ---
-$0b9d       ---
-$0b9f       ---
-$0ba0       ---
-$0ba2       ---
-$0ba3       ---
-$0ba4       ---
-$0ba6       ---
-$0ba7       ---
-$0ba8       ---
-$0ba9       ---
-$0baa       ---
-$0bac       ---
-$0bad       ---
-$0baf       ---
-$0bb0       ---
-$0bb1       ---
-$0bb2       ---
-$0bb3       ---
-$0bb4       ---
-$0bb5       ---
-$0bb6       ---
-$0bb7       ---
-$0bb8       ---
-$0bba       ---
-$0bbb       ---
-$0bbc       ---
-$0bbd       ---
-$0bbe       ---
-$0bbf       ---
+$0b99       [note_length]
+            %NOT_LABEL
+            Valeur par défaut de HL
+$0b9c       Caractère dans le buffer de commande.
+$0b9d       %CHAR
+            Soustrait '0'
+$0b9f       Retourne immédiatement si inférieur à 0 (et donc, sort avec HL = $0010)
+$0ba0       Compare avec 10.
+$0ba2       Retourne si le caractère était supérieur à '9'
+$0ba3       Charge la première valeur dans L
+$0ba4       et H contient 0.
+$0ba6       Pointe vers le caractère suivant.
+$0ba7       Réduit le nombre de caractères restant.
+$0ba8       Si la chaine est épuisée, retourne.
+$0baa       %CHAR
+$0ba9-$0baf Même traitement pour le nouveau caractère.
+$0bb0       Sauve DE
+$0bb1       Double HL
+$0bb2-$0bb3 Transfert HL dans DE
+$0bb4-$0bb6 Multiplie HL par 10.
+$0bb7-$0bb8 Charge la valeur des unités dans DE
+$0bba       Ajoute HL et DE
+$0bbb       Restaure DE
+$0bbc       Pointe vers le caractère suivant.
+$0bbd       Réduit le nombre de caractères restant.
+
+$0bbf       [sound_data]
 $0c6a       [inst_sound]
             %CODE
 $0c6d       Récupère le premier paramètre
