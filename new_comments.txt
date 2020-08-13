@@ -1837,22 +1837,16 @@ $07fe       `ret` simulé.
 $07ff       [fp_half]
 $07ff       Contient le nombre `0.5` flottant.
 $0806       [powers_5]
-            %DATA
 $0806       100000
 $0809       [powers_4]
-            %DATA
 $0809       10000
 $080c       [powers_3]
-            %DATA
 $080c       1000
 $080f       [powers_2]
-            %DATA
 $080f       100
 $0812       [powers_1]
-            %DATA
 $0812       10
 $0815       [powers_0]
-            %DATA
 $0815       1
 $0818       [neg_fac]
             Stock un appel à l'inversion de signe au prochain `ret` de l'appelant.
@@ -2190,6 +2184,11 @@ $0a75       [inst_play]
             Commande BASIC `PLAY`
 
             Joue une séquence de notes dans un langage spécialisé contenu dans la chaîne de caractères en paramètre.
+
+            Comme le rafraichissement de l'écran est désactivé pendant PLAY, une note dans le manuel indique qu'il
+            faut provoquer un rafraichissement avant l'appel à PLAY pour être a jour de l'affichage, en appelant
+            `DISPLAY`.
+
 $0a75       Appel du `hook` de PLAY.
 $0a78       Désactivation du rafraichissement.
 $0a7c       Lecture de l'expression en paramètre.
@@ -2249,129 +2248,109 @@ $0ace       Ajoute la note à l'octave.
 $0acf       Sauve le résultat dans D.
 $0ad0       Récupère le paramètre de longueur de note dans HL
 $0ad3       Sauve la valeur sur la pile
-$0ad4       ---
-$0ad5       ---
-$0ad6       ---
-$0ad7       ---
-$0ad9       ---
-$0adc       ---
-$0add       ---
-$0ade       ---
-$0adf       ---
-$0ae0       ---
-$0ae1       ---
-$0ae2       ---
-$0ae6       ---
-$0ae7       ---
-$0ae8       ---
-$0ae9       ---
-$0aec       ---
-$0aed       ---
-$0aef       ---
-$0af1       ---
-$0af2       ---
-$0af4       ---
-$0af6       ---
-$0af7       ---
-$0af9       ---
-$0afb       ---
-$0afe       ---
-$0b01       ---
-$0b02       ---
-$0b04       ---
-$0b06       ---
-$0b07       ---
-$0b09       ---
-$0b0b       ---
-$0b0e       ---
+$0ad4       DE ayant été préservé, ramène la hauteur de note dans A.
+$0ad5       Passe sur les registres alternatifs de BC, DE, HL
+$0ad6-$0ad7 DE = hauteur de la note
+$0ad9       HL pointe sur la table des sons
+$0adc-$0ade Chaque entrée dans la table comprends 3 octets.
+$0adf       C prend le premier des octets
+$0ae0-$0ae1 B prend le second des octets
+$0ae2       Sauve la valeur dans `sonsav_hi`
+$0ae6-$0ae7 A prend le troisième octet de l'entrée
+$0ae8       Récupère la longueur de la note depuis la pile dans DE
+$0ae9       Multiplie la longueur par le troisième paramètre de la note.
+$0aec       Met le Carry à zéro, essentiellement.
+$0aed-$0aef Divise DE par deux.
+$0af1       Met le Carry à zéro.
+$0af2-$0af4 Divise DE par deux.
+$0af6       Met le Carry à zéro.
+$0af7-$0af9 Divise DE par deux.
+$0afb       Récupère le `tempo` actuel.
+$0afe       Multiplie DE (premier paramètre du son divisé par 8) par A (le tempo). Résultat dans DE.
+$0b01       Met le Carry à zéro.
+$0b02-$0b04 Divise DE par deux.
+$0b06       Met le Carry à zéro.
+$0b07-$0b09 Divise DE par deux.
+$0b0b       Émet le son.
+$0b0e       Boucle vers la prochaine définition de note.
+
 $0b11       [play_exit]
-$0b12       provoque un rafraichissement 3 IRQ plus tard.
-$0b16       ---
-$0b1a       ---
+$0b11       Restauration du HL initial, pointeur sur le texte BASIC.
+$0b12-$0b16 Provoque un rafraichissement 3 IRQ plus tard.
+
 $0b1b       [octave]
-$0b1c       ---
-$0b1d       ---
-$0b1e       ---
-$0b21       ---
-$0b23       ---
-$0b26       ---
-$0b28       ---
-$0b2b       ---
-$0b2d       ---
-$0b2e       ---
-$0b2f       ---
-$0b30       ---
-$0b31       ---
-$0b32       ---
-$0b33       ---
-$0b36       ---
+            Décodage de la commande 'O' dans une instruction PLAY, indiquant un changement d'octave.
+
+            Pour cela, décode un nombre entre 1 et 4 inclus, le multiplie par 14 et sauve le résultat dans `tmpsav`.
+$0b1b       Lecture du caractère suivant.
+$0b1c       Incrémente le pointeur sur le buffer de commandes.
+$0b1d       Réduit le nombre de caractères restants.
+$0b1e       S'il n'y en a plus, génère une erreur d'argument manquant.
+$0b21       %CHAR
+$0b26       %CHAR
+$0b21-$0b28 Branche sur une erreur de syntaxe si l'argument n'est pas entre '1' et '4'.
+$0b2b       %CHAR
+            Soustrait '1' à l'argument pour en obtenir sa valeur numérique.
+$0b2d-$0b32 Multiplie l'octave par 14.
+$0b33       Sauve la valeur d'octave courante.
+$0b36       Boucle sur la prochaine commande.
+
 $0b39       [tempo]
-$0b3a       ---
-$0b3c       ---
-$0b3f       ---
-$0b41       ---
-$0b44       ---
-$0b45       ---
-$0b46       ---
-$0b47       ---
-$0b49       ---
-$0b4a       ---
-$0b4c       ---
-$0b4e       ---
-$0b50       ---
-$0b52       ---
-$0b53       ---
-$0b54       ---
-$0b55       ---
-$0b56       ---
-$0b57       ---
-$0b58       ---
-$0b59       ---
-$0b5a       ---
-$0b5b       ---
-$0b5c       ---
-$0b5d       ---
-$0b5f       ---
-$0b60       ---
-$0b62       ---
-$0b64       ---
-$0b66       ---
-$0b68       ---
-$0b69       ---
-$0b6a       ---
-$0b6b       ---
-$0b6c       ---
-$0b6d       ---
-$0b6e       ---
-$0b6f       ---
-$0b70       ---
-$0b71       ---
-$0b72       ---
-$0b73       [skip0B73]
-$0b74       ---
-$0b75       ---
-$0b76       ---
-$0b77       ---
-$0b78       ---
-$0b79       ---
-$0b7c       ---
+            Décodage de la commande 'T' dans une instruction PLAY, indiquant un changement de tempo.
+
+            Pour cela, décode un nombre de 1 à 3 chiffres décimaux, le divise par 4 et y ajoute 1 puis sauve le résultat dans `tmpsav`.
+$0b39       Lit le premier caractères du paramètre.
+$0b3a       %CHAR
+            En soustrait '0' pour obtenir la valeur numérique.
+$0b3c       Branche sur une erreur de syntaxe si la valeur est trop basse.
+$0b3f-$0b41 Fait de même si la valeur est trop haute (plus de 9)
+$0b44       Charge la valeur dans L
+$0b45-$0b46 Caractère suivant
+$0b47       S'arrête si la chaine de commandes est épuisée.
+$0b4a       %CHAR
+$0b49-$0b50 Lit le prochain chiffre ou arrête le décodage.
+$0b52       Sauvegarde la nouvelle valeur dans H
+$0b53-$0b58 Multiplie A par 10
+$0b59       Y ajoute le nouveau chiffre.
+$0b5a       Met le résultat dans L.
+$0b5b-$0b5d Caractère suivant.
+$0b5f-$0b66 Lit le prochain chiffre ou arrête le décodage.
+$0b68-$0b70 Multiplie à nouveau L par 10 et ajoute le nouveau chiffre.
+$0b71-$0b72 Pointe sur le caractère suivant de la chaine de commandes.
+$0b73       [tempo_done]
+$0b73       La valeur décodée est dans L, elle passe dans A.
+$0b74       Passe le Carry à 0.
+$0b75       Divise la valeur par 2.
+$0b76       Passe le Carry à 0.
+$0b77       Divise la valeur par 2.
+$0b78       Augmente la valeur de 1
+$0b79       Sauve la valeur de tempo calculée.
+$0b7c       Boucle sur la prochaine commande.
+
 $0b7f       [play_pause]
-$0b82       ---
-$0b83       ---
-$0b84       ---
-$0b85       ---
-$0b88       ---
-$0b8b       [loop0B8B]
-$0b8c       ---
-$0b8e       [loop0B8E]
-$0b8f       ---
-$0b91       ---
-$0b92       ---
-$0b93       ---
-$0b95       ---
-$0b96       ---
+            Décodage de la commande 'R' dans une instruction PLAY, indiquant une pause (une respiration).
+$0b7f       Décodage de la longueur de la respiration.
+$0b82       Sauvegarde de la valeur
+$0b83       Échange les registres par les registres secondaires.
+$0b84       Récupère la longueur de la note dans DE
+$0b85       Charge la valeur du tempo.
+$0b88       Multiplie le tempo par la longueur de la respiration.
+$0b8b       [pause_lp_1]
+$0b8b       Décrémente la longueur de la pause
+$0b8c       Initialise un compteur pour la seconde boucle
+$0b8e       [pause_lp_2]
+$0b8e       Attente
+$0b8f       Boucle sur B. 1 + 3 Cycle M par boucle, 4 + 13 États T par boucle. Sauf pour la dernière, 1 + 2 / 4 + 8. Total: 767 Cycles / 3259 États. Environ 814.74 ns
+$0b91-$0b93 Boucle si DE n'est pas nul (2 * 4 + 10 États T)
+$0b95       Revient sur les registres initiaux.
+$0b96       Boucle sur la commande suivante.
+
 $0b99       [note_length]
-            %NOT_LABEL
+            Récupere un potentiel nombre décimal de deux chiffres maximum dans le buffer fourni à 'play` et en retourne la valeur dans HL.
+
+            Préserve DE.
+
+$0b99       %NOT_LABEL
             Valeur par défaut de HL
 $0b9c       Caractère dans le buffer de commande.
 $0b9d       %CHAR
@@ -2397,51 +2376,51 @@ $0bbc       Pointe vers le caractère suivant.
 $0bbd       Réduit le nombre de caractères restant.
 
 $0bbf       [sound_data]
+            14 notes sur 4 octaves = 56 notes
+            56 notes * 3 octets = 168 octets
+
+            Les deux premiers octets de chaque note est sauvé dans `sonsav`, il s'agit des périodes qui forment les deux phases du son.
+            Le troisième octet est un facteur multiplicatif pour obtenir la longeur de la note.
+
 $0c6a       [inst_sound]
             %CODE
-$0c6d       Récupère le premier paramètre
-$0c70       ---
-$0c71       ---
-$0c73       Si le premier paramètre est 0, l'augmente de 1
+$0c6a       Appel le `hook` pour l'instruction SOUND.
+$0c6d       Récupère le premier paramètre.
+$0c70-$0c71 Branche si le premier paramètre n'est pas 0.
+$0c73       Sinon, le paramètre est forcé à 1
 $0c74       [snd_val_ok]
-$0c75       ---
-$0c76       Met la valeur du son dans DE'
-$0c78       ---
-$0c79       Attente du son = 256 - A (plus la valeur du paramètre est haute, moins on attend)
-$0c7a       -val du son dans C'
-$0c7b       ---
+$0c74       Passage sur les registres alternatifs.
+$0c75-$0c76 DE prend la valeur du premier paramètre.
+$0c78-$0c79 Période du son = 256 - A
+$0c7a       Cette valeur est mise dans C
+$0c7b       Bascule sur les registres primaires.
 $0c7c       Vérification de la présence d'une virgule
-$0c7d       ---
-$0c7e       Récupère le deuxième paramètre
-$0c81       ---
-$0c82       HL <- DE << 8 ; DE <- DE * A
-$0c85       ---
-$0c87       [de_d_16_lp]
-$0c88       ---
-$0c8a       ---
-$0c8c       DE est divisé par 16
-$0c8e       Et íncrémenté
-$0c8f       ---
-$0c90       ---
-$0c91       ---
-$0c93       Valeur par défaut du troisième paramètre
-$0c95       Saut si pas de troisième paramètre (pas de virgule)
-$0c97       ---
-$0c98       Sinon, récupération dans A du troisième paramètre
+$0c7d       %DATA(1)
+$0c7e       Récupère le deuxième paramètre.
+$0c81       Bascule sur les registre alternatifs.
+$0c82       Multiplie DE (le premier paramètre) par A (le second paramètre)
+$0c87       [de_div_16]
+$0c85-$0c8c Divise DE par 16
+$0c8e       Et l'incrémente.
+$0c8f       Bascule sur les registres primaires.
+$0c91       %CHAR
+$0c90-$0c95 Vérifie la présence du troisième paramètre, optionnel.
+            Branche s'il n'existe pas, avec la valeur par défaut A = 0.
+$0c97-$0c98 Sinon, récupération dans A du troisième paramètre
 $0c9b       [no_cycle]
+$0c9b       Bascule sur les registres secondaires.
 $0c9c       Sauvegarde du troisième paramètre
-$0c9d       ---
-$0c9e       Première valeur du cycle = attente du son + troisième paramètre
-$0ca1       ---
-$0ca2       ---
-$0ca3       ---
-$0ca4       Deuxième valeur du cycle = attente du son - troisième paramètre
+$0c9d-$0c9e Première période = période du son + cycle
+$0ca1       Récupère le troisième paramètre dans H
+$0ca2-$0ca4 Deuxième période = période du son - troisième paramètre
 
 $0ca7       [snd_emit]
-            Fonction : émet un son
-            Durée dans DE
-            SONSAV_1 et SONSAV_2 indiquent la phase (première et seconde)
-$0ca7       ---
+            Émet un son
+
+            Entrées :
+            - sonsav_hi et sonsav_lo indiquent les périodes des deux phases du son
+            - DE contient la durée du son
+$0ca7       Désactive les interruptions.
 $0ca8       [snd_dur_lp]
 $0ca9       ---
 $0caa       ---
@@ -8994,7 +8973,9 @@ $4890       [frgglg]
 $4891       [kbdtbl]
             Table de transcription du clavier
 $4893       [tmpsav]
+            Tempo actuel pour le générateur de son.
 $4894       [octsav]
+            Octave actuel pour le générateur de son.
 $4895       [stktop]
             Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
 $4897       [bufmin]
