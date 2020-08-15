@@ -2703,35 +2703,39 @@ $0e4b       Sélectionne le mode graphique.
 
 $0e51       [inst_init]
             %CODE
-$0e55       ---
-$0e56       ---
-$0e58       ---
-$0e5a       ---
-$0e5b       ---
-$0e5e       ---
-$0e60       ---
-$0e61       ---
-$0e62       ---
-$0e63       ---
-$0e66       ---
-$0e68       ---
-$0e69       ---
-$0e6c       ---
-$0e6e       ---
-$0e6f       ---
-$0e72       ---
-$0e73       [skip0E73]
-$0e74       ---
-$0e76       ---
-$0e77       ---
-$0e78       ---
-$0e79       ---
-$0e7a       ---
-$0e7b       ---
-$0e7c       ---
-$0e7e       [skip0E7E]
-$0e81       ---
-$0e82       ---
+            Commande BASIC `INIT`.
+
+            Initialise la couleur de l'écran, et l'efface.
+
+$0e51       Initialise `attcar` à 0 (couleur 0, pas de clignotement, pas de double hauteur/largeur, couleurs non inversées)
+$0e55       Sauve le pointeur de texte BASIC.
+$0e56       Prépare un paramètre $e6 par défaut pour `attbak`.
+$0e58       S'il n'y a pas de paramètre, branche à la fin de la routine.
+$0e5a       Restaure le pointeur de texte BASIC.
+$0e5b       Lit le premier paramètre (couleur de fond)
+$0e5e       Branche si c'était le dernier paramètre.
+$0e60       Sauve le résultat
+$0e61       Le caractère suivant doit être une virgule
+$0e62       %DATASKIP
+$0e63       Lecture du second paramètre (couleur de bord)
+$0e66       Prend les 3 bits de poids faibles.
+$0e68       Les sauve dans B.
+$0e69       Prend la valeur actuel du registre `cursor`.
+$0e6c       En garde les 5 bits de poids forts.
+$0e6e       Union avec le paramètre de couleur de bord.
+$0e6f       Sauvegarde de la couleur de fond dans le registre `cursor`.
+$0e72       Restaure AF, résultat du premier paramètre.
+$0e73       [init_color]
+$0e73       Sauve le pointeur de texte BASIC.
+$0e74       Garde les 3 bits de poids faible du premier paramètre (couleur de fond)
+$0e76       Sauve le résultat dans L
+$0e77-$0e7a Décale la couleur de 4 vers la gauche, pour la positionner dans la couleur de fond graphique.
+$0e7b       Ajoute la couleur de fond texte.
+$0e7c       Le bit 7 de `attbak` doit être à 1. (??? pourquoi ?)
+$0e7e       [init_end]
+$0e7e       Efface l'écran avec la nouvelle couleur de fond.
+$0e81       Restaure le pointer de texte BASIC.
+
 $0e83       [inst_cursor]
             %CODE
             Récupère le caractère après 'CURSOR'.
@@ -5839,9 +5843,15 @@ $2aa1       Vérification du type numérique (qui se chargera du RET)
 $2aa4       [preget_byte]
 
 $2aa5       [getbyt_impl]
-            Fonction : récupère un entier sur un octet depuis le buffer d'entrée
-            Entrée : HL pointe sur la zone de texte
-            Sortie : A contient l'entrée (ainsi que DE ?)
+            Récupère un entier sur un octet depuis le buffer d'entrée.
+
+            Provoque une erreur si l'entrée est trop grand.
+
+            Entrée :
+            - HL pointe sur la zone de texte
+            Sortie :
+            - A contient l'entrée
+            - Z est à 1 si le caractère suivant est nul (???)
 $2aa5       ---
 $2aa8       [to_int]
 $2aab       ---
@@ -6962,15 +6972,20 @@ $328d       ---
 $328f       ---
 $3292       [initscreen2]
 $3295       ---
-$3297       [call3297]
-            Initialisation des attributs utilisés pour l'effacement de l'écran
-$329a       ---
+$3297       [init_cls]
+            Efface l'écran avec la couleur de fond passée dans A.
+
+            Entrée :
+            - A contient la valeur pour le registre `attbak`.
+
+$3297       Met la valeur de A dans le registre `attbak` (couleur de fond texte et graphique)
+$329a       Efface l'écran BASIC.
 $329d       [cur_home]
-$32a0       Curseur mis en haut à droite de l'écran
-$32a3       Force l'affichage à l'interruption suivante
-$32a7       ---
-$32ab       Et attend l'affichage
-$32ac       ---
+$329d       HL contient les coordonnées du curseur.
+$32a0       Place les coordonnées du curseur en haut à droite de l'écran
+$32a3-$32a7 Force le rafraichissement écran à l'interruption suivante.
+$32ab       Et attend le prochain rafraichissement.
+
 $32ad       ---
 
 $32b7       [deckeyb]
