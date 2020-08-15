@@ -61,11 +61,11 @@ $001b       [setext]
             Redéfinition d'un caractère programmable de la mémoire vidéo.
 
             Entrées :
-            - A[6:0] contient le carractère à changer (sur 7 bits).
+            - A[6:0] contient le caractère à changer (sur 7 bits).
             - A[7] contient la nature de la palette (0 == Texte, 1 == Graphique)
             - HL pointe sur le buffer de 10 octets avec les valeurs de caractère.
 
-            [ArticleSETEXT]
+            [ArticleSetExtCommandsAndMemoryLayout]
 
 $001b       L'implémentation de `setext` est plus loin.
 $001e       ---
@@ -2512,21 +2512,21 @@ $0d0c       Prépare la commande pour le VDP.
 $0d0e       Bascule sur AF alternatif.
 $0d0f       Envoie la commande $22 avec le premier paramètre modifié au VDP.
 $0d12-$0d13 Récupère puis remet sur la pile l'argument préparé suivant si on est dans `SETET` ou `SETEG`.
-$0d14       Inverse le bit 7 de A
-$0d16-$0d19 Envoie la commande $21 avec la valeur déduite de la commande utilisée. (??? préciser)
-$0d1c-$0d20 Envoie la commande $20 avec l'argument $03 au VDP (??? préciser)
+$0d14       Inverse le bit 7 de A (ce qui inverse les $c0 et $40)
+$0d16-$0d19 Envoie la commande $21 avec la valeur déduite de la commande utilisée. (VDP : R1 = mode)
+$0d1c-$0d20 Envoie la commande $20 avec l'argument $03 au VDP (VDP : R0 = 3, c'est-à-dire KRG+Ince)
 $0d23       Prépare la commande $24 pour le VDP
 $0d25-$0d27 Bascule de registre AF alternatif le temps de récupèrer le premier argument (numéro de caractère) dans E
 $0d28       On récupère dans A le numéro de caractère.
 $0d29-$0d2b On ne garde du paramètre que les bits de 2 à 7 (dans les bits 0 à 5)
-$0d2d-$0d2e Envoie la commande $24 avec comme paramètre ce nombre modifié (??? préciser)
+$0d2d-$0d2e Envoie la commande $24 avec comme paramètre ce nombre modifié (VDP : R4 = (caractère >> 2) & $1f)
 $0d31       Préparation de la commande $25 pour le VDP
 $0d33       Bascule sur AF initial.
 $0d34       On garde les 2 bits de poids faible de l'argument.
 $0d36       Récupèration du type de commande depuis la pile (dans B)
 $0d37-$0d38 Préparation de l'argument pour la commande comme l'union du type de commande (B) et des 2 bits de poids faibles.
-$0d39       Envoie de la commande $25 avec cet argument au VDP (??? préciser)
-$0d3c-$0d40 Envoie de la commande $20 avec l'argument $34 au VDP (??? préciser)
+$0d39       Envoi de la commande $25 avec cet argument au VDP (VDP : R5 = (A & $03 | mode)
+$0d3c-$0d40 Envoi de la commande $20 avec l'argument $34 au VDP (VDP : R0 = OCT Write AP NoInce, écrit R1 en mémoire désignée par R4 R5)
 $0d43       Vérifie la présence d'une virgule dans le buffer texte du BASIC.
 $0d44       %DATASKIP
 $0d45       Vérifie la présence d'un début de chaîne de caractères.
@@ -2543,11 +2543,11 @@ $0d51       Met le Carry dans le bit de poids fort de C avec rotation.
 $0d53       Boucle sur les 8 bits
 $0d55       Met dans A le résultat, qui est la valeur initiale « mirroir » (le bit 7 est à présent le bit 0)
 $0d56       Récupère le compteur de ligne.
-$0d57-$0d5a Envoie de la commande $29 avec l'argument de la ligne au VDP.
+$0d57-$0d5a Envoi de la commande $29 avec l'argument de la ligne au VDP (VDP : R1 = A + Execute)
 $0d5d       Attent que le VDP soit prêt.
-$0d60-$0d62 Envoie de la commande $25 au VDP
+$0d60-$0d62 Envoi de la commande $25 au VDP (VDP : lecture de R5).
 $0d64       Lecture de la réponse.
-$0d66-$0d6b Envoie de la commande $25 avec l'argument retourné augmenté de 4
+$0d66-$0d6b Envoi de la commande $25 avec l'argument retourné augmenté de 4 (VDP : R5 = R5 + 4)
 $0d6e       Boucle sur la lecture de la ligne suivante.
 $0d72       %CHAR
 $0d70-$0d76 Lecture des guillemets de fin optionnels.
@@ -2579,128 +2579,128 @@ $0d85       [setext_impl]
             Normalement appelé depuis `setext`.
 
             Entrées :
-            - A[6:0] contient le carractère à changer (sur 7 bits).
+            - A[6:0] contient le caractère à changer (sur 7 bits).
             - A[7] contient la nature de la palette (0 == Texte, 1 == Graphique)
             - HL pointe sur le buffer de 10 octets avec les valeurs de caractère.
 
-$0d85       if bit(A, 7) == 0 then B = $C0 else B = $40
-$0d87       ---
-$0d89       ---
-$0d8b       ---
-$0d8d       [setext_2]
-            Le haut de la pile contient BC
-$0d8e       Désactivation de l'affichage
-$0d92       ---
-$0d94       ---
-$0d95       ---
-$0d97       ---
-$0d98       Envoi à l'EF9345 de $22,A (avec le bit 7 de A mis à 1) (R2=A)
-            (A est envoyé à travers E)
-$0d9b       Récupération de la valeur de BC dans AF
-$0d9c       Remise du contenu de BC sur la pile
-$0d9d       Inversion du bit 7 de A, qui est la valeur de B du début de la fonction ($C0 ou $40)
-$0d9f       ---
-$0da0       ---
-$0da2       Envoi à l'EF9345 de $21,A (A est envoyé à travers E) (R1=A)
-$0da5       ---
-$0da7       ---
-$0da9       Envoi à l'EF9345 de $20,$03 (R0=3 -> KRG+Inc)
-$0dac       ---
+$0d85-$0d8b Si le bit 7 de A est à 0, alors B prend $C0 (mode texte), sinon B prend $40 (mode graphique)
+$0d8d       [setext_gr]
+$0d8d       Sauve le paramètre B qui vient d'être choisi.
+$0d8e       Désactivation du rafraichissement de l'affichage.
+$0d92       Bit 7 de A, le caractère à modifier, passe à 1.
+$0d94       L'arguement est mis dans E.
+$0d95       Préparation de la commande pour le VDP
+$0d97       Bascule sur le registre AF alternatif.
+$0d98       Envoi la commande $22 au VDP, avec en argument le numéro de caractère modifié (VDP : R2 = caractère).
+$0d9b       Récupération de la valeur de B, le choix du mode graphique ou texte, dans A.
+$0d9c       Remise du contenu de BC sur la pile.
+$0d9d       Inversion du bit 7 de A, ce qui inverse les valeurs $c0 et $40 choisies au début.
+$0d9f-$0da2 Envoi la commande $21 au VDP avec le choix texte/graphique (VDP : R1 = mode).
+$0da5-$0da9 Envoi al commande $20 au VDP avec l'argument $03 (VDP : R0 = 3, c'est-à-dire KRG+Inc).
+$0dac       Prépare la commande $24 pour le VDP
 $0dae       Récupération, à travers E, de la valeur de A en entrée de fonction (avec les trois lignes suivantes)
-$0daf       ---
-$0db0       ---
-$0db1       ---
-$0db2       ---
-$0db3       ---
-$0db4       A = (A >> 2) & $1F
-$0db6       ---
-$0db7       Envoi à l'EF9345 de $24,A (A est envoyé à travers E) (R4=A)
-$0dba       ---
-$0dbc       ---
-$0dbd       A = (A initial de la fonction) & $03
-$0dbf       Récupération du contenu du BC initial ($C0 ou $40)
-$0dc0       A = A | B
-$0dc1       ---
-$0dc2       Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
-$0dc5       ---
-$0dc7       ---
-$0dc9       Envoi à l'EF9345 de $20,$34 (R0=OCT Write AP NoInc, écrit R1 en mémoire désigné par R4 R5)
-$0dcc       Boucle extérieure, 10 itérations
-$0dce       [setext_lp2]
-            Récupère la valeur suivante de la redéfinition de caractère dans A
-$0dcf       ---
-$0dd0       Boucle intérieure, 8 itérations
-$0dd1       ---
-$0dd3       [setext_lp3]
-$0dd4       Inverse le contenu de A et C, bit à bit
-$0dd6       ---
-$0dd8       La ligne de redéfinition lue dans (HL) est à présent inversée dans A
-$0dd9       ---
-$0dda       ---
-$0ddb       ---
-$0ddd       Envoi à l'EF9345 de $29,A (A est envoyé à travers E) (R1=A + Execute)
-$0de0       ---
-$0de3       ---
-$0de5       Envoi sur $8F de $25 puis récupération sur $CF d'une valeur dans A (Read R5)
-            Puis A = A + $04
-$0de7       ---
-$0de9       ---
-$0deb       ---
-$0dec       ---
-$0dee       Envoi à l'EF9345 de $25,A (A est envoyé à travers E) (R5=A)
-$0df1       ---
+$0daf-$0db1 Bascule de registre AF alternatif le temps de récupèrer le premier argument (numéro de caractère) dans E
+$0db2-$0db4 On récupère dans A le numéro de caractère. On ne garde du paramètre que les bits de 2 à 7 (dans les bits 0 à 5)
+$0db6-$0db7 Envoie la commande $24 avec comme paramètre ce nombre modifié (VDP : R4 = (caractère >> 2) & $1f).
+$0dba       Préparation de la commande $25
+$0dbc       Bascule sur AF initial.
+$0dbd       On garde les 2 bits de poids faible de l'argument.
+$0dbf       Récupèration du type de commande depuis la pile (dans B)
+$0dc0       Préparation de l'argument pour la commande comme l'union du type de commande (B) et des 2 bits de poids faibles.
+$0dc1-$0dc2 Envoie de la commande $25 avec cet argument au VDP (VDP : R5 = (A & $03) | mode)
+$0dc5-$0dc9 Envoi de la commande $20 au VDP avec l'argument $34 (R0 = OCT Write AP NoInc, écrit R1 en mémoire désignée par R4 R5)
+$0dcc       10 lignes de pixels à transférer.
+$0dce       [setext_read]
+$0dce       Récupère la valeur suivante de la redéfinition de caractère.
+$0dcf       Pointe HL vers la valeur suivante
+$0dd0       Sauve sur la pile le compteur de lignes (B)
+$0dd1       Prépare la boucle interne, 8 bits à traiter.
+$0dd3       [setext_inv]
+$0dd3-$0dd8 Inverse (mirroir) bit à bit la définition lue dans A.
+$0dd9       Récupère le compte de lignes dans B
+$0dda-$0ddd Envoi de la commande $29 au VDP avec en argument la description « mirroir » (VDP : R1 = A + Execute)
+$0de0       Attente que le VDP soit prêt
+$0de3-$0de7 Envoi de la commande $25 au VDP pour lecture de donnée. (VDP : lecture de R5).
+$0de9-$0dee Envoi de la commande $25 au VDP avec la valeure lue augmentée de 4 (VDP : R5 = R5 + 4).
+$0df1       Boucle sur la ligne suivante
 $0df3       Réactivation de l'affichage
-$0df7       Fin de la fonction setext
+
 $0df8       [inst_tx]
             %CODE
-$0dfa       ---
-$0dfd       [jump0DFD]
-$0dfe       ---
-$0e00       ---
-$0e03       ---
-$0e04       ---
-$0e05       ---
-$0e08       ---
-$0e09       ---
-$0e0b       ---
-$0e0c       ---
-$0e0f       ---
-$0e11       ---
-$0e12       ---
-$0e15       ---
-$0e16       ---
-$0e17       ---
-$0e18       ---
-$0e19       ---
-$0e1c       ---
-$0e1d       ---
-$0e1f       ---
-$0e20       ---
-$0e21       ---
-$0e22       ---
-$0e23       ---
-$0e26       ---
-$0e29       ---
-$0e2a       ---
-$0e2b       ---
-$0e2c       ---
-$0e2d       ---
-$0e30       ---
-$0e31       ---
-$0e32       ---
-$0e36       ---
+            Commande BASIC `TX`.
+
+            Initialise le mode texte.
+
+            Les registres touchés sont les registres en RAM, ils sont pris en compte par les commandes BASIC, pas
+            directement envoyés au VDP>
+$0df8       ---
+$0dfa       Sélection des caractères en ROM du VDP.
+$0dfd       [char_switch]
+$0dfd       Sauvegarde la valeur de A, qui contient le paramètre mis par les différentes routines pour `TX`, `ET` , `GR`, `EG` (1 pour graphique, 0 pour texte)
+$0dfe       Mis à 1 les 3 bits de poids faibles, ce qui signifie que la couleur d'affichage est b111.
+$0e00       Place la valeur dans le registre `attcar`.
+$0e03       Récupère la valeur de A initiale et les drapeaux lors de l'appel de la routine.
+$0e04       Si Z était à 1, cela signifie qu'il n'y avait pas de paramètre (vérifier ???). Retour immédiat.
+$0e05       Récupère le premier paramètre dans A, entier 8 bits qui contient la couleur d'écriture sur 3 bits.
+$0e08       Sauve la valeur
+$0e09       N'en garde que les 3 bits de poids faible.
+$0e0b       Sauve la valeur dans D.
+$0e0c       Prend la valeur du registre `attcar`.
+$0e0f       En garde les 5 bits de poids forts.
+$0e11       Fait l'union avec la valeur du paramètre.
+$0e12       Replace la nouvelle valeur dans `attcar`.
+$0e15       Restaure la valeur des drapeaux après `getbyt_impl`. Z est à 1 si on était en fin de ligne.
+$0e16       Dans ce cas, retour immédiat.
+$0e17       Sinon, il doit y avoir une virgule.
+$0e18       %DATASKIP
+$0e19       Récupère le second paramètre dans A, entier 8 bits qui contient l'état des caractères sur 3 bits
+            pour le texte, ou bien la couleur du fond pour le mode graphique.
+$0e1c       Sauve la valeur et les drapeaux.
+$0e1d-$0e22 Garde les 3 bits de poids faible et les déplace de 4 bits vers la gauche.
+$0e23-$0e26 Met à jour `attcar` (double hauteur, double largeur et inverse vidéo / couleur de fond)
+$0e29-$0e2a Retour immédiat si la commande est terminée.
+$0e2b       Sinon, il doit y avoir une virgule.
+$0e2c       %DATASKIP
+$0e2d       Récupère le troisième paramètre dans A, entier 8 bits qui contient le clignotement sur 1 bit.
+$0e30-$0e31 Retour immédiat si la valeur est 0.
+$0e32       Sinon, on passe directement le bit 3 de `attcar` à 1.
+
 $0e37       [inst_gr]
             %CODE
-$0e3b       ---
-$0e3d       ---
+            Commande BASIC `GR`.
+
+            Initialise le mode graphique.
+
+            Utilise la routine générique avec les paramètres :
+            - caractères en ROM
+            - mode graphique
+$0e37       Indique que les caractères sont à prendre en ROM
+$0e3b       Sélectionne le mode graphique
+
 $0e40       [inst_et]
             %CODE
-$0e44       ---
-$0e46       ---
+            Commande BASIC `ET`.
+
+            Initialise le mode texte étendu (texte spécial).
+
+            Utilise la routine générique avec les paramètres :
+            - caractères en RAM
+            - mode texte
+$0e44       Indique que les caractères sont à prendre en RAM du VDP
+$0e40       Sélectionne le mode texte.
+
 $0e49       [inst_eg]
             %CODE
-$0e4b       ---
-$0e4e       ---
+            Commande BASIC `EG`.
+
+            Initialise le mode graphique étendu (graphie spécial).
+
+            Utilise la routine générique avec les paramètres :
+            - caractères en RAM
+            - mode graphique
+$0e49       Indique que les caractères sont à prendre en RAM du VDP
+$0e4b       Sélectionne le mode graphique.
+
 $0e51       [inst_init]
             %CODE
 $0e55       ---
