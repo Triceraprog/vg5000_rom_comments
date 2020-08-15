@@ -60,7 +60,7 @@ $001b       [setext]
             %CODE
             Redéfinition d'un caractère programmable de la mémoire vidéo.
 
-            Entrée :
+            Entrées :
             - A[6:0] contient le carractère à changer (sur 7 bits).
             - A[7] contient la nature de la palette (0 == Texte, 1 == Graphique)
             - HL pointe sur le buffer de 10 octets avec les valeurs de caractère.
@@ -248,8 +248,8 @@ $008c       [beep]
 
             Entrées :
             - DE contient la durée du son.
-            - (sonsav_hi) contient le temps "mark" du son (trouver un nom en francais) ???
-            - (sonsav_lo) contient le temps "space" du son (trouver un nom en francais) ???
+            - (sonsav_hi) contient le temps de la période haute du son.
+            - (sonsav_lo) contient le temps de la période basse du son.
 
             [ArticleBeep]
 $008c       Saut vers l'implémentation.
@@ -2189,6 +2189,8 @@ $0a75       [inst_play]
             faut provoquer un rafraichissement avant l'appel à PLAY pour être a jour de l'affichage, en appelant
             `DISPLAY`.
 
+            == DEBUT DE SECTION GR (manipulations graphiques et sonores) ==
+
 $0a75       Appel du `hook` de PLAY.
 $0a78       Désactivation du rafraichissement.
 $0a7c       Lecture de l'expression en paramètre.
@@ -2395,7 +2397,7 @@ $0c78-$0c79 Période du son = 256 - A
 $0c7a       Cette valeur est mise dans C
 $0c7b       Bascule sur les registres primaires.
 $0c7c       Vérification de la présence d'une virgule
-$0c7d       %DATA(1)
+$0c7d       %DATASKIP
 $0c7e       Récupère le deuxième paramètre.
 $0c81       Bascule sur les registre alternatifs.
 $0c82       Multiplie DE (le premier paramètre) par A (le second paramètre)
@@ -2420,148 +2422,167 @@ $0ca7       [snd_emit]
             Entrées :
             - sonsav_hi et sonsav_lo indiquent les périodes des deux phases du son
             - DE contient la durée du son
+
+            [ArticleBeep]
 $0ca7       Désactive les interruptions.
 $0ca8       [snd_dur_lp]
-$0ca9       ---
-$0caa       ---
-$0cac       ---
-$0caf       [snd_L_wait]
-$0cb2       ---
-$0cb3       ---
-$0cb6       ---
-$0cb8       Mise à état haut de la sortie son
-$0cba       ---
-$0cbb       ---
-$0cbe       ---
-$0cc1       [snd_H_wait]
-$0cc4       ---
-$0cc5       ---
-$0cc8       ---
-$0cca       Mise à état bas de la sortie son
-$0ccc       ---
-$0ccd       ---
-$0cce       ---
-$0cd1       ---
-$0cd2       ---
-$0cd3       Fin de la procédure snd_emit
+$0ca8       Boucle sur la durée du son. Pousse HL
+$0ca9       Et récupère. Semble être là pour le timing, HL étant écrasé ensuite.
+$0caa       Met A à 0
+$0cac       Récupère la valeur des deux périodes.
+$0caf       [snd_low]
+$0caf       Attente de 69 états
+$0cb2       Décrémente le nombre de première période.
+$0cb3       Boucle tant qu'il est différent de zéro.
+$0cb6-$0cb8 Mise à état haut de la sortie son (envoie de 8 sur le port $AF)
+$0cba       Décrémente la durée totale du son
+$0cbb-$0cbe Attente totale de 58 états.
+$0cc1       [snd_high]
+$0cc1       Attente de 69 états.
+$0cc4       Décrémente la valeur de la seconde période.
+$0cc5       Boucle tant que le nombre est différent de zéro.
+$0cc8-$0cca Mise à état bas de la sortie son (envoie de 0 sur le port $AF)
+$0ccc-$0cce Boucle si DE n'est pas nul.
+$0cd1       Réactivate les interruptions
+$0cd2       Bascule sur les registres alternatifs.
 
 $0cd4       [de_mul_a]
-            Entrée : A, DE
+            Multiplication de DE par A, avec le résultat dans DE.
+
+            Entrées :
+            - A, le multiplicateur
+            - DE, le registre à multiplier
+
+            Sortie :
+            - DE, le résultat de DE multiplié par A
+            - HL contient le DE initial multiplié par 256, par effet de bord.
+
+            Préserve :
+            - A
+
             Sortie : HL = DE << 8 (autrement dit, H <- E) ; DE = DE * A ; A inchangé
-$0cd4       ---
-$0cd6       ---
+$0cd4       Multiplication sur 8 bits
+$0cd6       Accumulateur à 0
 $0cd9       [next_bit]
-$0cda       ---
-$0cdc       ---
+$0cd9       Rotation à droite avec le bit de poids faible dans Carry
+$0cda       Si le bit était 0, pas d'addition à effectuer.
+$0cdc       Sinon, ajout de DE dans HL
 $0cdd       [dont_add]
-$0cde       ---
-$0ce0       ---
-$0ce2       ---
-$0ce4       ---
-$0ce5       ---
-$0ce6       [wait_69c]
-            Wait 69 cycles, call included
-$0ce7       ---
-$0ce8       [wait_31c]
-$0ce9       [wait_27c]
-$0cea       ---
+$0cdd       Passe le Carry à 0
+$0cde-$0ce0 Multiplication de DE par 2 (décalage de DE de 1 vers la gauche)
+$0ce2       Traite le bit suivant.
+$0ce4       Récupère le résultat dans DE
+
+$0ce6       [wait_69s]
+            Attente de 69 states (états T), incluant le `call`.
+$0ce6       19 states
+$0ce7       19 states
+$0ce8       [wait_31s]
+$0ce8       4 states
+$0ce9       [wait_27s]
+$0ce9       10 states (+ `call` 17 states)
+$0cea       [some_data]
+$0cea       ??? (en code, `dec b`, `reti`)
+
 $0ced       [inst_sete]
             %CODE
-$0cee       ---
-$0cef       ---
-$0cf1       ---
-$0cf3       ---
-$0cf5       ---
-$0cf7       ---
-$0cf9       ---
-$0cfc       [skip0CFC]
-$0cfd       ---
-$0d01       ---
-$0d04       ---
-$0d06       ---
-$0d09       ---
-$0d0b       ---
-$0d0c       ---
-$0d0e       ---
-$0d0f       ---
-$0d12       ---
-$0d13       ---
-$0d14       ---
-$0d16       ---
-$0d17       ---
-$0d19       ---
-$0d1c       ---
-$0d1e       ---
-$0d20       ---
-$0d23       ---
-$0d25       ---
-$0d26       ---
-$0d27       ---
-$0d28       ---
-$0d29       ---
-$0d2a       ---
-$0d2b       ---
-$0d2d       ---
-$0d2e       ---
-$0d31       ---
-$0d33       ---
-$0d34       ---
-$0d36       ---
-$0d37       ---
-$0d38       ---
-$0d39       ---
-$0d3c       ---
-$0d3e       ---
-$0d40       ---
-$0d43       ---
-$0d44       ---
-$0d45       ---
-$0d46       ---
-$0d49       ---
-$0d4a       [loop0D4A]
-$0d4d       ---
-$0d4e       ---
-$0d50       [loop0D50]
-$0d51       ---
-$0d53       ---
-$0d55       ---
-$0d56       ---
-$0d57       ---
-$0d58       ---
-$0d5a       ---
-$0d5d       ---
-$0d60       ---
-$0d62       ---
-$0d64       ---
-$0d66       ---
-$0d68       ---
-$0d69       ---
-$0d6b       ---
-$0d6e       ---
-$0d70       ---
-$0d71       ---
-$0d72       ---
-$0d74       ---
-$0d76       ---
-$0d77       [skip0D77]
-$0d7b       ---
+            Commande BASIC `SETET` et `SETEG`
 
-$0d7c       [SendToEF]
-            Fonction: Envoi d'une donnée à l'EF9345
-            Registre en entrée : DE
-            Registre modifié : C
-            D est envoyé sur le port $8F
-            C est envoyé sur le port $CF
-$0d7c       ---
-$0d7e       ---
-$0d80       ---
-$0d82       ---
-$0d84       ---
+            L'interpréteur branche ici pour la commande `SETE` qui n'est pas une vraie commande.
+            La routine se charge de déterminer à partir du caractère suivant de quelle commande il s'agit.
+
+            En effet, les deux commandes sont similaires, on peut considérer que `E` ou `G` est le premier argument
+            de la commande.
+
+$0ced-$0cee Récupère dans A le caractère pointé par HL et incrémente HL, pointeur vers le texte BASIC.
+$0cef       Paramètre par défaut dans B si la commande est `SETET`
+$0cf1       %CHAR
+$0cf1-$0cf3 Branche si la commande est `SETET`
+$0cf5       Paramètre dans B si la commande est `SETEG`
+$0cf7       %CHAR
+$0cf7-$0cf9 Si le caractère paramètre n'est pas 'G'. branche vers une erreur de syntaxe.
+$0cfc       [setet]
+$0cfc       Sauve l'argument B dans la pile (C n'est pas utilisé).
+$0cfd       Désactive le rafraichissement de l'écran.
+$0d01       Récupère le premier argument sous forme d'octet dans A.
+$0d04-$0d06 Ce paramètre doit être au minimum 32, branche vers une erreur si ce n'est pas le cas.
+$0d09       Met le bit 7 du paramètre à 1.
+$0d0b       Transfert le paramètre dans E
+$0d0c       Prépare la commande pour le VDP.
+$0d0e       Bascule sur AF alternatif.
+$0d0f       Envoie la commande $22 avec le premier paramètre modifié au VDP.
+$0d12-$0d13 Récupère puis remet sur la pile l'argument préparé suivant si on est dans `SETET` ou `SETEG`.
+$0d14       Inverse le bit 7 de A
+$0d16-$0d19 Envoie la commande $21 avec la valeur déduite de la commande utilisée. (??? préciser)
+$0d1c-$0d20 Envoie la commande $20 avec l'argument $03 au VDP (??? préciser)
+$0d23       Prépare la commande $24 pour le VDP
+$0d25-$0d27 Bascule de registre AF alternatif le temps de récupèrer le premier argument (numéro de caractère) dans E
+$0d28       On récupère dans A le numéro de caractère.
+$0d29-$0d2b On ne garde du paramètre que les bits de 2 à 7 (dans les bits 0 à 5)
+$0d2d-$0d2e Envoie la commande $24 avec comme paramètre ce nombre modifié (??? préciser)
+$0d31       Préparation de la commande $25 pour le VDP
+$0d33       Bascule sur AF initial.
+$0d34       On garde les 2 bits de poids faible de l'argument.
+$0d36       Récupèration du type de commande depuis la pile (dans B)
+$0d37-$0d38 Préparation de l'argument pour la commande comme l'union du type de commande (B) et des 2 bits de poids faibles.
+$0d39       Envoie de la commande $25 avec cet argument au VDP (??? préciser)
+$0d3c-$0d40 Envoie de la commande $20 avec l'argument $34 au VDP (??? préciser)
+$0d43       Vérifie la présence d'une virgule dans le buffer texte du BASIC.
+$0d44       %DATASKIP
+$0d45       Vérifie la présence d'un début de chaîne de caractères.
+$0d46       %DATASKIP
+$0d47       Décrémente le pointeur vers le texte BASIC pour préparer le décodage de la valeur hexadécimale.
+$0d48       Il y a 10 valeurs de lignes a décoder.
+$0d4a       [set_rd_data]
+$0d4a       Récupère une valeur hexadécimale codée en ASCII vers A.
+$0d4d       Sauve le compteur de lignes.
+$0d4e       8 bits à traiter
+$0d50       [invert_byte]
+$0d50       Met le bit de poids fort dans Carry
+$0d51       Met le Carry dans le bit de poids fort de C avec rotation.
+$0d53       Boucle sur les 8 bits
+$0d55       Met dans A le résultat, qui est la valeur initiale « mirroir » (le bit 7 est à présent le bit 0)
+$0d56       Récupère le compteur de ligne.
+$0d57-$0d5a Envoie de la commande $29 avec l'argument de la ligne au VDP.
+$0d5d       Attent que le VDP soit prêt.
+$0d60-$0d62 Envoie de la commande $25 au VDP
+$0d64       Lecture de la réponse.
+$0d66-$0d6b Envoie de la commande $25 avec l'argument retourné augmenté de 4
+$0d6e       Boucle sur la lecture de la ligne suivante.
+$0d72       %CHAR
+$0d70-$0d76 Lecture des guillemets de fin optionnels.
+$0d77       [sete_end]
+$0d77       Réactivation du rafraichissement de l'écran.
+
+$0d7c       [send_to_vdp]
+            Envoi d'une commande au Video Display Processor (EF9345)
+
+            La commande est envoyée sur le port $8F.
+            La donnée associée est envoyée sur le port $CF
+
+            Entrée :
+            - D est la commande à envoyer
+            - E son argument
+
+            Modifie :
+            - C
+
+            [ArticleVDP]
+$0d7c       Préparation du port de sortie pour la commande
+$0d7e       Envoi de la commande
+$0d80       Préparation du port de sortie pour la donnée
+$0d82       Envoie de la donnée
 
 $0d85       [setext_impl]
-            Fonction: Redéfinition d'un caractère
-            Registres en entrée : HL et A
-            Registres modifiés : AF, HL, BC, DE
+            Redéfinition d'un caractère
+
+            Normalement appelé depuis `setext`.
+
+            Entrées :
+            - A[6:0] contient le carractère à changer (sur 7 bits).
+            - A[7] contient la nature de la palette (0 == Texte, 1 == Graphique)
+            - HL pointe sur le buffer de 10 octets avec les valeurs de caractère.
+
 $0d85       if bit(A, 7) == 0 then B = $C0 else B = $40
 $0d87       ---
 $0d89       ---
@@ -2909,17 +2930,21 @@ $0fb3       ---
 $0fb5       ---
 $0fb8       ---
 $0fbc       ---
-$0fbf       [call0FBF]
-$0fc2       ---
-$0fc5       ---
-$0fc6       ---
-$0fc7       ---
-$0fc8       ---
-$0fc9       ---
-$0fca       ---
-$0fcd       ---
-$0fd0       ---
-$0fd1       ---
+$0fbf       [str_to_hex]
+            Décode une valeur hexadécimale formée par deux caractères ASCII pointés par HL.
+
+            Entrée :
+            - HL pointe sur le caractère précédent la première valeur
+
+            Sortie :
+            - A contient la valeur
+
+$0fbf       Décode la valeur hexadécimale pointée par HL.
+$0fc2       Branche sur une erreur de syntaxe si le décodage a échoué.
+$0fc5-$0fc9 Multiplie le résultat par 16 et le place dans C.
+$0fca       Décode la seconde valeur hexadécimale.
+$0fcd       Branche sur une erreur de syntaxe si le décodage a échoué.
+$0fd0       Complète l'octet.
 
 $0fd2       [get_hex]
             Lecture d'un chiffre Hexa depuis HL (HL doit donc être positionné sur le caractère précédent)
