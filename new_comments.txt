@@ -129,7 +129,7 @@ $0038       [irq]
             Traitement de l'interruption (IRQ) du Z80.
 
             Le Z80 fonctionne en mode 1. Dans ce mode, un signal IRQ provoque, après
-            traitement de l'instruction en cours, un branchement à cette addresse.
+            traitement de l'instruction en cours, un branchement à cette adresse.
 
             Sur le VG5000µ, cette interruption est levée par le signal VBLANK (???)
             de l'affichage, provoqué par l'EF9345.
@@ -422,7 +422,7 @@ $00b0       [stkv]
             L'axe vertical est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
 
             Entrées :
-            - A contient le choix du périphérique à scanner. A pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
+            - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
             
             Sortie :
             - A = 0, aucune action selon l'axe vertical.
@@ -442,7 +442,7 @@ $00b3       [stkh]
             L'axe horizontal est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
 
             Entrées :
-            - A contient le choix du périphérique à scanner. A pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
+            - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
             
             Sortie :
             - A = 0, aucune action selon l'axe horizontal.
@@ -462,7 +462,7 @@ $00b6       [stka]
             Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
 
             Entrées :
-            - A contient le choix du périphérique à scanner. A pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
+            - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
             
             Sortie :
             - A = 0, aucune action.
@@ -663,52 +663,45 @@ $01f5       ---
 $01f7       ---
 $01f9       ---
 $01fb       ---
-$01fc       [call01FC]
-$01ff       ---
-$0202       ---
-$0203       ---
-$0204       ---
-$0207       ---
-$0208       ---
-$0209       ---
-$020c       ---
-$020d       ---
-$020e       ---
-$020f       ---
-$0210       ---
-$0213       ---
-$0215       ---
-$0216       ---
-$0217       ---
-$0219       ---
-$021b       ---
-$021d       ---
-$021e       ---
-$021f       ---
-$0221       ---
-$0223       ---
-$0224       ---
-$0227       ---
-$0229       ---
-$022c       ---
-$022e       ---
-$0230       ---
-$0231       ---
-$0234       ---
-$0236       ---
-$0239       ---
-$023a       ---
-$023e       ---
-$0241       [skip0241]
-$0244       ---
-$0246       ---
-$0248       ---
-$024a       ---
-$024d       ---
-$024f       ---
-$0250       [skip0250]
-$0251       ---
-$0254       ---
+$01fc       [delim_wrt]
+            Inscrit un délimiteur à l'écran avec les attributs courants et avance le curseur.
+
+            Peut provoquer un défilement de l'écran.
+
+$01fc       Récupère la valeur de `extenf`, qui indique l'utilisation des caractères ROM ou RAM.
+$01ff       Récupère les coordonnées actuelles du curseur.
+$0202       Sauve les coordonnées du curseur.
+$0203       Sauve la valeur de `extenf`.
+$0204       Calcul de l'adresse écran en RAM pour la position du curseur dans HL.
+$0207       Restaure la valeur de `extenf`.
+$0208       Met cette valeur dans le premier octet de la paire caractère/attribut dans la zone de l'écran.
+$0209       Récupère la valeur de `attcar`, qui contient les attributs de caractère courant.
+$020c       Avance le pointeur de l'écran.
+$020d       Met dans le second octet de la paire caractère/attribut les attributs de couleurs.
+$020e       Avance le pointeur de l'écran.
+$020f       Sauve le pointeur de l'écran dans DE.
+$0210-$0213 Désactive la continuation de ligne (expliquer le fonctionnement de la continuation ailleurs ???)
+$0215       Récupère les coordonnées du curseur.
+$0216-$0219 Branche si la colonne est inférieure à 39
+$021b       Sinon ramène le curseur à la colonne 0.
+$021d       Incrémente la ligne du curseur.
+$021e-$0221 Branche si la ligne est inférieur à 25.
+$0223       Sinon réduit la ligne de 1.
+$0224-$0229 Indique dans le registre `picflg` que le curseur à atteint le bas de l'écran.
+$022c-$022e Branche si le défilement n'est pas permis.
+$0230       Sauve les coordonnées.
+$0231       Provoque un défilement de l'écran de 1 ligne vers le haut.
+$0234-$0236 Efface la ligne 24.
+$0239       Restaure les coordonnées.
+$023a       Demande un rafraichissement de l'écran à la prochaine interruption.
+$023e       Charge DE avec l'adresse du premier octet de la dernière ligne de l'écran.
+$0241       [line_ok]
+$0241-$0246 Branche si le caractère de continuation n'est pas requis par le registre.
+$0248-$024a Réactive la continuation.
+$024d-$024f Inscrit le caractère de continuation ($84) au début de la dernière ligne.
+$0250       [delim_end]
+$0250       Incrémente le numéro de colonne.
+$0251       Replace les nouvelles coordonnées dans le registre.
 
 $0255       [cls_impl]
             Implémentation de `cls:`.
@@ -756,9 +749,12 @@ $028d       ---
 $0290       ---
 
 $0291       [fndadr_impl]
-            Implémentation de `fndadr:`.
+            Implémentation de `fndadr`.
 
             Effectue le calcul $4000 + (80 * y) + (2 * x).
+
+            Normalement appelé par `fndadr`.
+
 $0291       C contient x
 $0292       L contient y
 $0293-$0297 HL = L * 8 (c'est-à-dire y * 8)
@@ -2486,7 +2482,7 @@ $0cea       ??? (en code, `dec b`, `reti`)
 
 $0ced       [inst_sete]
             %CODE
-            Commande BASIC `SETET` et `SETEG`
+            Commandes BASIC `SETET` et `SETEG`
 
             L'interpréteur branche ici pour la commande `SETE` qui n'est pas une vraie commande.
             La routine se charge de déterminer à partir du caractère suivant de quelle commande il s'agit.
@@ -2576,12 +2572,13 @@ $0d82       Envoie de la donnée
 $0d85       [setext_impl]
             Redéfinition d'un caractère
 
-            Normalement appelé depuis `setext`.
 
             Entrées :
             - A[6:0] contient le caractère à changer (sur 7 bits).
             - A[7] contient la nature de la palette (0 == Texte, 1 == Graphique)
             - HL pointe sur le buffer de 10 octets avec les valeurs de caractère.
+
+            Normalement appelé depuis `setext`.
 
 $0d85-$0d8b Si le bit 7 de A est à 0, alors B prend $C0 (mode texte), sinon B prend $40 (mode graphique)
 $0d8d       [setext_gr]
@@ -2738,202 +2735,305 @@ $0e81       Restaure le pointer de texte BASIC.
 
 $0e83       [inst_cursor]
             %CODE
-            Récupère le caractère après 'CURSOR'.
-$0e84       HL pointe sur le caractère suivant.
-$0e85       ---
-$0e87       ---
-$0e89       ---
-$0e8b       Si ce n'est ni X, ni Y, c'est une erreur de syntaxe
-$0e8e       Récupère l'argument suivant la commande
-$0e91       ---
-$0e93       Saute si moins de 40
-$0e95       Si 40 ou plus, bloque à 39
+            Commandes BASIC `CURSORX` et `CURSORY`
+
+            L'interpréteur branche ici pour la commande `CURSOR` qui n'est pas une vraie commande.
+            La routine se charge de déterminer à partir du caractère suivant de quelle commande il s'agit.
+
+            En effet, les deux commandes sont similaires, on peut considérer que `X` ou `Y` est le premier argument
+            de la commande.
+
+$0e85       %CHAR
+$0e83-$0e87 Branche si le caractère suivant est un 'Y'
+$0e89       %CHAR
+$0e89-$0e8b Si ce n'est pas 'X' non plus, provoque une erreur de syntaxe.
+$0e8e       Récupère l'argument dans A en tant qu'entier sur 8 bits.
+$0e91-$0e95 La valeur maximale pour la colonne est 39.
 $0e97       [set_curx]
-            Met la valeur dans la variable système
-$0e9a       ---
+$0e97       Met le numéro de colonne passé en argument dans la variable système.
+
 $0e9b       [cursory]
-            Récupère l'argument suivant la commande
-$0e9e       ---
-$0ea0       Saute si moins de 25
-$0ea2       Si 25 ou plus, bloque à 24
+$0e9b       Récupère l'argument dans A en tant qu'entier sur 8 bits.
+$0e9e-$0ea2 La valeur maximale pour la ligne est 24.
+
 $0ea4       [set_cury]
-            Met la valeur dans la variable système
-$0ea7       ---
+$0ea4       Met le numéro de ligne passé en argument dans la variable système.
+
 $0ea8       [inst_scroll]
             %CODE
-$0eab       ---
-$0ead       ---
-$0eb0       ---
+            Commande BASIC `SCROLL`
+
+            Cette commande permet le défilement de l'écran.
+            Inverse de la commande `PAGE`.
+$0ea8-$0ead Met à 0 le bit 7 du registre `picflg`.
+
 $0eb1       [inst_page]
             %CODE
-$0eb4       ---
-$0eb6       ---
-$0eb9       ---
+            Commande BASIC `PAGE`
+
+            Cette commande empêche le défilement de l'écran.
+            Inverse de la commande `SCROLL`.
+
+$0eb1-$0eb6 Met à 1 le bit 7 du registre `picflg`.
+
 $0eba       [inst_stickx]
             %CODE
-$0ebd       ---
-$0ec0       ---
+            Fonction BASIC `STICKX()`
+
+            Renvoie la valeur gauche (255)/repos (0)/droite (1) des commandes de joystick ou au clavier.
+
+$0eba       Tranforme la valeur dans FAC en entier dans A.
+$0ebd       Appelle la routine système.
+$0ec0       Branche sur le retour de fonction avec le résultat dans A.
 
 $0ec3       [stkh_impl]
-            Fonction : vérifie la valeur STICK horizontale
-            A=0 (joystick 0) 1 (joystick 1) ou 2 (clavier)
-$0ec3       ---
-$0ec5       ---
-$0ec7       ---
-$0ec9       ---
-$0eca       ---
-$0ecc       ---
-$0ece       Lecture flêche vers le gauche du clavier
-$0ed0       ---
-$0ed2       B passe à $FF
+            Vérification de l'axe horizontal pour les déplacements.
+
+            L'axe horizontal est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+
+            Entrées :
+            - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
+            
+            Sortie :
+            - A = 0, aucune action selon l'axe horizontal.
+            - A = 1, action vers la droite.
+            - A = 255, action vers la gauche.
+
+            Modifie :
+            - AF, B
+
+            Normalement appelé depuis `stkh`.
+$0ec3       Prépare la valeur de retour.
+$0ec5       Restreint le paramètre d'entrée entre 0 et 3.
+$0ec7       Branche pour le cas 0.
+$0ec9-$0eca Branche pour le cas 1.
+$0ecc-$0ece Lecture de la flêche vers le gauche du clavier
+$0ed0       Branchement si la touche n'était pas appuyée (une touche appuyée est mise à 0)
+$0ed2       La touche gauche à été appuyée, B passe à -1/255
 $0ed3       [stkv_nol_k]
-            Lecture flêche vers le droite du clavier
-$0ed5       ---
+$0ed3       Lecture de la flêche vers le droite du clavier
+$0ed5       Branche vers la partie finale commune.
+
 $0ed7       [stkh_joy0]
-$0ed9       ---
-$0edb       ---
-$0edd       B passe à $FF
+$0ed7-$0ed9 Lecture du joystick 0 vers la gauche.
+$0edb       Branche si le joystick n'était pas vers la gauche.
+$0edd       Le joystick était vers la gauche, B passe à -1/255.
 $0ede       [stkh_nol_0]
-$0ee0       ---
+$0ede       Lecture du joystick 0 vers la droite.
+$0ee0       Branche vers la partie finale commune.
+
 $0ee2       [stkh_joy1]
-$0ee4       ---
-$0ee6       ---
-$0ee8       B passe à $FF
+$0ee2-$0ee4 Lecture du joystick 1 vers la gauche.
+$0ee6       Branche si le joystick n'était pas vers la gauche.
+$0ee8       Le joystick était vers la gauche, B passe à -1/255.
 $0ee9       [stkh_nol_1]
+$0ee9       Lecture du joystick 1 vers la droite.
+
 $0eeb       [stk_end]
-            Fin des functions stkh et stkv
-$0eed       Si le dernier test était nul (pas de touche appuyée), alors B est incrémenté. Si deux touches opposée étaient appuyée, cela met le résultat à 0.
+$0eeb       Branche à la fin de la fonction si la détection vers la droite n'a rien donné.
+$0eed       Sinon, incrémente B, ce qui ramène B à 0 si les deux directions étaient valides, sinon, l'amène à 1.
+
 $0eee       [stk_exit]
-            Placement du résultat dans A
-$0eef       ---
+$0eee       Place le résultat dans A.
+
 $0ef0       [inst_sticky]
             %CODE
-$0ef3       ---
-$0ef6       ---
+            Fonction BASIC `STICKY()`
+
+            Renvoie la valeur bas (1)/repos (0)/haut (255) des commandes de joystick ou au clavier.
+
+$0ef0       Tranforme la valeur dans FAC en entier dans A.
+$0ef3       Appelle la routine système.
+$0ef6       Branche sur le retour de fonction avec le résultat dans A.
 
 $0ef9       [stkv_impl]
-            Fonction : vérifie la valeur STICK verticale
-            A=0 (joystick 0) 1 (joystick 1) ou 2 (clavier)
-$0ef9       ---
-$0efb       ---
-$0efd       ---
-$0eff       ---
-$0f00       ---
-$0f02       ---
-$0f04       Lecture flêche vers le haut du clavier
-$0f06       ---
-$0f08       B passe à $FF
+            Vérification de l'axe vertical pour les déplacements.
+
+            L'axe vertical est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+
+            Entrées :
+            - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
+            
+            Sortie :
+            - A = 0, aucune action selon l'axe vertical.
+            - A = 1, action vers le bas.
+            - A = 255, action vers le haut.
+
+            Modifie :
+            - AF, B
+
+            Normalement appelé depuis `stkv`.
+
+$0ef9       Prépare la valeur de retour.
+$0edb       Restreint le paramètre d'entrée entre 0 et 3.
+$0edf       Branche pour le cas 0.
+$0eff-$0f00 Branche pour le cas 1.
+$0f02-$0f04 Lecture de la flêche vers le haut du clavier
+$0f06       Branchement si la touche n'était pas appuyée (une touche appuyée est mise à 0)
+$0f08       La touche haute à été appuyée, B passe à -1/255
 $0f09       [stkv_noup_k]
-$0f0b       Lecture flêche vers le bas du clavier
-$0f0d       ---
+$0f0b       Lecture de la flêche vers le bas du clavier
+$0d0d       Branche vers la partie finale commune.
+
 $0f0f       [stkv_joy0]
-$0f11       ---
-$0f13       ---
-$0f15       B passe à $FF
+$0f0f-$0f11 Lecture du joystick 0 vers la haut.
+$0f12       Branche si le joystick n'était pas vers la haut.
+$0f15       Le joystick était vers la haut, B passe à -1/255.
 $0f16       [stkv_noup_0]
-$0f18       ---
+$0f16       Lecture du joystick 0 vers le bas.
+$0f18       Branche vers la partie finale commune.
+
 $0f1a       [stkv_joy1]
-$0f1c       ---
-$0f1e       ---
-$0f20       B passe à $FF
+$0f1a-$0f1c Lecture du joystick 1 vers la haut.
+$0f1e       Branche si le joystick n'était pas vers la haut.
+$0f20       Le joystick était vers la haut, B passe à -1/255.
 $0f21       [stkv_noup_1]
-$0f23       ---
+$0f23       Lecture du joystick 1 vers le bas.
+
 $0f25       [inst_action]
             %CODE
-$0f28       ---
-$0f2b       ---
+            Fonction BASIC `ACTION()`
+
+            Renvoie la valeur du bouton d'action appuyé (1) ou repos (0) des commandes de joystick ou au clavier.
+
+$0f25       Tranforme la valeur dans FAC en entier dans A.
+$0f28       Appelle la routine système.
+$0f2b       Branche sur le retour de fonction avec le résultat dans A.
 
 $0f2e       [stka_impl]
-            Fonction : vérifie la valeur ACTION
-            A=0 (joystick 0) 1 (joystick 1) ou 2 (clavier/barre espace)
-$0f2e       ---
-$0f30       ---
-$0f32       ---
-$0f34       ---
-$0f35       ---
-$0f38       ---
-$0f3a       Vérification de l'appuie de la touche ESPACE
-            Vérification de l'appuie sur la bouton action du joystick 0
-$0f3c       ---
+            Vérification du bouton d'action.
+
+            Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+
+            Entrées :
+            - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
+            
+            Sortie :
+            - A = 0, aucune action.
+            - A = 1, bouton actif.
+
+            Modifie :
+            - AF, B
+
+            Normalement appelé depuis `stka`.
+
+$0ef9       
+$0edb       
+$0edf       
+$0eff-$0f00 
+$0f02-$0f04 Lecture de la flêche vers le haut du clavier
+
+$0f2e       Prépare la valeur de retour.
+$0f30       Restreint le paramètre d'entrée entre 0 et 3.
+$0f32       Branche pour le cas 0.
+$0f34-$0f35 Branche pour le cas 1.
+$0f38-$0f3a Vérification de l'appuie de la touche ESPACE
+$0f3c       Branche vers la partie finale commune.
 $0f3e       [stka_joy0]
-$0f40       ---
-$0f41       ---
-$0f43       ---
-$0f44       ---
-$0f45       ---
-$0f46       ---
-$0f47       ---
-$0f48       ---
+$0f3e       Vérification de l'appuie sur la bouton action du joystick 0
+$0f40       Complément à 1.
+$0f41       Masque sur le bits 4 et 5.
+$0f43-$0f46 Décalage pour amener le résultat sur les bits 0 et 1
+$0f47       Résultat assu dans B (pourquoi ???)
+
 $0f49       [inst_key]
             %CODE
-$0f4a       ---
-$0f4d       ---
-$0f4e       ---
-$0f4f       ---
+            Fonction BASIC `KEY()`.
+
+            Retourne la valeur ASCII correspondant au caractère de la touche enfoncée.
+
+$0f49       Préserve HL
+$0f4a       Scan le clavier
+$0f4d       Restaure HL
+$0f4e       Essentiellement, met le flag Z à 1 si aucune touche n'a été détectée.
+$0f4f       Retour de fonction avec la valeur dans A.
+
 $0f52       [inst_delim]
             %CODE
-$0f55       ---
-$0f56       ---
-$0f58       ---
-$0f59       ---
-$0f5c       ---
-$0f5e       ---
-$0f5f       ---
-$0f60       ---
-$0f61       ---
-$0f62       ---
-$0f63       ---
-$0f66       ---
-$0f68       ---
-$0f69       ---
-$0f6a       ---
-$0f6b       ---
-$0f6c       ---
-$0f6d       ---
-$0f6e       ---
-$0f70       ---
-$0f73       ---
-$0f74       ---
-$0f75       ---
-$0f78       ---
-$0f7a       ---
-$0f7c       ---
-$0f7e       ---
-$0f80       [skip0F80]
-$0f81       ---
-$0f84       ---
-$0f85       ---
-$0f86       ---
-$0f89       ---
-$0f8d       ---
+            Commande BASIC `DELIM`.
+
+            Écrit un délimiteur avec des attributs spécifiques.
+            Provoque un rafraichissement de l'écran.
+
+$0f52       Récupère la valeur de `attcar`
+$0f55       La sauve sur la pile
+$0f56-$0f58 Sauve 0 sur la pile.
+$0f59       Prend le premier argument de la commande.
+$0f5c       Limité entre 0 et 7 (4 bits de poids faible).
+$0f5e       Récupère 0 dans D.
+$0f5f       Compare l'argument à 0.
+$0f60       Pousse le résultat sur la pile.
+$0f61       Vérifie la présence d'une virgule.
+$0f62       %DATASKIP
+$0f63       Prend le second argument de la commande.
+$0f66       Limité entre 0 et 7.
+$0f68-$0f6b Décale le résultat de 4 vers la gauche.
+$0f6c       Récupère le premier argument dans D
+$0f6d       Union des deux arguments (les deux couleurs)
+$0f6e       Le bit 7 de `attcar` est toujours 1
+$0f70       Place les nouvelles couleurs dans `attcar`.
+$0f73       Vérifie la présence d'une virgule.
+$0f74       %DATASKIP
+$0f75       Prend le troisième argument de la commande.
+$0f78       Test le bit 0 de l'argument.
+$0f7a       Prépare le résultat si l'argument est 0, $80.
+$0f7c       Branche si l'argument est 0 (plus généralement, pair)
+$0f7e       Si l'argument est 1 (plus généralement, impair), le résultat est $84
+$0f80       [delim_norm]
+$0f80       Préserve HL
+$0f81       Affiche le délimiteur
+$0f84       Restaure HL
+$0f85       Récupère la valeur initiale de `attcar`
+$0f86       Et la restaure.
+$0f89       Demande un rafraichissement de l'écran.
+
 $0f8e       [inst_screen]
             %CODE
-            Force l'affichage et met le compteur de rafraichissement à 1
-$0f92       ---
+            Commence BASIC `SCREEN`
+
+            Contrairement à ce que le manuel indique, l'appel de la commande a un effet, celui
+            de forcer un rafraichissement de l'écran.
+            
+$0f8e-$0f92 Force l'affichage et met le compteur de rafraichissement à 1
 $0f96       Attend la prochaine interruption qui provoquera un rafraichissement
-$0f97       ---
+
 $0f98       [inst_display]
             %CODE
-            Valeur par défaut pour DISPLAY
-$0f9a       ---
-$0f9c       ---
+            Commande BASIC `DISPLAY`
+
+            Indique la période de rafraichissement de l'écran et provoque un rafraichissement de l'écran à la prochaine
+            interruption.
+            
+$0f9a       Valeur par défaut pour DISPLAY, 32
+$0f9a       Branche si DISPLAY a été appelé sans argument.
+$0f9c       Récupère l'argument de la commande dans A.
 $0f9f       [display_def]
-$0fa2       Enchaine sur l'instruction SCREEN
+$0f9f       Inscrit la valeur de la période dans le registre `intrat`, utilisé par l'IRQ pour décider de quand rafraichir l'écran.
+$0fa2       Branche sur l'inscrution SCREEN, qui provoque un rafraichissement à la prochaine interruption.
+
 $0fa4       [inst_store]
             %CODE
-$0fa8       ---
-$0fac       ---
+            Commande BASIC `STORE`
+
+            Contrairement à ce que le manuel indique, l'appel de la commande a un effet, celui
+            de faire prendre la plus grande période possible pour un rafraichissement d'écran, et de
+            retarder le prochain du maximum (256 interruptions).
+
+$0fa4       Met à 0 la période d'affichage qui est la plus grande possible, car le compteur est toujours décrémenté avant de tester s'il est à zéro.
+$0fa8       Met le compteur d'interruption actuel à 0.
 
 $0fad       [inst_call]
             %CODE
-            Instruction CALL
-            Évalue l'argument, le cast en int, puis utilise le vecteur `calhk` comme tremplin.
-$0fad       ---
-$0fb0       ---
-$0fb3       ---
-$0fb5       ---
-$0fb8       ---
-$0fbc       ---
+            Commence BASIC `CALL`
+
+            Évalue l'argument, en prend la partie entière, puis utilise le vecteur `calhk` comme tremplin pour appeler l'adresse obtenue.
+$0fad       Evalue l'expression numérique qui suit la commande.
+$0fb0       En prend la partie entière dans DE.
+$0fb3       $C3 est l'opcode pour `call`.
+$0fb5       Place l'opcode dans `calhk`
+$0fb8       Place l'adresse à la suite
+$0fbc       Branche vers le tremplin.
+
 $0fbf       [str_to_hex]
             Décode une valeur hexadécimale formée par deux caractères ASCII pointés par HL.
 
@@ -2951,31 +3051,39 @@ $0fcd       Branche sur une erreur de syntaxe si le décodage a échoué.
 $0fd0       Complète l'octet.
 
 $0fd2       [get_hex]
-            Lecture d'un chiffre Hexa depuis HL (HL doit donc être positionné sur le caractère précédent)
-            Le caractère est valide si le Carry est reset, A contient alors la valeur.
-            Si le Carry est set, la valeur n'était pas valide
-$0fd2       ---
-$0fd3       ---
-$0fd4       Comparaison avec '0'
-$0fd6       Saute si en dessous, c'est invalide
+            Lecture d'un chiffre hexadécimal depuis HL.
+
+            Entrée :
+            - HL pointe un octet avant le caractère (la routine l'avance, comme toutes les routines de lecture de caractère)
+
+            Sortie :
+            - Carry est à 1 si le caractère n'était pas un chiffre hexadécimal
+            - Carry est à 0 si le caractère était un chiffre hexadécimal
+            - Dans ce cas, A contient la valeur du chiffre.
+            
+$0fd2-$0fd3 Acquisition du caractère.
+$0fd4       %CHAR
+$0fd4       ---
+$0fd6       Branche si le caractère est inférieur à '0' en ASCII.
 $0fd8       Comparaison avec ':' (juste après '9')
-$0fda       Saute si en dessous (on est donc entre '0' et '9', c'est valide)
-$0fdc       toupper() du caractère
-$0fde       ---
-$0fe0       Saute si en-dessous de 'A'
-$0fe2       ---
-$0fe4       Saute si au-dessus ou égal à 'G'
+$0fd8       %CHAR
+$0fd8-$0fda Branche si le caractère est inférieur à ':', il est entre '0' et '9' inclus.
+$0fdc       Si le caractère est alphabétique, il est à présent forcé à sa version majuscule.
+$0fde       %CHAR
+$0fde-$0fe0 Branche si le caractère est inférieur à 'A' en ASCII
+$0fe2       %CHAR
+$0fe2-$0fe4 Branche si le caractère est supérieur ou égal à 'G'.
 $0fe7       Soustrait $37 à A pour obtenir la valeur ('A' - $37 donne $0A)
 $0fe9       [valid_hex]
-            S'assure que le résultat dans de $00 à $0F, au passage clear du carry
-$0feb       ---
+$0fe9       Si le caractère était entre '0' et '9', ne garde que la partie basse, ce qui transforme le caractère en sa valeur numérique.
+
 $0fec       [invalid_hex]
-            set le carry et revient
-$0fed       ---
-$0fee       ---
+$0fec       Le caractère n'était pas un chiffre hexadécimal. Le Carry est mis à 1.
+
+$0fee       Padding de fin de section. Ces octets ne sont pas utilisés.
 
 $1000       [start]
-            $SECTION(biinit)
+            %SECTION(biinit)
             C'est ici que commence l'intialisation complète de la machine.
             La première étape est de recopier le contenu de la ROM dans
             l'espace RAM adressable. Adressable ne signifie pas que de la RAM
@@ -2987,63 +3095,63 @@ $1000       [start]
             qui répond correctement. Dès que c'est différent, c'est qu'on est
             sorti de la zone de la mémoire inscriptible disponible.
             
-            La dernière adresse valide est stockée dans $4895 et dans SP, le
-            registre pointeur de pile (Stack Pointer)
+            La dernière adresse valide est stockée dans $4895 (`stktop`) et
+            dans SP, le registre pointeur de pile (Stack Pointer)
             
             On remarquera que si une ROM répond avec un contenu identique à
             la ROM à une adresse multiple de 16ko, l'initialisation va
             penser que c'est de la RAM accessible.
-$1000       Démarrage complet de la machine.
-            Vérifier pourquoi c'est appelé depuis $2282
-$1001       ---
-$1004       ---
-$1007       ---
-$100a       Copie de la ROM sur toute la mémoire adressable
-            Equivalent C-style de : memcpy($4000, $0000, $C000)
-$100c       À la fin de LDIR, HL == $C000, DE == $0000, BC == $0000
-$100d       ---
-$100e       À présent, HL == $4000, DE == $0000, BC == $C000
-$1011       [jump1011]
-$1012       ---
-$1014       ---
-$1015       Si le contenu de (HL) et (DE) est différent, on saute en $101B
-$1017       Si le contenu de (HL) et (DE) est identique
-            et que BC est > 0, on loop
+
+$1000       Désactivation de l'interruption masquable.
+$1001-$100a Copie de la ROM en boucle sur toute la mémoire addressable.
+$100c-$100d Transfert de HL (qui vaut $c000) vers BC. DE vaut $0000 suite à `ldir`.
+$100e       HL pointe sur la première adresse RAM.
+$1011       [check_mem]
+$1011       Lecture de l'octet pointé par HL
+$1012       Comparaison de A et (HL), incrémentation de HL, décrémentation de BC
+$1014       DE pointe sur l'octet suivant
+$1015       Branche si le deux octets comparés étaient différent.
+$1017       Sinon, on boucle selon le compteur BC.
 
 $101a       L'instruction partielle suivante ne sert à rien d'autre qu'à gagner un peu
             d'espace lorsque BC == 0 et que la boucle est terminée.
             Le contenu de A est écrasé un peu plus loin.
-$101a       ---
-$101b       [skip101B]
-            HL est décrémenté pour retrouver la dernière addresse testée (CPI augmente HL).
-            HL contient donc la première adresse invalide de l'espace mémoire en écriture.
-            Cette adresse est mise dans SP et stockée en $4895
-$101c       ---
-$101d       ---
+$101a       %DATASKIP
+$101a       Cet octet semble inutilisé. ???
 
-$1020       La seconde étape de l'initialisation consiste à remplir les vecteurs
+$101b       [mem_differs]
+            Après avoir initialisé le pointeur de pile, la seconde
+            étape de l'initialisation consiste à remplir les vecteurs
             utilisateur par des instructions spécifiques. Ces vecteurs, situés
             en RAM, permettent d'intervenir lors de certaines opérations avec
             du code écrit par l'utilisateur et donc de modifier le comportement
             du système.
-$1020       Les adresses $47D0 à $47EE vont ensuite est remplies par des RET ($C9).
-            Equivalent C-style de : memset($47D0, $1E, $C9)
-$1022       ---
-$1025       ---
+
+            [ArticleHooks]
+
+$101b       HL pointe sur la dernière adresse valide.
+$101c       SP prend aussi cette valeur
+$101d       Ainsi que le registre `stktop`
+
+$1020       A est initialisé avec l'opcode pour `ret`
+$1022       HL pointe vers le premier hook, `inthk`
+$1025       Sur une longueur amenant jusqu'à `inphk` compris.
 $1027       [hk_ini_lop]
-$1028       ---
-$1029       ---
-$102b       ---
-$102d       ---
-$1030       ---
-$1033       ---
-$1036       ---
-$1039       ---
-$103c       ---
-$103f       ---
-$1042       ---
-$1045       ---
-$1048       L'adresse $47EE reçoit un JP $0069.
+$1027       Place un `ret` à l'adresse pointée par HL
+$1028       Avance HL
+$1029       Boucle sur la longueur de B. Tous les hooks sont initialisés avec des `ret`.
+$102b       A est initialisé avec l'opcode pour `jp`
+$102d-$1033 Place un `jp` dans les adresse d'exécution des commandes BASIC `LPEN`, `DISK` et `MODEM`.
+
+            Ces adresses sont aussi appelées respectivement `lpnhk`, `dskhk` et `modhk`.
+
+            Ces instructions sont en RAM, ce qui permet de les router initialement vers une routine
+            affichant une erreur, puis de les router vers les vraies commandes lorsque le
+            périphérique est pris en charge.
+$1036       Adresse de la routine affichant une erreur de périphérique non présent.
+$1039-$103f Place cette adresse après tous les `jp` des trois instructions précédentes.
+$1042-$1048 Étrangement, le hook de l'interruption non masquable, lors du boot, est branchée vers
+            une routine qui passe le système en anglais.
 
 $104b       La troisième phase initialise le processeur graphique EF9345. Pour commencer,
             une séquence est envoyée au périphérique, puis quelques variables en RAM sont
@@ -4241,16 +4349,14 @@ $1fef       ---
 $1ff0       ---
 $1ff2       ---
 $1ff3       [stka_joy1]
-            Vérification de l'appuie sur la bouton action du joystick 1
-$1ff5       ---
-$1ff6       ---
-$1ff8       ---
-$1ff9       ---
-$1ffa       ---
-$1ffb       ---
-$1ffc       ---
-$1ffd       ---
-$1ffe       ---
+$1ff3       Vérification de l'appuie sur la bouton action du joystick 0
+$1ff5       Complément à 1.
+$1ff6       Masque sur le bits 4 et 5.
+$1ff8-$0ffb Décalage pour amener le résultat sur les bits 0 et 1
+$1ffc       Résultat assu dans B (pourquoi ???)
+
+$1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comme deux octets libres.
+
 $2000       [instructions]
             $SECTION(bintrp)
 $2064       [functions]
@@ -6060,7 +6166,7 @@ $2be9       Comparaison à $80, la caractère de début de ligne
 $2beb       ---
 $2bed       ---
 $2bef       ---
-$2bf1       Recheche du caractère de continuation ? ($B4)
+$2bf1       Recherche du caractère de continuation ? ($B4)
 $2bf3       Boucle sur la recherche
 $2bf5       [linestart]
 $2bf6       ---
@@ -6370,7 +6476,7 @@ $2efe       [resetstack]
             
             MS_BASIC=CLREG
 $2efe       Récupération de l'adresse de retour
-$2eff       Réinitialisation de la pile (SP) à la dernière addresse RAM valide
+$2eff       Réinitialisation de la pile (SP) à la dernière adresse RAM valide
 $2f02       ---
 $2f03       ---
 $2f06       Le pointeur sur la zone temporaire de descripteur est initialisé
@@ -7797,7 +7903,7 @@ $37eb       ---
 
 $37ec       [bc_from_tmp]
             Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (temppt)
-            Si en remontant encore de deux adresse ou tombe sur DE, alors on met à jour (temppt) avec cette nouvelle addresse.
+            Si en remontant encore de deux adresse ou tombe sur DE, alors on met à jour (temppt) avec cette nouvelle adresse.
             Sinon, on retourne.
             Quoi qu'il arrive, avec BC
 $37ec       ---
@@ -8276,8 +8382,8 @@ $3a4e       ---
 $3a50       ---
 $3a51       HL <- Index * 4, car chaque entrée du tableau prend 4 octets.
 $3a52       Récupération dans BC du pointeur des données du tableau mise sur la pile en $3a3e
-$3a53       HL <- addresse de la donnée cherchée
-$3a54       DE <- addresse de la donnée cherchée
+$3a53       HL <- adresse de la donnée cherchée
+$3a54       DE <- adresse de la donnée cherchée
 $3a55       [end_dim]
             MS_BASIC=ENDDIM
             Récupération dans HL du pointeur de parsing
@@ -8921,9 +9027,11 @@ $3e3b       [skip3E3B]
 $3e3c       ---
 $3e3f       ---
 $4000       [screen]
-$4000       [screen]
 $47d0       [inthk]
 $47d3       [calhk]
+            Tremplin pour la commande `CALL` qui y place l'opcode `call`/$c3
+$47d4       [calhk_addr]
+            Addresse pour le tremplin `calhk`.
 $47d6       [sonhk]
 $47d9       [plyhk]
 $47dc       [rsthk]
@@ -8933,6 +9041,7 @@ $47e5       [crdhk]
 $47e8       [inlhk]
 $47eb       [inphk]
 $47ee       [nmihk]
+$47ef       [nmihk_addr]
 $47f1       [inst_lpen]
             %CODE
 $47f4       [inst_disk]
