@@ -3102,7 +3102,7 @@ $1000       [start]
             la ROM à une adresse multiple de 16ko, l'initialisation va
             penser que c'est de la RAM accessible.
 
-$1000       Désactivation de l'interruption masquable.
+$1000       Désactivation de l'IRQ.
 $1001-$100a Copie de la ROM en boucle sur toute la mémoire addressable.
 $100c-$100d Transfert de HL (qui vaut $c000) vers BC. DE vaut $0000 suite à `ldir`.
 $100e       HL pointe sur la première adresse RAM.
@@ -3153,135 +3153,99 @@ $1039-$103f Place cette adresse après tous les `jp` des trois instructions pré
 $1042-$1048 Étrangement, le hook de l'interruption non masquable, lors du boot, est branchée vers
             une routine qui passe le système en anglais.
 
-$104b       La troisième phase initialise le processeur graphique EF9345. Pour commencer,
-            une séquence est envoyée au périphérique, puis quelques variables en RAM sont
-            mises initialisées.
-            
-            Attention, la valeur de IX doit rester constante. Le système de cette ROM
-            considère que IX est en tout temps égal à $47FA et référence certaines
-            variables par index par rapport à IX.
-            
-            La séquence est
-             $28,$81 -> Écriture de quelque chose dans le TGS
-             $29,$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
-             $20,$82,$29,$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur
-             $20,$83,$29,$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, Insert mode : Active Area, Flash ON, Format court pour le 40 Char
-             $20,$84,$29,$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
-             $20,$87,$29,$08 -> ROR = $08 (Z=0, Y=8)
-             $26,$08,$27,$00,$28,$02 -> R6=$08, R7=$00, KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ??)
-            
-            Envoyés par pairs sur les ports $8f, $cf
 $104b       IX prend la valeur $47FA qui est la base de la zone de données graphiques.
-$104f       -> $1179 est la zone mémoire contenant la séquence à envoyer au EF9345.
-            HL pointe sur la taille de la séquence à envoyer au EF9345.
-$1052       ---
-$1055       Initialisation de la variable $47FA : compteur d'interruptions à 5
-$1059       Initialisation de la variable $47FB : besoin de rafraichissement à faux
-$105d       Initialisation de la variable $47FA : utilisation des majuscules
-$1061       ---
 
-$1063       Les interruptions sont réactivées pour la suite de l'initialisation.
-$1063       ---
-$1064       ---
-$1067       Numéro de la première ligne du BASIC ?
-$106a       Couleur du pourtour et aspect du curseur
-$106e       ---
-$1071       ---
-$1074       ---
-$1077       ---
-$107a       Copie les valeurs initiales des différentes variables du système en RAM
-$107c       ---
-$107d       Envoi 0 sur le port $EF, censé être non utilisé
-            Envoi 0 sur le port $AF, pour le son-k7
-$107f       ---
-$1081       ---
-$1084       Modification de l'adresse du hook "nmihk"
-$1087       ---
-$108a       ---
-$108d       ---
-$1090       ---
+            Attention, la valeur de IX doit rester constante. Le système considère que IX
+            est en tout temps égal à $47FA et référence certaines variables par index par rapport à IX.
+
+            Si IX doit changer, il faut veiller à désactiver l'IRQ (ou faire en sorte d'en sortir juste
+            après le hook `inthk`) et ne rien appeler qui concerne l'affichage sans avoir restauré IX.
+            
+            Cette troisième phase initialise le processeur graphique EF9345. Pour commencer,
+            une séquence est envoyée au périphérique, puis quelques variables en RAM sont
+            initialisées.
+            
+            La séquence, envoyée par `regst`, est détaillée au label correspondant.
+
+$104f       HL pointe sut la séquence à envoyer au VDP.
+$1052       Envoie la séquence au VDP.
+$1055       Initialisation du registre `intdiv`, compteur d'interruptions à 5.
+$1059       Initialisation du registre `intact`, permission de rafraichissement à faux.
+$105d       Initialisation du registre `fklock` : utilisation des majuscules à vrai.
+$1061       Passage du Z80 en Mode 1.
+
+$1063       Réactivation de l'IRQ.
+$1064-$1067 Numéro de départ d'un listing avec la touche HOME (???)
+$106a       Initialisation du registre `cursor` (couleur du pourtout et aspect du curseur ???)
+$106e       Réinitialisation des paramètres de l'écran
+$1071-$107a Recopie une série de valeurs en RAM pour initialiser des registres à partir de `ramlow`.
+
+            Cela comprend entre autre le squelette de la routine de division de nombres flottants ou
+            encore les valeurs initiales du générateur de nombres aléatoires.
+
+            Le dernier registre initialisé est `octsav`.
+
+$107c-$107f Envoi 0 sur le port $EF, censé être non utilisé (à vérifier ???) et sur $AF, pour la son/k7.
+$1081-$1084 Modification de l'adresse du hook "nmihk" pour brancher vers `test_reset` qui traite le redémarrage utilisateur (Ctrl+Delta)
+$1087       Initialise les registres BASIC et l'imprimante.
+$108a       Retour à la ligne.
+$108d       Marque la fin du buffer de travail du BASIC.
+$1090       Initialise le début de la RAM (??? juste avant txttab initial ???)
 
 $1093       Calcul des bornes de pile, memsize et place disponible
-$1093       ---
-$1096       hl <- sp - 2 (sp == (stktop))
-$1097       ---
-$109a       ---
-$109b       hl < $03e8 ? (comment serait-ce possible ?)
-$109e       de <- $ffce (-50)
-$10a1       ---
-$10a4       ---
-$10a5       Calcul final du haut de la pile comme étant (memsize) - 50
-$10a8       ---
+$1096       HL pointe deux octets avant SP.
+$1097-$109b Branche vers une erreur de mémoire si HL est inférieur à $03e8 (comment serait-ce possible ???)
+$109e       DE = -50
+$10a1       `memsiz` prend la valeur de HL (deux octets avec `(stktop)`)
+$10a4       Soustrait 50 de HL
+$10a5       Le haut de la pile `(stktop)` est placé 50 octets avant `memsiz`, pour laisse la place pour les chaînes.
+$10a8       Efface et réinitialise les variales internes BASIC.
 $10ab       Récupération du haut de la pile
-$10ae       ---
-$10b1       hl <- (stktop) - 17
-$10b2       ---
-$10b5       ---
-$10b6       ---
-$10b7       ---
-$10b8       ---
-$10b9       ---
-$10ba       hl = hl - de, soit ((stktop) - 17 - end_vars)
-            Autrement dit, la taille disponible entre la fin des variables internes et la pile -17.
+$10ae-$10b1 HL pointe sur `(stktop)` - 17.
+$10b2-$10ba Calcul la différence entre le haut de la pile moins 17 et le début de la RAM utilisable.
 $10bb       Cette taille disponible est poussée dans la pile.
 
-$10bc       Affichage du texte de démarrage. VG5000 + numéro de version
-$10bc       Texte en double hauteur, double largeur
-$10c0       ---
-$10c3       ---
-$10c6       ---
-$10c9       ---
-$10cc       ---
-$10cf       ---
-$10d3       ---
-$10d6       ---
-$10d9       ---
-$10dc       ---
-$10df       ---
-$10e2       ---
-$10e3       ---
-$10e6       ---
-$10e9       ---
-$10ec       ---
-$10ed       ---
-$10ef       ---
-$10f2       [skip10F2]
-$10f5       ---
-$10f8       ---
-$10fb       ---
-$10fc       ---
-$10ff       ---
-$1102       [loop1102]
-$1103       ---
-$1105       ---
-$1106       ---
-$1107       ---
-$1108       ---
-$1109       ---
-$110a       ---
-$110b       ---
-$110c       ---
-$110d       ---
-$110e       ---
-$110f       ---
-$1111       ---
-$1112       ---
-$1113       ---
-$1114       ---
-$1115       ---
-$1116       ---
-$1117       ---
+$10bc       
+$10bc       Texte en double hauteur, double largeur.
+$10c0-$10cc Affichage du texte de démarrage. "VG5000"
+$10cf       Retour en simple hauteur, simple largeur.
+$10d3-$10df Affichage du numéro de version.
+$10e2       La taille utilisateur disponible est récupérée.
+$10e3       Affiche la taille mémoire utilisateur disponible.
+$10e6-$10ef Sélectionne le message "octets disponibles" en français ou anglais.
+$10f2       [disp_fr]
+$10f2       Affiche le message
+$10f5       DE contient le marqueur d'extention ROM
+$10f8-$10fb Place une adresse de retour sur la pile pour le prochaine `ret z`
+$10fc       Initialise le pointeur à 0.
+$10ff       %NOT_LABEL
+$10ff       Initialise le pas d'avancement du pointeur.
+$1102       [no_rom_ext]
+$1102-$1103 Ajoute BC ($2000) à HL
+$1105-$1107 Retourne si HL est égal à 0, c'est-à-dire quand tous les multiples de $2000 ont été vérifiées.
+            Provoquera un retour à $113f.
+$1108       Sauve HL
+$1109-$110c HL = (HL)
+$110d       Compare avec DE, le marqueur indiquant qu'une ROM est présente.
+$110e       Restaure HL, pointeur vers les multiples de $2000
+$110f       Boucle si une ROM n'a pas été détectée.
+$1111-$1112 Un marqueur de ROM a été détecté, HL est positionné deux octets plus loin.
+$1113-$1116 HL = (HL)
+$1117       Branchement à l'adresse indiquée par la ROM. Un `ret` renverra vers `after_check`.
 
 $1118       [test_reset]
-            Fonction : appelé par le vecteur nmihook ($47ee) qui par défaut est un jp $1118.
-            Teste si CTRL est appuyé et si oui, effectue un reset.
-            Plus exactement, pendant le boot, le vecteur est à JP $0069, puis à la fin du boot JP $1118
-$1118       ---
-$1119       ---
-$111b       ---
-$111d       ---
-$111f       ---
-$1120       ---
+            %CODE
+            Gestion de l'interruption non masquable (NMI) via le vecteur `nmihk`.
+
+            Teste si CTRL est appuyé et si oui, effectue un reboot à chaud.
+
+            Plus exactement, pendant le boot, le vecteur est à `jp $0069`, puis à la fin du boot `jp $1118`
+
+            [ArticleNMI]
+$1118       Sauve AF
+$1119-$111b Vérifie la touche CTRL
+$111d       Si appuyé, branche vers le reboot à chaud.
+$111f       Sinon, restaure AF.
 
 $1122       [warm_boot]
             Fonction: Effectue le reset à chaud
@@ -3297,13 +3261,24 @@ $1132       ---
 $1135       ---
 $1139       ---
 $113c       ---
-$113f       ---
+$113f       [after_check]
 $1142       ---
 $1145       ---
 $1148       [vg5000_txt]
 $1163       [version_txt]
-$1179       [InitEfSeq]
+$1179       [init_ef_seq]
             Séquence d'intialisation de l'EF9345 au démarrage.
+
+            $28,$81 -> Écriture de quelque chose dans le TGS
+            $29,$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
+            $20,$82,$29,$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur
+            $20,$83,$29,$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, Insert mode : Active Area, Flash ON, Format court pour le 40 Char
+            $20,$84,$29,$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
+            $20,$87,$29,$08 -> ROR = $08 (Z=0, Y=8)
+            $26,$08,$27,$00,$28,$02 -> R6=$08, R7=$00, KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ??)
+
+            ??? mieux détailler la séquence.
+
 $1194       [initvalues]
 $119a       [div_subr]
             %CODE
@@ -6446,16 +6421,16 @@ $2ed2       [out_of_mem]
 $2ed5       "Out of Memory"
 $2ed8       ---
 
-$2ed9       [reset_mem]
+$2ed9       [reset_prog]
             Met 0 dans les deux premiers octets de txttab (donc efface l'accès au listing)
             L'effet sur l'utilisateur est d'effacer le programme (mais il est encore là)
             
             MS_BASIC=CLRPTR
 $2ed9       ---
-$2edc       [reset_mem_2]
+$2edc       [reset_prog_2]
             appelé depuis l'instruction NEW
 $2edd       ---
-$2ee0       [reset_mem_4]
+$2ee0       [reset_prog_4]
 $2ee1       txttab+2 dans (vartab)
 $2ee4       [reset_vars]
             Remet à zéro les pointeurs du modèle mémoire
@@ -6470,34 +6445,30 @@ $2ef5       (vartab) est placé dans (arytab) et (strend). Autrement dit, élimi
 $2ef8       ---
 $2efb       ---
 
-$2efe       [resetstack]
+$2efe       [clear_regs]
             Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
             Retour : HL contient le code de l'instruction en cours ?
             
             MS_BASIC=CLREG
 $2efe       Récupération de l'adresse de retour
-$2eff       Réinitialisation de la pile (SP) à la dernière adresse RAM valide
-$2f02       ---
-$2f03       ---
-$2f06       Le pointeur sur la zone temporaire de descripteur est initialisé
-$2f09       ---
-$2f0c       ---
-$2f0d       ---
-$2f0e       ---
-$2f0f       Mise à zéro de `oldtxt`
-$2f12       Mise à zéro du buffer `subflg` (utilisé pour FOR)
-$2f15       Mise à zéro du nom du paramètre pour les fonctions utilisateurs
+$2eff-$2f02 Réinitialisation de la pile (SP) à la dernière adresse RAM valide
+$2f03-$2f06 Le pointeur sur la zone temporaire de descripteur est initialisé vers le buffer de construction de chaînes.
+$2f09       Mise à zéro de l'état de l'imprimante.
+$2f0c-$2f0e HL et A à 0
+$2f0f       Mise à zéro de registre `oldtxt`, pointeur vers l'ancien text (???)
+$2f12       Mise à zéro du registre `subflg`, utilisé pour FOR.
+$2f15       Mise à zéro du nom du paramètre pour les fonctions utilisateurs.
 $2f18       Met 0 sur la pile
 $2f19       Remet l'adresse de retour sur la pile avant le RET
 
 $2f1a       [do_again]
+            %MS_BASIC(DOAGN)
             Récupère le pointeur d'exécution de l'instruction en court puis termine l'instruction
             en court. A priori pour la relancer (appelée depuis INPUT en cas de Redo from Scratch)
-            A tracer depuis le reset qui précède et depuis INPUT (??)
+            A tracer depuis le reset qui précède et depuis INPUT (???)
             
-            MS_BASIC=RUNFST <- Non, ça fait autre chose
-$2f1a       HL contient la valeur de `temp` (code d'une instruction)
-$2f1d       ---
+$2f1a       HL est chargé avec la valeur de `temp`, qui contient l'adresse d'exécution d'une commande.
+            Qu'est-ce qu'il y a au boot ???
 
 $2f1e       [inst_restore]
             %CODE
@@ -8921,7 +8892,7 @@ $3d8a       ---
 $3d8c       ---
 $3d8e       ---
 $3d90       ---
-$3d91       [reset_mem_3]
+$3d91       [reset_prog_3]
             0 dans (autoflg)
 $3d94       0 dans les deux premiers octets de (txttab). Cela coupe le premier lien du listing BASIC.
 $3d95       ---
@@ -9129,11 +9100,11 @@ $4895       [stktop]
             Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
 $4897       [bufmin]
             Zone précédent la zone de tokenisation. Mis dans HL après avoir mis NUL en fin de chaîne à traiter.
-$4898       [basbuf]
+$4898       [buf]
             Buffer d'entrée pour le BASIC
-$4918       [basbufpre]
+$4918       [endbuf_pre]
             Juste avant la fin du buffer
-$4919       [basbufend]
+$4919       [endbuf]
             Fin du buffer
 $491a       [dimflg]
 $491b       [valtyp]
