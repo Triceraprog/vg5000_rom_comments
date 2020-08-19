@@ -3248,24 +3248,24 @@ $111d       Si appuyé, branche vers le reboot à chaud.
 $111f       Sinon, restaure AF.
 
 $1122       [warm_boot]
-            Fonction: Effectue le reset à chaud
-$1122       ---
-$1125       ---
-$1126       ---
-$1128       ---
-$112b       ---
-$112c       ---
-$112e       ---
-$112f       ---
-$1132       ---
-$1135       ---
-$1139       ---
-$113c       ---
+            Reset à chaud.
+$1122       Le haut de la pile pointe vers la fin du buffer de travail BASIC.
+$1125-$1126 Sortie son à 0.
+$1128       L'entrée des programmes se fait par le clavier (et non par la cassette)
+$112b-$112c Mise à 1 du port $10 ???
+$112e       Activation de l'IRQ
+$112f-$1132 La première ligne avec la touche HOME (???) est 1.
+$1135       Initialisation du registre `cursor` (expliquer la valeur ???)
+$1139       Initialisation de l'écran
+$113c       Initialisation des registres (dont la pile)
 $113f       [after_check]
-$1142       ---
-$1145       ---
+$113f-$1142 Joue la mélodie de démarrage.
+$1145       Boucle sur l'invite utilisateur.
+
 $1148       [vg5000_txt]
 $1163       [version_txt]
+$116d       [start_music]
+
 $1179       [init_ef_seq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 
@@ -3286,8 +3286,11 @@ $119a-$11a7 Cette routine fait partie des valeurs montées en RAM au démarrage.
             Elle contient la soustraction du dividende par le diviseur.
             Les valeurs sont injectées à la place des $00 par la routine de
             division.
+
 $11f9       [keybfr_0]
             %SECTION(txtfil)
+
+            == DEBUT DE SECTION TXTFIL (messages textuels) ==
 $1201       [keybfr_1]
 $1209       [keybfr_2]
 $1211       [keybfr_3]
@@ -3353,37 +3356,41 @@ $177b       [txt_next]
 
 $1945       [inst_save]
             %CODE,SECTION(bicset)
+            Commande BASIC `SAVE`
+
             Sauvegarde du listing BASIC en ASCII.
             Attention, la routine efface tout le contenu mémoire à la fin.
-$1945       ---
-$1948       ---
-$194b       ---
-$194c       ---
-$194d       ---
+
+            == DEBUT DE SECTION BICSET (gestion haut niveau de la cassette) ==
+$1945       Lit le paramètre de vitesse et initialise les valeurs correspondantes.
+$1948       Récupère les paramètres de lignes de début et fin (optionnels)
+$194b       Sauve le pointeur de texte BASIC
+$194c       Sauve le premier numéro de ligne de la paire.
+$194d       Initialise les paramètres d'enregistrement pour la cassette.
 $1950       DE contient le numéro de première ligne à sauver.
-$1951       ---
-$1954       Place $0000 dans le numéro de ligne BASIC à décoder
-$1957       ---
-$1959       La sortie de caractère se fait sur K7
-$195c       ---
-$195e       ---
-$1961       Met $82 en premier octet de la zone des variables.
+$1951-$1954 Place $0000 dans `retadr`, numéro de ligne BASIC à décoder
+$1957-$1959 La sortie de caractère se fait sur K7
+$195c-$1961 Met $82 en premier octet de la zone des variables.
 $1962       Pointe sur l'octet suivant de la zone des variables.
-$1963       Met HL dans ($4810 + $10) (ft + $10) (adresse de départ dans le descripteur de K7)
-$1966       Met $82 dans ($4810 + $14) (ft + $14) (premier octet de checksum ?)
-$1969       Envoie le listing vers la K7
-$196c       ---
-$196e       Envoie le caractère $83 vers la K7
-$1971       Récupère le contenu de (fr + $14)
-$1974       ---
-$1977       ---
-$197a       ---
-$197b       Réinitialise la mémoire.
+$1963       Met HL dans ($4810 + $10) (`ft` + $10) (adresse de départ dans le descripteur de K7)
+$1966       Met $82 dans ($4810 + $14) (`ft` + $14) (premier octet de la somme de contrôle).
+$1969       Envoie le listing vers la cassette.
+$196c-$196e Envoie $b3 vers la K7
+$1971       Récupère le contenu de (ft + $14) (premier octet de la somme de contrôle).
+$1974       ???
+$1977       ???
+$197a       Restaure le pointeur du texte BASIC.
+$197b       Réinitialise la mémoire du programme. Le programme est effacé.
+
 $197e       [inst_load]
             %CODE
-$1981       ---
-$1984       ---
-$1986       ---
+            Commande BASIC `SAVE`
+
+            Charge un listing qui a été sauvé en ASCII.
+            Le listing chargé est mélangé à celui existant.
+
+$197e       Lecture de la paire de ligne à charger.
+$1981-$1986 Annule les drapeaux d'erreurs qui auraient pu être levés précédemment.
 $1989       ---
 $198c       ---
 $198e       ---
@@ -4305,13 +4312,11 @@ $1fc3       [call1FC3]
 $1fc6       ---
 $1fc9       ---
 $1fcc       ---
-$1fcd       [call1FCD]
-$1fd0       ---
-$1fd3       ---
-$1fd7       ---
-$1fd9       ---
-$1fdc       ---
-$1fdd       ---
+$1fcd       [margin_off]
+$1fcd-$1fd0 Sauvegarde la valeur de `cursor` dans une variable temporaire inutilisé de la multiplication.
+$1fd3       Met le bit 3 de `cursor` à 0. (Margin Insert ???)
+$1fd7-$1fdc Force un rafraichissement du VDP.
+
 $1fde       [call1FDE]
 $1fe0       ---
 $1fe2       ---
