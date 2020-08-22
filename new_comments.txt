@@ -3353,6 +3353,10 @@ $176a       [txt_break]
 $1771       [txt_in_fr]
 $1776       [txt_in_en]
 $177b       [txt_next]
+$1788       [txt_abrt_en]
+$17e0       [txt_abrt_fr]
+$17a4       [txt_bad_en]
+$1802       [txt_bad_fr]
 
 $1945       [inst_save]
             %CODE,SECTION(bicset)
@@ -3394,39 +3398,31 @@ $1981-$1986 Annule les drapeaux d'erreurs qui auraient pu être levés précéde
 $1989       Coupe l'insertion vidéo
 $198c-$198e Couleur de la marge à 5 (??? préciser quelle est la couleur)
 $1991       Calibre la k7 en lisant l'amorce du fichier.
-$1994       Branche si Carry est levé (???)
+$1994       Branche si interruption ou erreur.
 $1996       Lecture de la k7 avec préservation des registres.
-$1999       Branche si Carry est levé (???)
-$199b       ---
-$199d       ---
-$199e       ---
-$19a0       ---
-$19a3       ---
-$19a6       [load_2]
-$19a9       ---
-$19aa       ---
-$19ad       ---
-$19ae       ---
-$19b1       ---
-$19b3       ---
-$19b6       ---
-$19b9       ---
-$19ba       ---
-$19bc       ---
-$19bf       [skip19BF]
-$19c2       ---
-$19c5       [skip19C5]
-$19c8       ---
-$19ca       ---
-$19cc       ---
-$19cf       ---
-$19d2       [skip19D2]
-$19d5       ---
-$19d8       ---
-$19d9       ---
-$19dc       ---
-$19dd       ---
-$19e0       ---
+$1999       Branche si interruption ou erreur.
+$199b       Compare l'octet lu à $82 qui est le marqueur d'une sauvegarde ASCII via `SAVE`.
+$199d       Lève le Carry
+$199e       Branche si A était différent de $82
+$19a0       Enregistre l'octet dans `(low)`
+$19a3       Lecture du contenu du fichier ASCII.
+$19a6       [load_end]
+$19a6       Si Carry à 1, affiche le message d'abandon et boucle sur l'invite du BASIC.
+$19a9-$19ad Lecture d'une donné en préservant aussi AF
+$19ae       Extinction de la k7 et restauration de la couleur de marge.
+$19b1       Branche plus loin si le chargement s'est bien déroulé.
+$19b3-$19c2 Affiche le message Sortie de mémoire dans la bonne langue.
+$19bf       [load_nok]
+$19c5       [load_ok]
+$19c5       Charge la variable des états de k7 
+$19c8-$19ca Branche plus loin s'il n'y a aucune erreur inscrite.
+$19cc-$19cf Affiche "Mauvais fichier"
+$19d2       [load_nerr]
+$19d2       ---
+$19d5       Afficheg le message "Pause..."
+$19d8-$19d9 Annule la commande AUTO
+$19dc-$19dd Met $ff dans `getflg` indiquant que l'entrée se fait par k7 (???)
+
 $19e3       [pause_msg]
 $19ed       [inst_csave]
             %CODE
@@ -3559,7 +3555,7 @@ $1af5       ---
 $1af8       [mem_out_err]
 $1afa       ---
 $1afc       Affiche l'erreur "Out of Memory"
-$1aff       [jump1AFF]
+$1aff       [abort_n_ok]
 $1b01       ---
 $1b04       ---
 $1b07       ---
@@ -3575,14 +3571,14 @@ $1b1a       ---
 $1b1c       ---
 $1b1f       ---
 $1b21       [skip1B21]
-$1b24       [skip1B24]
+$1b24       [print_n_ok]
 $1b27       ---
-$1b2a       [call1B2A]
-$1b2d       ---
-$1b30       ---
-$1b31       ---
-$1b32       ---
-$1b35       ---
+$1b2a       [bad_file]
+            Charge le message "Mauvais fichier" dans la bonne langue.
+
+            Sortie :
+            - HL pointe sur le texte dans la bonne langue.
+
 $1b36       [skip1B36]
 $1b38       ---
 $1b3a       ---
@@ -4016,85 +4012,82 @@ $1dfb       ---
 $1dfc       ---
 $1dfe       ---
 $1dff       ---
-$1e02       [call1E02]
-$1e05       ---
-$1e08       ---
-$1e09       ---
-$1e0c       ---
-$1e0d       ---
-$1e0e       ---
-$1e0f       ---
-$1e11       [loop1E11]
-$1e13       ---
-$1e14       ---
-$1e16       ---
-$1e18       ---
-$1e1a       ---
-$1e1d       ---
-$1e20       ---
-$1e22       ---
-$1e25       ---
-$1e27       ---
-$1e28       ---
-$1e2b       ---
-$1e2c       ---
-$1e2d       ---
-$1e2f       ---
-$1e31       ---
-$1e32       ---
-$1e33       ---
-$1e34       ---
-$1e37       ---
-$1e38       ---
-$1e39       ---
-$1e3b       ---
-$1e3c       [loop1E3C]
-$1e3f       ---
-$1e40       ---
-$1e41       ---
-$1e42       ---
-$1e43       ---
+$1e02       [load_ascii]
+            Charge depuis la k7 un programme en ASCII
+
+$1e02       HL pointe sur le début de la zone des variables.
+$1e05-$1e08 Puis 20 caractères plus loin.
+$1e09       Enregistre le résultat dans `high`
+$1e0c-$1e0d HL dans DE
+$1e0e       Pointe DE un octet plus loin
+$1e0f       Compteur C à 0
+$1e11       [read_part]
+$1e11       Dernier octet lu sur 7 bits. ??? vraiment ???
+$1e13       Placé dans la zone pointée par HL
+$1e14-$1e16 Branche si la valeur est 3
+$1e18-$1e1d Change la couleur de la marge.
+$1e20       Envoi le changement de couleur au VDP (??? juste comme ça ? D'où vient la commande ?)
+$1e22-$1e25 Branche s'il n'y a plus de mémoire (Carry est à 0)
+$1e27       Sinon pointe un octet plus loin
+$1e28       Lit un octet
+$1e2b       Retour si interruption ou erreur.
+$1e2c       Sauvegarde AF, A contient l'octet lu.
+$1e2d-$1e2f Branche si ce n'était pas $8d
+$1e31-$1e32 Sauvegarde HL et DE sur la pile
+$1e33       Ramène DE dans HL, qui pointe vers la dernière donnée consommée.
+$1e34       Décodage d'un numéro de ligne.
+$1e37-$1e38 Le résultat, dans DE, est mis dans BC
+$1e39       A = $8d
+$1e3b       Restaure DE
+$1e3c       [xor_sumchk]
+$1e3c-$1e40 Ou exclusif de A avec le caractère pointé dans le buffer pour calculer le sumcheck.
+$1e41       Restaure HL
+$1e42       Restaure AF
+$1e43       Boucle vers la prochaine partie à lire.
 $1e45       [skip1E45]
-$1e46       ---
-$1e47       ---
-$1e49       ---
-$1e4a       ---
-$1e4b       ---
-$1e4e       ---
-$1e50       ---
-$1e52       ---
-$1e55       ---
-$1e57       ---
-$1e59       ---
-$1e5b       [skip1E5B]
-$1e5c       [loop1E5C]
-$1e5d       ---
-$1e5e       ---
-$1e61       [skip1E61]
-$1e62       [loop1E62]
-$1e63       ---
-$1e64       ---
-$1e66       [skip1E66]
-$1e67       ---
+$1e45-$1e47 Branche si BC est à 0
+$1e49       Préserve HL
+$1e4a       A à 0
+$1e4b       Que contient `sonsav` à ce moment ???
+$1e4e       Soustrait BC
+$1e50       Branche en cas de retenue
+$1e52       Que contient `temp` à ce moment ???
+$1e55       Soustrait BC
+$1e57       Branche si retenue
+$1e59       Branche aussi si 0
+$1e5b       [no_se]
+$1e5b       Tout ce calcul est pour le moment mysterieux ???
+$1e5c       [next_what]
+$1e5c-$1e5d DE dans HL
+$1e5e       BC à 0
+$1e61       [pre_sumchk]
+$1e61       Restaure AF
+$1e62       [push_n_loop]
+$1e62       Préserve AF
+$1e63       Préserve HL
+
+$1e66       [exchg_n_lp]
+$1e66       Restaure HL
+$1e67       Échange DE et HL
 $1e68       ---
-$1e6a       [skip1E6A]
-$1e6d       ---
-$1e6f       ---
-$1e70       [skip1E70]
-$1e73       ---
-$1e74       ---
-$1e75       ---
-$1e78       ---
-$1e79       ---
-$1e7c       ---
-$1e7d       ---
-$1e80       ---
-$1e82       ---
-$1e83       ---
-$1e84       [skip1E84]
-$1e85       ---
-$1e87       ---
-$1e88       ---
+$1e6a       [one_more]
+$1e6a       Lecture d'un octet
+$1e6d       Branche si ni erreur ni interruption.
+$1e6f       Interruption ou erreur, retour.
+
+$1e70       [check_sum]
+$1e70       Lecture d'un octet
+$1e73       Retour si interruption ou erreur
+$1e74       Préserve HL
+$1e75-$1e78 Soustrait le caractère lu de celui dans `low`
+$1e79       Signal une erreur de somme de contrôle si le résultat n'est pas 0.
+$1e7c       Restaure HL
+$1e7d-$1e80 Branche s'il n'y a plus de mémoire
+$1e82       A à 0 et donc Z est levé.
+
+$1e84       [chk_no_mem]
+$1e84       Echange DE et HL
+$1e85-$1e87 Place $03 dans le caractère pointé par HL (qui est ???)
 
 $1e89       [fetch_next]
             Va chercher une adresse stockée dans le compteur 'high' (normalement utilisé par les cassettes)
@@ -4267,27 +4260,30 @@ $1f8b       ---
 $1f8e       ---
 $1f92       ---
 $1f93       ---
-$1f94       [call1F94]
-$1f95       ---
-$1f98       ---
-$1f9a       ---
-$1f9b       ---
-$1f9c       [call1F9C]
-$1f9d       ---
-$1f9f       ---
-$1fa0       ---
-$1fa1       ---
-$1fa3       ---
-$1fa4       ---
-$1fa5       ---
-$1fa7       ---
-$1fa8       ---
-$1fa9       ---
-$1faa       ---
-$1fab       [skip1FAB]
-$1fac       ---
-$1fad       ---
-$1fae       ---
+$1f94       [sumchk_err]
+$1f94       Retour si Z est levé.
+$1f95-$1f98 Sinon, signal l'erreur de somme de contrôle dans la variable `cascom`
+$1f9a       Et passe A à 0.
+
+$1f9c       [check_mem_2]
+            Vérifie qu'il reste assez de mémoire.
+
+            Sortie :
+            - A à $ff s'il n'y a plus assez de mémoire.
+            - Carry est à 1 s'il reste de la place
+
+            Choisir un meilleur label pour ici ou pour l'affiche de `check_mem` ???
+$1f9c       Préserve HL
+$1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). Mais si on n'a pas 64ko de RAM ???
+$1fa5       Branche s'il y a eu retenue, et donc que HL est supérieur à la limie.
+$1fa7       On obtient l'adresse de la pile plus la différence entre HL et le haut de la mémoire, afin de placer Carry.
+$1fa8       Restaure HL
+$1fa9       Retour si la pile augmentée de la place restante dépasse. Il y a encore de la place.
+$1faa       Préserve HL (pour être cohérent avant la fin de la routine)
+$1fab       [out_of_mem2]
+            Choisir un meilleur label pour ici ou pour l'affiche de `out_of_mem` ???
+$1fab       Restaure HL
+$1fac-$1fad Valeur de retour de A à $ff
 
 $1faf       [k7write_reg]
             Appel l'écriture sur la K7 en préservant les registres.
@@ -4303,10 +4299,12 @@ $1fb9-$1fbb Sauve les registres sur la pile
 $1fbc       Appel à la lecture
 $1fbf-$1fc1 Restauration des registres.
 
-$1fc3       [call1FC3]
-$1fc6       ---
-$1fc9       ---
-$1fcc       ---
+$1fc3       [end_k7_marg]
+            Arrête la lecture de la k7, y compris le moteur, et restaure la couleur de la marge d'affichage.
+
+$1fc3       Arrête la lecture de la k7
+$1fc6-$1fc9 Restaure `cursor`
+
 $1fcd       [margin_off]
 $1fcd-$1fd0 Sauvegarde la valeur de `cursor` dans une variable temporaire inutilisé de la multiplication.
 $1fd3       Met le bit 3 de `cursor` à 0. Coupe l'insert vidéo dans la marge ou bien le bit de poids fort de la couleur de la marge ???
@@ -8384,12 +8382,12 @@ $3a74       ---
 $3a75       ---
 $3a77       ---
 $3a78       ---
-$3a79       [call3A79]
-$3a7a       ---
-$3a7c       ---
-$3a7e       ---
-$3a7f       ---
-$3a80       ---
+$3a79       [stop_k7]
+$3a79       Sauvegarde AF
+$3a7a-$3a7c Passe le registre de k7 à 0 (moteur éteint, pas de lecture)
+$3a7e       Restaure AF
+$3a7f       Permet l'IRQ
+
 $3a81       [k7sync]
 $3a82       ---
 $3a83       Valeur 2 sortie sur port 2 (???).
