@@ -2430,14 +2430,14 @@ $0caf       [snd_low]
 $0caf       Attente de 69 états
 $0cb2       Décrémente le nombre de première période.
 $0cb3       Boucle tant qu'il est différent de zéro.
-$0cb6-$0cb8 Mise à état haut de la sortie son (envoie de 8 sur le port $AF)
+$0cb6-$0cb8 Mise à état haut de la sortie son (bit 3 de $af à 1)
 $0cba       Décrémente la durée totale du son
 $0cbb-$0cbe Attente totale de 58 états.
 $0cc1       [snd_high]
 $0cc1       Attente de 69 états.
 $0cc4       Décrémente la valeur de la seconde période.
 $0cc5       Boucle tant que le nombre est différent de zéro.
-$0cc8-$0cca Mise à état bas de la sortie son (envoie de 0 sur le port $AF)
+$0cc8-$0cca Mise à état bas de la sortie son (bit 3 de $af à 1)
 $0ccc-$0cce Boucle si DE n'est pas nul.
 $0cd1       Réactivate les interruptions
 $0cd2       Bascule sur les registres alternatifs.
@@ -3391,19 +3391,18 @@ $197e       [inst_load]
 
 $197e       Lecture de la paire de ligne à charger.
 $1981-$1986 Annule les drapeaux d'erreurs qui auraient pu être levés précédemment.
-$1989       ---
-$198c       ---
-$198e       ---
-$1991       ---
-$1994       ---
-$1996       ---
-$1999       ---
+$1989       Coupe l'insertion vidéo
+$198c-$198e Couleur de la marge à 5 (??? préciser quelle est la couleur)
+$1991       Calibre la k7 en lisant l'amorce du fichier.
+$1994       Branche si Carry est levé (???)
+$1996       Lecture de la k7 avec préservation des registres.
+$1999       Branche si Carry est levé (???)
 $199b       ---
 $199d       ---
 $199e       ---
 $19a0       ---
 $19a3       ---
-$19a6       [skip19A6]
+$19a6       [load_2]
 $19a9       ---
 $19aa       ---
 $19ad       ---
@@ -4292,42 +4291,40 @@ $1fae       ---
 
 $1faf       [k7write_reg]
             Appel l'écriture sur la K7 en préservant les registres.
-$1faf       ---
-$1fb0       ---
-$1fb1       ---
-$1fb2       ---
-$1fb5       ---
+$1faf-$1fb1 Sauve les registres sur la pile
+$1fb2       Appel à l'écriture
 $1fb6       [pop_dehlret]
-$1fb7       ---
-$1fb8       ---
-$1fb9       [call1FB9]
-$1fba       ---
-$1fbb       ---
-$1fbc       ---
-$1fbf       ---
-$1fc0       ---
-$1fc1       ---
-$1fc2       ---
+$1fb5-$1fb7 Restauration des registres.
+
+$1fb9       [k7_read_reg]
+            Appel la lecture de la K7 en préservant les registres.
+
+$1fb9-$1fbb Sauve les registres sur la pile
+$1fbc       Appel à la lecture
+$1fbf-$1fc1 Restauration des registres.
+
 $1fc3       [call1FC3]
 $1fc6       ---
 $1fc9       ---
 $1fcc       ---
 $1fcd       [margin_off]
 $1fcd-$1fd0 Sauvegarde la valeur de `cursor` dans une variable temporaire inutilisé de la multiplication.
-$1fd3       Met le bit 3 de `cursor` à 0. (Margin Insert ???)
+$1fd3       Met le bit 3 de `cursor` à 0. Coupe l'insert vidéo dans la marge ou bien le bit de poids fort de la couleur de la marge ???
 $1fd7-$1fdc Force un rafraichissement du VDP.
 
-$1fde       [call1FDE]
-$1fe0       ---
-$1fe2       ---
-$1fe4       ---
-$1fe6       ---
-$1fe8       ---
-$1fea       ---
-$1fed       ---
-$1fef       ---
-$1ff0       ---
-$1ff2       ---
+$1fde       [margin_col]
+            Modifie la couleur de la marge de l'écran.
+
+            Commande directe au VDP.
+
+            Envoi au VDP :
+            - $28 / $82
+            - $29 / `cursor` (MAT) & $f8 | E
+
+            Préciser les commandes $28 et $29 ???
+$1fde-$1fe4 Envoi de la commande $28 avec le paramètre $82 au VDP
+$1fe6-$1ff0 Envoi de la commande $29 avec la variable `cursor` privée de la partie « couleur de la marge », remplacée par la couleur dans le registre E.
+
 $1ff3       [stka_joy1]
 $1ff3       Vérification de l'appuie sur la bouton action du joystick 0
 $1ff5       Complément à 1.
@@ -8460,143 +8457,173 @@ $3ae9       [k7_1_loop_h]
             Boucle sur H
 $3aea       ---
 $3aed       ---
-$3aef       ---
-$3af1       Envoie 2 sur le port $AF (???)
-$3af2       ---
-$3af3       [k7test]
-$3af5       ---
-$3af7       ---
-$3af8       [loop3AF8]
-$3afb       [loop3AFB]
-$3afc       ---
-$3aff       ---
-$3b00       ---
-$3b01       ---
-$3b03       ---
-$3b05       ---
-$3b07       ---
-$3b09       ---
-$3b0a       ---
-$3b0c       ---
-$3b0d       ---
-$3b0e       [skip3B0E]
-$3b10       ---
-$3b12       ---
-$3b13       ---
-$3b14       ---
-$3b15       ---
-$3b17       ---
-$3b1a       ---
-$3b1b       ---
-$3b1c       [jump3B1C]
-$3b1f       ---
-$3b20       ---
-$3b21       ---
-$3b22       ---
-$3b25       ---
-$3b28       ---
-$3b29       ---
-$3b2a       ---
-$3b2b       ---
-$3b2d       ---
-$3b2e       ---
-$3b2f       ---
-$3b30       ---
-$3b31       ---
-$3b32       ---
-$3b34       ---
-$3b37       ---
-$3b38       ---
-$3b39       ---
-$3b3b       [loop3B3B]
-$3b3d       ---
-$3b3e       ---
-$3b40       ---
-$3b41       ---
-$3b43       ---
-$3b46       ---
-$3b47       ---
-$3b48       [k7read]
-$3b4b       ---
-$3b4c       [loop3B4C]
-$3b4f       ---
-$3b50       ---
-$3b52       ---
-$3b53       ---
-$3b55       [loop3B55]
-$3b58       ---
-$3b59       ---
-$3b5b       ---
-$3b5c       ---
-$3b5e       ---
-$3b60       ---
-$3b63       [loop3B63]
-$3b64       ---
-$3b67       ---
-$3b68       ---
-$3b69       ---
-$3b6a       ---
-$3b6c       ---
-$3b6d       ---
-$3b6f       ---
-$3b71       [jump3B71]
-$3b74       ---
-$3b76       ---
-$3b77       ---
-$3b78       ---
-$3b7a       ---
-$3b7b       ---
-$3b7d       ---
-$3b7e       ---
-$3b7f       ---
-$3b82       ---
-$3b85       ---
-$3b86       ---
-$3b89       ---
-$3b8c       ---
-$3b8d       ---
-$3b8e       [call3B8E]
-$3b91       ---
-$3b92       ---
-$3b94       [loop3B94]
-$3b96       ---
-$3b97       ---
-$3b9a       ---
-$3b9b       ---
-$3b9c       ---
-$3b9d       ---
-$3b9e       ---
-$3ba0       ---
-$3ba1       ---
-$3ba2       [jump3BA2]
-$3ba3       ---
-$3ba4       ---
-$3ba5       ---
-$3ba6       ---
-$3ba8       ---
-$3ba9       ---
-$3baa       [call3BAA]
-$3bad       ---
-$3bae       [call3BAE]
-$3bb0       [jump3BB0]
-$3bb1       ---
-$3bb3       ---
-$3bb5       ---
-$3bb6       ---
-$3bb9       ---
-$3bba       ---
-$3bbb       ---
-$3bbc       ---
-$3bbd       [skip3BBD]
-$3bbe       ---
-$3bbf       [call3BBF]
-$3bc2       ---
-$3bc3       ---
-$3bc5       ---
-$3bc6       ---
-$3bc8       ---
-$3bca       ---
-$3bcd       ---
+$3aef       Envoi 2 sur le port $af (k7/son)
+$3af1       Restaure AF
+
+$3af3       [calibrate]
+            Calibre la lecture de la cassette.
+
+            ??? Vérifier les calculs.
+
+$3af3-$3af5 Démarre le moteur du lecteur k7 (si la prise remote est branchée).
+$3af7       Désactive l'IRQ
+
+$3af8       [cal_retry]
+$3af8       Compteur à $457 (1111)
+$3afb       [cal_adjust]
+$3afb       Mise dans D de la valeur précédente du compteur de cycle 0/1 (et à la première itération ???)
+$3afc       Lit un cycle 0/1
+$3aff       Si le Carry est levé, l'interruption de la commande a été demandée, retour immédiat.
+$3b00       Compteur de cycle 0/1 dans A
+$3b01-$3b03 Boucle si le compteur est supérieur à 222
+$3b05-$3b07 Boucle si le compteur est inférieur à 5
+$3b09-$3b0a Le compteur est dans ses bornes. Branche plus loin si A était supérieur à D, la valeur précédente. A contient la différence entre la nouvelle et l'ancienne valeur.
+$3b0c-$3b0d Complément à 2 de A, pour prendre sa valeur opposée.
+
+$3b0e       [cycle_abs]
+$3b0e       A contient la valeur absolue de la différence entre les deux précédent compteur de cycle 0/1
+$3b10       Boucle si cette différence est de 4 ou plus avec le compteur HL réinitialisé.
+$3b12       Décrémente HL
+$3b13-$3b15 Boucle si HL n'est pas nul pour lire une nouvelle valeur.
+$3b17       Force HL à 0 (il est déjà à 0 normalement ???)
+$3b1a-$3b1b B et D à 0 aussi
+
+$3b1c       [read_256]
+$3b1c       Lecture d'un cycle 0/1
+$3b1f       Retour si l'interruption de la commande a été demandé.
+$3b20       Ajoute BC (donc C, car B est initialisé à 0) à l'accumulateur HL
+$3b21-$3b22 Boucle 256 fois (D initialement à 0)
+$3b25-$3b28 Un dernier ajoute de $5fa (1530) à l'accumulateur, pour l'arrondi ???
+$3b29       A contient la moyenne du compteur de 256 lectures de cycle 0/1 (à l'ajout de 5 prêt)
+$3b2a-$3b2b Moyenne divisée par 2
+$3b2d       Et mise dans D
+$3b2e       Double l'accumulateur de toutes les durées de lecture.
+$3b2f       A contient deux fois la moyenne du compteur de 256 lectures.
+$3b30       Différence entre 2 fois la moyenne et la moitié de la moyenne.
+$3b31       Sauvegarde de la différence dans D
+$3b32       Soustraction de 5 à la différence (ajoutée précédemment à la somme)
+$3b34       Enregistrement de la différence entre la moitiée et le double de la moyenne.
+$3b37-$3b38 Doublement de la différence
+$3b39       Initialise B pour calculer A / 3.
+$3b3b       [lim_div_3]
+$3b3b       Réduit A de 3.
+$3b3d       Incrémente B (`inc` ne touche pas Carry)
+$3b3e       Boucle tant que A est positif.
+$3b40-$3b41 A prend le résultat de la division - 3.
+$3b43       Ce qui donne la taille de la fenêtre.
+$3b46       Met Carry à 0, car Carry indique une demande d'interruption de commande.
+
+$3b48       [k7_read_byt]
+            Lecture d'un octet de donnée depuis la k7
+
+            Sortie :
+            - A, le résultat de l'octet lu.
+            - Carry à 1 en cas d'interruption de commande ou d'erreur.
+
+$3b48       Lit la valeur du calibrage `lowlim`
+$3b4b       Et la place dans D
+$3b4c       [wait_1]
+$3b4c-$3b4f Sort si une demande d'interruption de commande a été demandée, avec un petit délai.
+$3b50       Lecture de la k7 (donnée sur le bit 7)
+$3b52       Récupération de la donnée dans Carry
+$3b53       Boucle si la donnée lue est 0.
+$3b55       [wait_0]
+$3b55-$3b58 Sort si une demande d'interruption de commande a été demandée, avec un petit délai.
+$3b59       Lecture de la k7 (donnée sur le bit 7)
+$3b5b       Récupération de la donnée dans Carry
+$3b5c       Boucle si la donnée lue est 1.
+$3b5e       On est maintenant callé juste après un premier cycle 0/1.
+$3b60       Lecture d'un demi cycle à 0, avec calcul de la période.
+$3b63       [half_cycle]
+$3b63       B prend la période de la lecture de 0.
+$3b64       Lecture d'un demi cycle à 1, avec calcul de la période.
+$3b67       Retour si demande d'interruption de commande.
+$3b68-$3b69 Ajout du total des deux périodes.
+$3b6a       Si la somme dépasse 255 (en cas d'échec de lecture), nouvelle tentative.
+            À chaque fois, la somme calculée est celle des deux demi-périodes du cycle lues.
+$3b6c-$3b6d Nouvelle tentative si la période du cycle complet est plus petite que `lowlim` actuellement dans D.
+$3b6f       L compte les 8 bits à lire.
+
+$3b71       [rd_nxt_byte]
+$3b71       Lecture pendant la durée d'une fenêtre.
+$3b74-$3b77 Retour s'il y a eu plus de 4 changements de signal pendant la période avec le Carry à 1.
+$3b78-$3b7a Si le nombre de changements est inférieur strictement à 2, le Carry est à 0, sinon (donc pour 2, 3 ou 4 changements), le Carry est à 1.
+            Normalement, on s'attend à avoir 3 changements (bit à 1) ou 1 changement (bit à 0). Le Carry porte donc la valeur du bit.
+$3b7b       Construction progressive de l'octet lu par rotation et valeur lue en bit 7.
+$3b7d       A = C, mais n'étaient-ils pas déja égaux ???
+$3b7e-$3b7f En cas d'un nombre de changement impaire, on attent le prochain changement pour se recaler.
+$3b82       Puis attente d'un nouveau changement de signal. Ce qui fait qu'on a toujours un nombre de changement impaire ???
+$3b85-$3b86 Boucle 8 fois.
+$3b89       Vérifie l'interruption de commande.
+$3b8c       Résultat de l'octet lu de l'opération dans A.
+
+$3b8e       [read_window]
+            Lecture de cycles 0/1 limités dans le temps par la valeur de calibrage `winwid`.
+
+            Entrée : 
+            - E bit 7, la donnée sur laquelle la routine commence
+
+            Sortie :
+            - A et C, à la fin de la période, le nombre de changements de signal
+            - E contient le dernier signal lu.
+
+$3b8e-$3b91 Lecture dans B de `winwid` longueur de la fenêtre calibrée précédemment.
+$3b92       C initialisé à 0.
+$3b94       [window_loop]
+$3b94       Lecture de la k7 (donnée dans le bit 7)
+$3b96-$3b97 Branche plus loin si la donnée correspond au contenu du bit 7 de E.
+$3b9a-$3b9c Inverse la valeur de E
+$3b9d       Incrémente le compteur C
+$3b9e       Boucle autant de fois que B, la valeur de `winwid`.
+$3ba0       Place le compteur C dans A.
+
+$3ba2       [still_same]
+$3ba2-$3ba5 Attente similaire dans les deux branches du test.
+$3ba6       Boucle autant de fois que B, la valeur de `winwid`.
+$3ba8       Place le compteur C dans A.
+
+$3baa       [wait_chnge_b]
+            Appel de `wait_change` avec une vérification d'interruption de commande.
+
+$3baa-$3bad Retour si une interruption de commande à été demandée.
+
+$3bae       [wait_change]
+            Renvoie une valeur d'attente du changement de valeur de lecture depuis la k7.
+
+            Entrée :
+            - E, la valeur actuelle de la k7, et donc celle qu'on attend de voir changer.
+
+            Sortie :
+            - C, le compteur d'attente, 255 max
+            - E, la valeur complémentée si trouvée, ou initiale si pas trouvée
+
+$3bae       Initialise le compteur à 0
+$3bb0       [same_value]
+$3bb0       Incrémente le compteur
+$3bb1       Au bout de 256 itérations, branche à la fin.
+$3bb3       Lit la valeur de l'entrée son/k7 (sur le bit 7)
+$3bb5       Ou exclusif avec la lecture précédente inversée
+$3bb6       Boucle tant que la valeur lue et la valeur actuelle (dans E) sont les même.
+$3bb9-$3bbb La valeur vient de changer, E est complémenté à 1.
+$3bbc       Lors du retour, C est le timing d'attente avant d'avoir reçu l'autre valeur en lecture.
+
+$3bbd       [wait_timout]
+$3bbd       Ramène C à $ff
+
+$3bbf       [read_cycle]
+            Lit depuis la k7 un cycle 0/1 et renvoie dans C le temps total.
+
+            Sortie :
+            - C, compteur total pour le cycle 0/1, ou 255 en cas d'échec.
+
+$3bbf       Vérifie si une interruption de commande a été demandée (avec un petit délai)
+$3bc2       Retour si oui.
+$3bc3       Lecture de l'entrée son/k7
+$3bc5       Décalage à gauche (l'entrée k7 est sur le bit 7)
+$3bc6       Boucle tant que le signal d'entrée est à haut, afin de se caler sur une valeur basse.
+$3bc8       On est actuellement sur une valeur basse.
+$3bca       Attente jusqu'à la fin de la valeur basse.
+$3bcd       Attente jusqu'à la fin de la valeur haute.
 
 $3bd0       [outdo_impl]
             $SECTION(bio)
@@ -8723,24 +8750,24 @@ $3c77       ---
 $3c7a       ---
 
 $3c7d       [break_delay]
-            Function : vérifie la séquence BREAK, avec un délai préalable
-$3c7d       ---
-$3c7e       ---
+            Vérifie si SHIFT + RUN-STOP est appuyée (interruption de commande).
+            Avec un délai préalable.
+
+            Si oui, le Carry est positionné à 1 au retour.
+
+$3c7d-$3c7e Perd un peu de temps (2 fois 19 états T)
+
 $3c7f       [break_impl]
-            Est-ce que la touche RUN-STOP est appuyée ?
-$3c81       ---
-$3c83       Si non, retour immédiat
-$3c84       Est-ce que la touche SHIFT est appuyée ?
-$3c86       ---
-$3c88       Si non, retour immédiat
-$3c89       Vérification de l'exécution BASIC (flag = 0).
-$3c8c       ---
-$3c8d       Sinon, retour immédiat.
-$3c8e       Met $f2 dans la dernière touche scannée
-$3c92       Réinitialisation du drapeau de répétition des touches
-$3c96       Réinitialisation du compteur de répétition des touches
-$3c9a       Set Carry, pour provoquer la boucle immédiate du BASIC
-$3c9b       ---
+            Vérifie si SHIFT + RUN-STOP est appuyée (interruption de commande).
+
+            Si oui, le Carry est positionné à 1 au retour.
+$3c7f-$3c83 Retour immédiat si RUN-STOP n'est pas appuyée.
+$3c84-$3c88 Retour immédiat si SHIFT n'est pas appuyée.
+$3c89-$3c8d Retour immediat si la boucle BASIC n'est pas en route. (pas certain du traitement de allflg)
+$3c8e       Met la valeur $f2 dans la dernière touche scannée.
+$3c92       Réinitialisation du drapeau de répétition des touches.
+$3c96       Réinitialisation du compteur de répétition des touches.
+$3c9a       Set Carry, pour signaler que l'interruption de commande a été demandée.
 
 $3c9c       [print_prt]
             Affiche le prompt "? " de INPUT.
