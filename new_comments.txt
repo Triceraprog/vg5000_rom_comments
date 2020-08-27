@@ -704,14 +704,16 @@ $0250       Incrémente le numéro de colonne.
 $0251       Replace les nouvelles coordonnées dans le registre.
 
 $0255       [cls_impl]
-            Implémentation de `cls:`.
-$0255       ---
-$0256       ---
-$0259       ---
-$025c       ---
-$025f       ---
-$0262       ---
-$0264       ---
+            Efface l'écran avec la couleur de fond passée dans A.
+
+            Entrée :
+            - A contient la valeur pour le registre `attbak`.
+
+            Normalement appelé par `cls`
+
+$0255       A = 0
+$0256       Efface la première ligne du buffer d'écran avec la valeur `0`.
+$0259-$0262 Copie le contenue de la première ligne dans le reste du buffer écran.
 
 $0265       [cli_impl]
             Implémentation de `cli:`.
@@ -2630,8 +2632,7 @@ $0df8       [inst_tx]
 
             Les registres touchés sont les registres en RAM, ils sont pris en compte par les commandes BASIC, pas
             directement envoyés au VDP>
-$0df8       ---
-$0dfa       Sélection des caractères en ROM du VDP.
+$0df8-$0dfa Sélection des caractères en ROM du VDP.
 $0dfd       [char_switch]
 $0dfd       Sauvegarde la valeur de A, qui contient le paramètre mis par les différentes routines pour `TX`, `ET` , `GR`, `EG` (1 pour graphique, 0 pour texte)
 $0dfe       Mis à 1 les 3 bits de poids faibles, ce qui signifie que la couleur d'affichage est b111.
@@ -3063,8 +3064,7 @@ $0fd2       [get_hex]
             
 $0fd2-$0fd3 Acquisition du caractère.
 $0fd4       %CHAR
-$0fd4       ---
-$0fd6       Branche si le caractère est inférieur à '0' en ASCII.
+$0fd4-$0fd6 Branche si le caractère est inférieur à '0' en ASCII.
 $0fd8       Comparaison avec ':' (juste après '9')
 $0fd8       %CHAR
 $0fd8-$0fda Branche si le caractère est inférieur à ':', il est entre '0' et '9' inclus.
@@ -3408,7 +3408,7 @@ $19a0       Enregistre l'octet dans `(low)`
 $19a3       Lecture du contenu du fichier ASCII.
 $19a6       [load_end]
 $19a6       Si Carry à 1, affiche le message d'abandon et boucle sur l'invite du BASIC.
-$19a9-$19ad Lecture d'une donné en préservant aussi AF
+$19a9-$19ad Lecture d'une donné, le dernier octet, en préservant aussi AF. Ce dernier octet n'est pas utilisé et permet de se caller à la fin des données avant d'éteindre le moteur.
 $19ae       Extinction de la k7 et restauration de la couleur de marge.
 $19b1       Branche plus loin si le chargement s'est bien déroulé.
 $19b3-$19c2 Affiche le message Sortie de mémoire dans la bonne langue.
@@ -3418,10 +3418,10 @@ $19c5       Charge la variable des états de k7
 $19c8-$19ca Branche plus loin s'il n'y a aucune erreur inscrite.
 $19cc-$19cf Affiche "Mauvais fichier"
 $19d2       [load_nerr]
-$19d2       ---
-$19d5       Afficheg le message "Pause..."
+$19d2-$19d5 Affiche le message "Pause..."
 $19d8-$19d9 Annule la commande AUTO
 $19dc-$19dd Met $ff dans `getflg` indiquant que l'entrée se fait par k7 (???)
+$19e0       Revient à l'interpréteur BASIC.
 
 $19e3       [pause_msg]
 $19ed       [inst_csave]
@@ -4019,12 +4019,12 @@ $1e02       HL pointe sur le début de la zone des variables.
 $1e05-$1e08 Puis 20 caractères plus loin.
 $1e09       Enregistre le résultat dans `high`
 $1e0c-$1e0d HL dans DE
-$1e0e       Pointe DE un octet plus loin
-$1e0f       Compteur C à 0
+$1e0e       Pointe DE un octet plus loin. DE pointe sur le début de ligne. HL va avancer pour remplir le buffer.
+$1e0f       BC à 0 (B était déjà à 0)
 $1e11       [read_part]
-$1e11       Dernier octet lu sur 7 bits. ??? vraiment ???
+$1e11       Dernier octet lu sur 7 bits. Lors de l'écriture, le format ASCII met le bit 7 à 1 sur tous les octets.
 $1e13       Placé dans la zone pointée par HL
-$1e14-$1e16 Branche si la valeur est 3
+$1e14-$1e16 Branche si la valeur est 3, marqueur de fin du listing ($83 sur la k7)
 $1e18-$1e1d Change la couleur de la marge.
 $1e20       Envoi le changement de couleur au VDP (??? juste comme ça ? D'où vient la commande ?)
 $1e22-$1e25 Branche s'il n'y a plus de mémoire (Carry est à 0)
@@ -4033,43 +4033,40 @@ $1e28       Lit un octet
 $1e2b       Retour si interruption ou erreur.
 $1e2c       Sauvegarde AF, A contient l'octet lu.
 $1e2d-$1e2f Branche si ce n'était pas $8d
-$1e31-$1e32 Sauvegarde HL et DE sur la pile
-$1e33       Ramène DE dans HL, qui pointe vers la dernière donnée consommée.
+$1e31-$1e32 Sauvegarde HL (pointeur du buffer) et DE (début de la ligne) sur la pile
+$1e33       Ramène DE, qui pointe vers le début de ligne, dans HL.
 $1e34       Décodage d'un numéro de ligne.
 $1e37-$1e38 Le résultat, dans DE, est mis dans BC
-$1e39       A = $8d
-$1e3b       Restaure DE
+$1e39       Rétablie la valeure lue de A.
+$1e3b       Restaure DE, quite pointe un octet avec le nouveau début de ligne.
 $1e3c       [xor_sumchk]
 $1e3c-$1e40 Ou exclusif de A avec le caractère pointé dans le buffer pour calculer le sumcheck.
 $1e41       Restaure HL
 $1e42       Restaure AF
 $1e43       Boucle vers la prochaine partie à lire.
-$1e45       [skip1E45]
-$1e45-$1e47 Branche si BC est à 0
+$1e45       [vrfy_lines]
+$1e45-$1e47 Branche si BC, le numéro de la ligne courante, est 0
 $1e49       Préserve HL
 $1e4a       A à 0
-$1e4b       Que contient `sonsav` à ce moment ???
-$1e4e       Soustrait BC
-$1e50       Branche en cas de retenue
-$1e52       Que contient `temp` à ce moment ???
-$1e55       Soustrait BC
-$1e57       Branche si retenue
-$1e59       Branche aussi si 0
-$1e5b       [no_se]
+$1e4b       Charge le dernier numéro de ligne de l'interval.
+$1e4e-$1e50 Branche si la ligne est supérieure à la dernière ligne.
+$1e52       Charge le premier numéro de ligne de l'interval.
+$1e55-$1e59 Branche si le numéro de ligne courant est supérieur au premier numéro de l'interval.
+$1e5b       [ignore_line]
 $1e5b       Tout ce calcul est pour le moment mysterieux ???
-$1e5c       [next_what]
-$1e5c-$1e5d DE dans HL
-$1e5e       BC à 0
+$1e5c       [commit_line]
+$1e5c-$1e5d Suivant le chemin d'arrivée, la ligne précédente est avancée au pointeur du buffer (la ligne est donc gardée) ou bien le pointeur actuel et remis en début de ligne (la ligne est donc ignorée, car elle sera écrasée).
+$1e5e       BC, le numéro de ligne courant, à 0
 $1e61       [pre_sumchk]
 $1e61       Restaure AF
-$1e62       [push_n_loop]
+$1e62       [end_verify]
 $1e62       Préserve AF
 $1e63       Préserve HL
 
-$1e66       [exchg_n_lp]
+$1e66       [keep_line]
 $1e66       Restaure HL
-$1e67       Échange DE et HL
-$1e68       ---
+$1e67       Échange DE et HL (ligne précédente et pointeur actuel)
+
 $1e6a       [one_more]
 $1e6a       Lecture d'un octet
 $1e6d       Branche si ni erreur ni interruption.
