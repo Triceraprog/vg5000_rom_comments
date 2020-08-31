@@ -3374,12 +3374,12 @@ $194d       Initialise les paramètres d'enregistrement pour la cassette.
 $1950       DE contient le numéro de première ligne à sauver.
 $1951-$1954 Place $0000 dans `retadr`, numéro de ligne BASIC à décoder
 $1957-$1959 La sortie de caractère se fait sur K7
-$195c-$1961 Met $82 en premier octet de la zone des variables.
+$195c-$1961 Met $82 en premier octet de la zone des variables qui va servir de buffer de travail.
 $1962       Pointe sur l'octet suivant de la zone des variables.
 $1963       Met HL dans ($4810 + $10) (`ft` + $10) (adresse de départ dans le descripteur de K7)
 $1966       Met $82 dans ($4810 + $14) (`ft` + $14) (premier octet de la somme de contrôle).
-$1969       Envoie le listing vers la cassette.
-$196c-$196e Envoie $b3 vers la K7
+$1969       Envoie le listing vers le buffer de travail.
+$196c-$196e Envoie $b3 vers le buffer de travail de la k7.
 $1971       Récupère le contenu de (ft + $14) (premier octet de la somme de contrôle).
 $1974       ???
 $1977       ???
@@ -3425,44 +3425,41 @@ $19e0       Revient à l'interpréteur BASIC.
 
 $19e3       [pause_msg]
 $19ed       [inst_csave]
-            %CODE
-            'M'
-$19ef       Branchement pour "CSAVEM"
-$19f1       'S'
-$19f3       Branchement pour "CSAVES"
-$19f5       ???
-$19f7       Branchement pour "CSAVE ???"
-$19f9       'X'
-$19fb       Branchement pour "CSAVEX"
-$19fd       'L'
-$19ff       Branchement pour "CSAVEL"
-$1a02       L'instruction suivante est ld a,$20 en $1a05
+$19ed       %CODE,CHAR
+$19ed-$19ef Branchement pour "CSAVEM"
+$19f1       %CHAR
+$19f1-$19f3 Branchement pour "CSAVES"
+$19f5-$19f7 Branchement pour "CSAVE*". Comme la multiplication est tokenisé, c'est le numéro du token qui est comparé et non le caractère `*`.
+$19f9       %CHAR
+$19f9-$19fb Branchement pour "CSAVEX"
+$19fd       %CHAR
+$19fd-$19ff Branchement pour "CSAVEL"
+$1a02       Du coup, ça doit être "CSAVE"
 $1a03       [csave_prm]
-            Déplacement au caractère suivante. En arrivant par ici, l'instruction suivante est ld bc,$203e puis ld (ft),a (le LD BC ne sert à rien)
-$1a04       ---
-$1a05       Place $20 dans le type de fichier en cas de "CSAVE" sans paramètre
+$1a03       Déplacement au caractère suivant lorsque l'on vient d'un "SAVE" suivi d'un caractère paramètre.
+$1a05       %CHAR
+            Place un espace dans le type de fichier en cas de "CSAVE" sans caractère paramètre.
 $1a07       Met le type de fichier contenu dans A dans le descripteur de type de fichier.
-$1a0a       ---
-$1a0d       ---
-$1a10       Initialise FT
-$1a13       ---
-$1a14       Calcul et écrit le checksum et FT sur la K7
-$1a17       ---
-$1a19       ---
-$1a1c       ---
-$1a1d       [call1A1D]
-$1a1e       [skip1A1E]
-$1a21       ---
-$1a23       ---
-$1a26       ---
-$1a28       ---
-$1a2b       ---
-$1a2e       ---
-$1a2f       ---
-$1a31       ---
-$1a34       [skip1A34]
-$1a37       [skip1A37]
-$1a38       ---
+$1a0a       Récupère et initialise le paramètre de vitesse d'écriture.
+$1a0d       Récupère et envoie le nom de fichier vers le description de fichier.
+$1a10       Initialise le reste de la description de fichier.
+$1a13       Sauvegarde HL
+$1a14       Calcul le sumcheck et écrit la description de fichier K7.
+$1a17       Branche en cas d'erreur ou d'interruption de commande.
+$1a19       Écrit le contenu du fichier sur la K7.
+$1a1d       [stp_or_abrt]
+$1a1d       Sauvegarde HL
+$1a1e       [csave_skip]
+$1a21       Branche s'il n'y a pas eu d'erreur ni d'interruption de commande.
+$1a23-$1a26 Inscrit l'erreur "ABORT" dans la variable `cascom`
+$1a28       Pointe sur le message d'erreur en français.
+$1a2b-$1a2f Branche si le système est en francais.
+$1a31       Sinon pointe vers le message d'erreur en anglais.
+$1a34       [print_abort]
+$1a34       Écrit le message d'erreur.
+$1a37       [csave_ok]
+$1a37       Restaure HL le pointeur vers le buffer de texte BASIC.
+
 $1a39       [inst_cload]
             %CODE
 $1a3b       ---
@@ -3749,7 +3746,7 @@ $1c3a       ---
 $1c3b       ---
 $1c3c       ---
 $1c3d       ---
-$1c3f       [k7_skip]
+$1c3f       [k7_advance]
 $1c40       ---
 $1c42       ---
 $1c45       [init_ft]
@@ -3991,27 +3988,27 @@ $1ddf       ---
 
 $1de0       [save_asc_k7]
             ???
-$1de0       Récupère l'adresse sauvegardée en début de 'SAVE' ((vartab) + 1)
-$1de3       Y place A (qui contient ???)
-$1de4       Place HL un octet plus loin
-$1de5       Met (vartab) dans DE)
-$1de9       Met A à 0
-$1dea       Différence entre HL (pointeur vers... ?) et DE (vartab)
-$1dec       Valeur que l'on sauve
+$1de0       Récupère le pointeur sur la fin de la zone de travail.
+$1de3       Y place A, la somme de contrôle.
+$1de4       Avance HL, pointeur vers le buffer de travail contenant les données à écrire.
+$1de5       Met (vartab) dans DE
+$1de9       Met A à 0, mais surtout passe le Carry à 0.
+$1dea       Différence entre HL, pointeur vers la fin du buffer de travail, et DE, le début.
+$1dec       Ce qui donne la taille du buffer, que l'on pousse sur la pile.
 $1ded       A passe à $FF (???)
-$1dee       Sauvegarde du buffer sur la K7 pour de vrai ???
-$1df1       ---
-$1df2       ---
+$1dee       Démarre la k7 et envoie l'entête de synchronisation.
+$1df1       Récupère la taille du buffer.
+$1df2       Retour en cas d'erreur.
 $1df3       [loop1DF3]
-$1df4       ---
-$1df5       ---
-$1df6       ---
-$1df9       ---
-$1dfa       ---
-$1dfb       ---
-$1dfc       ---
-$1dfe       ---
-$1dff       ---
+$1df3       Lecture d'un caractère du buffer dans A.
+$1df4       Pointe dans le buffer un octet plus loin.
+$1df5       Décrémente la taille du buffer restante.
+$1df6       Écrit l'octet sur la k7
+$1df9       Retour en cas d'erreur.
+$1dfa-$1dfc Boucle s'il reste des octets à envoyer.
+$1dfe       A = $FF
+$1dff       Envoie le signal de synchronisation de fin.
+
 $1e02       [load_ascii]
             Charge depuis la k7 un programme en ASCII
 
@@ -8370,89 +8367,83 @@ $3a66       ---
 $3a68       ---
 $3a6a       ---
 $3a6b       ---
-$3a6d       [call3A6D]
-$3a6e       ---
-$3a6f       ---
-$3a72       [loop3A72]
-$3a73       ---
-$3a74       ---
-$3a75       ---
-$3a77       ---
-$3a78       ---
+$3a6d       [wait_stp_k7]
+            Attend le temps de compter jusqu'à 65535 puis éteint le moteur de la K7.
+
+$3a6d-$3a6e Sauve AF et BC sur la pile
+$3a6f       BC à 0
+$3a72       [loop_on_bc]
+$3a72-$3a75 Boucle jusqu'à ce que BC soit égal à 0.
+$3a77-$3a78 Restaure AF et BC depuis la pile
 $3a79       [stop_k7]
 $3a79       Sauvegarde AF
 $3a7a-$3a7c Passe le registre de k7 à 0 (moteur éteint, pas de lecture)
 $3a7e       Restaure AF
 $3a7f       Permet l'IRQ
 
-$3a81       [k7sync]
-$3a82       ---
-$3a83       Valeur 2 sortie sur port 2 (???).
-$3a85       ---
-$3a87       Boucle d'attente le temps que HL boucle de $0000 à $0000
+$3a81       [save_sync]
+$3a81       Place les drapeaux en fonction de A.
+$3a82       Sauve les drapeaux sur la pile.
+$3a83-$3a85 Allume le moteur du lecteur k7.
 $3a8a       [sync_loop]
-$3a8b       ---
-$3a8c       ---
-$3a8d       ---
-$3a8f       ---
-$3a90       [k7_end]
-            Seems to end here at the end of K7 operations (???)
-$3a93       Si (handler) est nul, on branche (mais pourquoi ne pas faire les deux add ?). Note: 0 va donne $0000 qui va donc être décrémentée jusqu'à 0 en partant de $FFFF.
-$3a95       Si non nul, la valeur est multipliée par 4.
-$3a96       ---
-$3a97       [handler_0]
-            La valeur est ensuite stockée dans B
-$3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à la valeur de handler * 1024
+$3a87-$3a8d Boucle d'attente le temps que HL boucle de $0000 à $0000
+$3a8f       Restaure les drapeaux.
+$3a90       [send_ones]
+$3a93       Si le drapeau était à Z, on branche.
+$3a95-$3a96 Si Z n'était pas à 1 (dans A initialement pas à 0), A est multiplié par 4.
+$3a97       [not_mult]
+$3a97       La valeur est ensuite stockée dans B
+$3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à la valeur de handler * 1024 ou handler * 256 (suivant le drapeau Z)
 $3a9a       Désactivation des interruptions.
-$3a9b       [k7_end_lp]
-$3a9e       Attente de 8 cycles M (27 cycles T)
-$3aa1       Décrémentation du compteur BC
-$3aa2       ---
-$3aa3       ---
-$3aa4       Boucle dans que BC n'atteint pas 0.
-$3aa6       Pour terminer, branche sur la vérification de BREAK, d'anti copie et de reset des touches.
+$3a9b       [send_one_lp]
+$3a9e       Attente de 27 états T
+$3aa1-$3aa4 Boucle tabt que BC n'atteint pas 0.
+$3aa6       Pour terminer, branche sur la vérification de BREAK, d'anti copie et de reset des touches. Profitera du `ret` de la routine.
+
 $3aa9       [k7write]
-$3aac       ---
-$3aad       ---
-$3aae       ---
-$3ab0       ---
-$3ab1       ---
-$3ab4       ---
-$3ab5       ---
-$3ab7       [loop3AB7]
-$3ab8       ---
-$3abb       ---
-$3abe       ---
-$3ac0       ---
-$3ac3       ---
-$3ac6       ---
-$3ac9       [call3AC9]
-$3acc       ---
-$3acf       [wait_8]
-$3ad0       [call3AD0]
-$3ad3       ---
-$3ad4       ---
-$3ad5       ---
-$3ad6       ---
-$3ad7       ---
-$3ad8       ---
-$3ad9       ---
-$3adc       ---
-$3add       [k7_send_1]
-            Met la valeur du timing de cycle 1 (HIGH) dans HL
+$3aa9       Charge les périodes d'écriture du son.
+$3aac       Sauve le caractère à envoyer.
+$3aad-$3ab0 Réduction de la période dans L de $0e
+$3ab1       Envoie un premier cycle long (0) sur la k7.
+$3ab4       Restaure le caractère à envoyer
+$3ab5       8 bits à traiter.
+$3ab7       [byte_to_k7]
+$3ab7       Bit de poids fort de l'octet dans Carry
+$3ab8       Appel si le Carry est à 1
+$3abb       Appel si le Carry est à 0
+$3abe       Boucle sur les 8 bits.
+$3ac0-$3ac3 Envoie de deux "1" sur la k7 pour terminer l'octet.
+$3ac6       Retour de la fonction en passant par le test d'interruption de commande.
+
+$3ac9       [s0_to_k7]
+            Envoie sur la k7 un cycle décrivant un '0'
+$3ac9       Charge les périodes longues pour décrire un '0'.
+$3acc       Envoie sur la k7
+$3acf       [wait_27]
+$3acf       L'entrée ici sert de petite attente (17 T du `call` + 10 T du `ret`, donnent 27 états T)
+
+$3ad0       [s1_to_k7]
+            Envoie sur la k7 un double cycle décrivant un '1'.
+$3ad0       Envoie un premier cycle court pour un '1'
+$3ad3-$3ad8 Attente de 10 * 2 (ex) + 4 * 4 (nop) états T.
+$3ad9       Envoie un second cycle court pour terminer le '1'
+
+$3add       [k7_send_h1]
+            Envoie un cycle court sur la sortie k7.
+
+            Doublé, cela code un '1', la routine envoie donc une moitié du code complet.
+
+$3add       Met la valeur du timing de cycle 1 (HIGH) dans HL
 $3ae0       [k7_send_hl]
-            Sauve AF
-$3ae1       [k7_1_loop_l]
-            Boucle sur L
+$3ae0       Sauve AF
+$3ae1       [k7_1_loop_h]
+$3ae1       Boucle sur L
 $3ae2       Tant que L n'atteint pas 0
-            Tant que H n'atteint pas 0
-$3ae5       ---
-$3ae7       Envoie 3 sur le port $AF (???)
-$3ae9       [k7_1_loop_h]
-            Boucle sur H
-$3aea       ---
-$3aed       ---
-$3aef       Envoi 2 sur le port $af (k7/son)
+$3ae5-$3ae7 Signal `haut` et `moteur en route` sur la sortie k7.
+$3ae9       [k7_1_loop_l]
+$3ae9       Boucle sur H
+$3aea       Tant que H n'atteint pas 0
+$3aed-$3aef Signal `bas` et `moteur en route` sur la sortie k7.
 $3af1       Restaure AF
 
 $3af3       [calibrate]
@@ -9071,6 +9062,8 @@ $480e       [sonsav_hi]
 $480f       [sonsav_lo]
 $4810       [ft]
             Table de fichier
+$4820       [ft_addr]
+$4824       [ft_sumchk]
 $4826       [low]
 $4828       [high]
 $482a       [handler]
