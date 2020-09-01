@@ -3462,35 +3462,38 @@ $1a37       Restaure HL le pointeur vers le buffer de texte BASIC.
 
 $1a39       [inst_cload]
             %CODE
-$1a3b       ---
-$1a3e       ---
-$1a40       ---
-$1a41       [skip1A41]
-$1a44       ---
-$1a46       ---
-$1a48       ---
-$1a4a       ---
-$1a4c       ---
-$1a4d       [skip1A4D]
-$1a4e       ---
-$1a4f       ---
-$1a50       [skip1A50]
-$1a51       ---
-$1a52       ---
-$1a54       ---
-$1a55       ---
-$1a58       ---
-$1a5a       ---
-$1a5d       ---
-$1a60       ---
-$1a63       ---
+$1a39       Compare le caractère paramètre avec le token pour '*'
+$1a3b       Sauve le caractère paramètre potention dans la version du descripteur de fichier.
+$1a3e       Branche si le caractère n'était pas '*'
+$1a40       Si c'était '*', alors avance d'un caractère dans le buffer de texte BASIC.
+$1a41       [not_star]
+$1a41       Place le caractère paramètre potentiel dans le type de fichier du descripteur de fichier.
+$1a44       %CHAR
+$1a44-$1a46 Branche pour la commande `CLOADA`, qui charge un programme sans effacer l'existant.
+$1a48-$1a4a Branche pour la commande `CLOAD?` qui compare la version sur bande et celle en mémoire.
+$1a4c       Les cas `CLOAD` et `CLOAD*`
+
+$1a4d       [cload_a]
+$1a4d       Avance d'un octet dans le buffer de texte BASIC.
+$1a4e       Efface A
+
+$1a50       [cload_vrfy]
+$1a50       Complémente A, ce qui donne $FF, car A est à 0 depuis la soustraction qui a causé le branchement ici.
+$1a51       Avance d'un octet dans le buffer de texte BASIC.
+$1a52       Ce qui donne A = $FF pour `CLOAD?`, A = $00 dans les autres cas.
+$1a54       On pousse sur la pile A ainsi que les drapeaux de la comparaison avec $01 ???
+$1a55-$1a5a Efface les erreurs systèmes k7 de la variable `cascom`
+$1a5d       Copie le paramètre potentiel nom de fichier dans le descripteur de fichier.
+$1a60       Lit le potentiel second paramètre.
+$1a63       Éteint la marge de l'écran.
+
 $1a66       [loop1A66]
-$1a68       ---
-$1a6b       ---
-$1a6e       ---
+$1a66-$1a68 Change la couleur de la marge (??? quelle couleur)
+$1a6b       Calibre la vitesse de lecture.
+$1a6e       Branche en cas d'erreur ou d'interruption de commande.
 $1a70       ---
-$1a73       ---
-$1a75       ---
+$1a73       Branche en cas d'erreur ou d'interruption de commande.
+$1a75       Pointe vers le premier caractère significatif du numéro de ligne.
 $1a78       ---
 $1a7b       ---
 $1a7d       ---
@@ -3534,7 +3537,7 @@ $1ad3       [skip1AD3]
 $1ad6       ---
 $1ad7       ---
 $1ada       ---
-$1adb       [skip1ADB]
+$1adb       [cload_end]
 $1adc       ---
 $1adf       ---
 $1ae2       ---
@@ -3651,30 +3654,31 @@ $1baf       Sinon, passe le flag de vitesse à 1, pour '2400 bauds'
 $1bb1       [bauds_keep]
             Restaure HL
 $1bb2       ---
-$1bb3       [call1BB3]
-$1bb4       ---
-$1bb7       ---
-$1bb8       ---
-$1bb9       ---
+
+$1bb3       [buf_to_name]
+            Amorce le remplissage du nom de fichier par le contenu pointé par HL.
+$1bb3-$1bb4 Le nom de fichier est une chaîne de caractères vide.
+$1bb7       Placement sur l'octet précédent du buffer.
+$1bb8       Lecture du premier octet.
+$1bb9       Retour si la ligne est terminée (pas de nom de fichier en paramètre)
 
 $1bba       [name_to_ft]
-            Place le nom de fichier en paramètre dans FT
-$1bba       DE pointe vers l'adresse de la chaine, et C contient sa longueur.
-$1bbd       ---
-$1bbe       Longueur de la chaine dans B
-$1bbf       ---
-$1bc1       HL pointe vers fr + 1 (début du nom de fichier)
+            Place le nom de fichier en paramètre d'une commande dans FT.
+$1bba       Lit l'expression de alphanumérique. Au retour, DE pointe vers l'adresse de la chaine, et C contient sa longueur.
+$1bbd       Sauve le pointer de texte BASIC.
+$1bbe       La longueur de la chaine est mise dans B.
+$1bbf       6 caractères maximum.
+$1bc1       HL pointe vers le nom de fichier du descripteur de fichier.
+
 $1bc4       [cpy_name_lp]
-            Copie le nom de fichier vers FT, 6 caractères maximum.
-$1bc5       ---
-$1bc6       ---
-$1bc7       ---
-$1bc8       ---
-$1bc9       Si le compteur dans C (6 initialement) tombe à zéro, on sort de la boucle
+$1bc4-$1bc7 Copie le caractère pointé par DE vers le buffer pointé par HL et incrémente les deux pointeurs.
+$1bc8       Décrémente le compter.
+$1bc9       Si le compteur tombe à zéro, on sort de la boucle (6 caractères maximum pour le nom de fichier)
 $1bcb       Boucle sur la taille de la chaîne, qui s'arrêtera si B est inférieur à 6.
 $1bcd       Si on s'est arrêté avant 6 caractères, place un $00 de terminaison de chaîne.
-$1bcf       [cpy_name_end]
-$1bd0       ---
+$1bcf       [cp_name_end]
+$1bcf       Restaure le pointeur vers le buffer de texte BASIC.
+
 $1bd1       [call1BD1]
 $1bd3       [loop1BD3]
 $1bd6       ---
@@ -3768,7 +3772,7 @@ $1c63       ---
 $1c64       Récupération dans HL de (vartab) (début des variables, et aussi fin + 1 du listing BASIC)
 $1c67       Préparation de la soustraction en effaçant la Carry
 $1c68       Soustraction des deux pointeurs pour avoir la taille de la zone BASIC
-$1c6a       [write_k7_len]
+$1c6a       [wrt_k7_len]
             Écriture de la taille du fichier dans FT + 18 (taille du fichier)
 $1c6d       ---
 $1c6f       [ft_type_4d]
@@ -3829,50 +3833,71 @@ $1ccc       DE pointe sur le caractère suivant dans FT
 $1ccd       Lecture du prochain caractère sur la ligne à parser.
 $1cce       Il reste des caractères à parser.
 $1cd0       La limite de 5 chiffres à été atteinte, on sort.
-$1cd1       [call1CD1]
-$1cd2       ---
-$1cd3       ---
-$1cd4       ---
-$1cd5       ---
-$1cd8       ---
-$1cd9       ---
-$1cdb       ---
-$1cdd       ---
-$1cdf       ---
-$1ce1       [loop1CE1]
-$1ce2       ---
-$1ce4       ---
-$1ce7       ---
-$1ce8       ---
-$1ce9       ---
-$1ceb       [skip1CEB]
-$1cee       ---
-$1cef       ---
-$1cf2       ---
-$1cf3       [skip1CF3]
-$1cf4       ---
-$1cf5       ---
-$1cf6       ---
-$1cf8       ---
-$1cfa       ---
-$1cfb       ---
-$1cfc       ---
-$1cfe       [skip1CFE]
-$1cff       ---
-$1d00       ---
-$1d01       ---
-$1d03       ---
-$1d06       ---
-$1d08       ---
-$1d0a       ---
-$1d0d       ---
-$1d0e       ---
-$1d0f       [loop1D0F]
-$1d10       ---
-$1d12       [skip1D12]
-$1d15       ---
-$1d16       ---
-$1d17       ---
+
+$1cd1       [cload_prm_2]
+            Lecture du second paramètre de `CLOAD`.
+
+            Soit une virgule suivi d'un numéro de ligne.
+            Soit un nom de variable (chaîne ou tableau).
+
+            Sorties:
+            - A = 0 s'il y a un paramètre numéro de ligne, ou pas de paramètre.
+            - A = -1 s'il y a un paramètre de type alphanumérique
+            - A = 1 s'il y a un paramètre de type tableau
+            - Le numéro de version du descripteur du fichier est égal à A
+            - DE contient l'adresse de la variable ou du tableau
+            - `(contxt)` contient le pointeur vers le buffer de texte BASIC.
+
+
+$1cd1-$1cd2 A et C à 0.
+$1cd3-$1cd4 Lecture d'un caractère depuis le buffer de texte BASIC.
+$1cd5       Fait pointer DE vers `buf`, le buffer temporaire de traitement BASIC.
+$1cd8       Y place le caractère lu.
+$1cd9       Branche si la chaîne est terminée (pas de paramètre supplémentaire)
+$1cdb       %CHAR
+$1cdb-$1cdd Branche si le caractère lu n'est pas une virgule (pour les cas où le deuxième argument est un nom de variable)
+$1cdf       Lit 5 caractères maximum.
+
+$1ce1       [prm_i_lp2]
+$1ce1       Lecture d'un caractère.
+$1ce2       Branche si la chaîne est terminée.
+$1ce4       Branche vers une erreur de syntaxe si le caractère n'était pas numérique.
+$1ce7       Écrit le chiffre vers le descripteur de fichier qui pointe vers le buffer temporaire `buf`
+$1ce8       Et avance le pointeur
+$1ce9       Boucle selon le compteur B, 5 chiffres maximum.
+
+$1ceb       [prm_end]
+$1ceb       Sauve HL, qui pointe sur le buffer de texte BASIC, dans `(contxt)` ???
+$1cee-$1cef Met dans la version du descripteur de fichier -1 s'il y a un paramètre alphanumérique, 1 s'il y a un paramètre tableau et 0 sinon.
+
+$1cf3       [r_varname]
+$1cf3       Sauve HL, pointeur vers le buffer de texte BASIC, sur la pile.
+$1cf4       Et l'incrémente.
+$1cf5       Lecture du caractère, qui est le second du paramètre.
+$1cf6       %CHAR
+$1cf6-$1cf8 Branche si le marqueur de variable alphanumérique est trouvé.
+$1cfa-$1cfb Sinon, lit le caractère suivant.
+$1cfc       %CHAR
+            Et le compare avec le marqueur de variable alphanumérique.
+$1cfe       [varname_end]
+$1cfe       Restaure le pointeur sur le buffer de texte BASIC initial.
+$1cff       Et le sauve à nouveau.
+$1d00       Sauvegarde de BC.
+$1d01       Branche si un marqueur de variable alphanumérique n'a pas été trouvé. Il s'agit d'un nom de tableau.
+$1d03-$1d08 La commande était `CLOAD*`, il s'agit donc d'un tableau alphanumérique.
+$1d0a       Il s'agit du nom d'une variable alphanumérique, elle est évaluée, ce qui provoquera le chargement de son adresse dans DE et sa longueur dans BC (avec B à 0)
+$1d0d       Restauration de BC.
+$1d0e       C est diminué de 1 pour le mettre à $FF.
+$1d0f       [pophl_end]
+$1d0f       Récupération du pointeur vers le buffer de texte BASIC.
+$1d10       Termine la commande.
+
+$1d12       [arry_name]
+$1d12       Charge le nom du tableau. Le pointeur sera dans DE.
+$1d15       Restauration de BC.
+$1d16       Incrémente C pour le mettre à 1.
+$1d17       Termine la commande.
+
 $1d19       [call1D19]
 $1d1c       ---
 $1d1e       ---
@@ -9062,7 +9087,14 @@ $480e       [sonsav_hi]
 $480f       [sonsav_lo]
 $4810       [ft]
             Table de fichier
+$4811       [ft_filename]
+$4817       [ft_version]
+$4818       [ft_st_line]
+$4819       [ft_st_line1]
+$481d       [ft_protect]
+$481e       [ft_sum_pos]
 $4820       [ft_addr]
+$4822       [ft_data_len]
 $4824       [ft_sumchk]
 $4826       [low]
 $4828       [high]
