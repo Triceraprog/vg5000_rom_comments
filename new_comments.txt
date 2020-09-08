@@ -3352,10 +3352,15 @@ $1763       [txt_arret]
 $176a       [txt_break]
 $1771       [txt_in_fr]
 $1776       [txt_in_en]
-$177b       [txt_next]
+$177b       [txt_foun_en]
+$1782       [txt_skip_en]
 $1788       [txt_abrt_en]
+$17af       [txt_diff_en]
 $17e0       [txt_abrt_fr]
 $17a4       [txt_bad_en]
+$17d1       [txt_foun_fr]
+$17d9       [txt_skip_fr]
+$1814       [txt_diff_fr]
 $1802       [txt_bad_fr]
 
 $1945       [inst_save]
@@ -3480,74 +3485,71 @@ $1a4e       Efface A
 $1a50       [cload_vrfy]
 $1a50       Complémente A, ce qui donne $FF, car A est à 0 depuis la soustraction qui a causé le branchement ici.
 $1a51       Avance d'un octet dans le buffer de texte BASIC.
-$1a52       Ce qui donne A = $FF pour `CLOAD?`, A = $00 dans les autres cas.
+$1a52       Ce qui donne A = $FF et Carry à 1 pour `CLOAD?`, A = $00 et Carry à 0 dans les autres cas. (??? non... à vérifier)
 $1a54       On pousse sur la pile A ainsi que les drapeaux de la comparaison avec $01 ???
 $1a55-$1a5a Efface les erreurs systèmes k7 de la variable `cascom`
 $1a5d       Copie le paramètre potentiel nom de fichier dans le descripteur de fichier.
 $1a60       Lit le potentiel second paramètre.
 $1a63       Éteint la marge de l'écran.
 
-$1a66       [loop1A66]
+$1a66       [read_file]
 $1a66-$1a68 Change la couleur de la marge (??? quelle couleur)
 $1a6b       Calibre la vitesse de lecture.
 $1a6e       Branche en cas d'erreur ou d'interruption de commande.
-$1a70       ---
+$1a70       Lit le début du descripteur de fichier en décalé.
 $1a73       Branche en cas d'erreur ou d'interruption de commande.
-$1a75       Pointe vers le premier caractère significatif du numéro de ligne.
-$1a78       ---
-$1a7b       ---
-$1a7d       ---
-$1a80       ---
-$1a83       ---
-$1a84       ---
-$1a86       ---
-$1a89       [skip1A89]
-$1a8c       ---
-$1a8e       ---
-$1a91       ---
-$1a94       ---
-$1a96       [loop1A96]
-$1a98       [loop1A98]
-$1a9b       ---
-$1a9d       ---
-$1a9e       ---
-$1aa0       ---
-$1aa2       ---
-$1aa4       [skip1AA4]
-$1aa7       ---
-$1aaa       ---
-$1aab       ---
-$1aad       ---
-$1ab0       [skip1AB0]
-$1ab3       ---
-$1ab5       ---
-$1ab8       ---
-$1abb       ---
-$1abd       ---
-$1abf       ---
-$1ac2       ---
-$1ac4       ---
-$1ac6       ---
-$1ac7       ---
-$1aca       ---
-$1acd       ---
-$1ad0       ---
-$1ad2       ---
-$1ad3       [skip1AD3]
-$1ad6       ---
-$1ad7       ---
-$1ada       ---
+$1a75       Pointe vers ce qui actuellement contient le nom de fichier chargé depuis la k7, à cause du chargement décalé.
+$1a78       Compare le nom de fichier trouvé avec celui dans le descripteur de fichier.
+$1a7b       Branche si les deux noms correspondent (comme la correspondance se fait sur le nombre de caractère du paramètre de `CLOAD`, un nom vide est toujours un succès.
+$1a7d-$1a86 Charge dans HL l'adresse du texte "Skip: " dans la bonne langue.
+$1a89       [out_skip]
+$1a89       Affiche le message "Skip: " si l'utilisateur ne l'a pas désactivé.
+$1a8c-$1a8e Change la couleur de la marge (??? quelle couleur)
+$1a91       Lance une nouvelle calibration
+$1a94       Branche en cas d'erreur ou d'interruption de commande.
+
+$1a96       [sync_silenc]
+$1a96       Cherche 10 octets à 0 ???
+
+$1a98       [read_zero]
+$1a98       Lit un octet depuis la k7
+$1a9b       Branche en cas d'erreur ou d'interruption de commande.
+$1a9d-$1a9e Boucle si l'octet lu n'est pas 0.
+$1aa0       Lit 10 octets nuls.
+$1aa2       Lit le fichier suivant.
+
+$1aa4       [file_found]
+$1aa4-$1aad Pointe vers le message de fichier trouvé dans la bonne langue.
+$1ab0       [out_found]
+$1ab0       Affiche le message si l'utilisateur ne l'a pas désactivé.
+$1ab3-$1ab5 Change la couleur de la marge (??? quelle couleur)
+$1ab8       Premier caractère du descripteur de fichier lu, qui contient donc le type de fichier.
+$1abb       %CHAR
+$1abb-$1abd Branche si le type n'est pas ' ' (caractère espace)
+$1ac2       %CHAR
+$1abf-$1ac4 Branche si la commande utilisée est `CLOADA`
+$1ac6       Récupère le résultat de la détection d'un `CLOAD?`
+$1ac7       Utilise FAC pour sauver A temporairement.
+$1aca       Si le Carry est à 1, casse la première chaîne du programme en mémoire.
+$1acd       Restaure la valeur de A.
+$1ad0       Compare A avec 1...
+$1ad2       ... et pousse le résultat dans la pile.
+$1ad3       [keep_prog]
+$1ad3       Détermine l'adresse mémoire de destination du chargement, dans HL.
+$1ad6       Récupère le résultat de la comparaison précédente.
+$1ad7       Lecture ou vérification des données depuis la k7.
+$1ada       Termine l'opération de chargement.
+
 $1adb       [cload_end]
-$1adc       ---
-$1adf       ---
-$1ae2       ---
-$1ae4       ---
-$1ae6       ---
-$1ae7       ---
-$1ae8       ---
-$1ae9       ---
-$1aeb       ---
-$1aed       ---
+$1adb       Restaure DE
+$1adc       Arrête le moteur k7.
+$1adf       Pointe HL vers la variable du contrôle et erreurs de k7.
+$1ae2       Branche en cas d'erreur de lecture ou d'interruption de commande.
+$1ae4       Branche en cas de mémoire pleine.
+$1ae6-$1ae7 Place les drapeaux en fonction du contenu de C (qui contient quoi ???)
+$1ae8       Charge le contenu de `cascom` dans A
+$1ae9       Branche si C était égal à zéro.
+$1aeb-$1aed Branche si `cascom` a signalé une erreur.
 $1aef       [ok_clear]
             Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
 $1af2       ---
@@ -3562,15 +3564,10 @@ $1b07       ---
 $1b08       ---
 $1b0a       ---
 $1b0d       ---
-$1b0f       [skip1B0F]
-$1b11       ---
-$1b13       ---
-$1b16       ---
-$1b19       ---
-$1b1a       ---
-$1b1c       ---
-$1b1f       ---
-$1b21       [skip1B21]
+$1b0f       [out_k7_err]
+$1b0f-$1b11 Branche si ce n'était pas un cas d'erreur de vérification.
+$1b13-$1b1f Prépare l'affichage du message d'erreur de vérification dans la bonne langue.
+$1b21       [out_bad_fle]
 $1b24       [print_n_ok]
 $1b27       ---
 $1b2a       [bad_file]
@@ -3579,21 +3576,24 @@ $1b2a       [bad_file]
             Sortie :
             - HL pointe sur le texte dans la bonne langue.
 
-$1b36       [skip1B36]
-$1b38       ---
-$1b3a       ---
-$1b3c       ---
-$1b3e       [skip1B3E]
-$1b41       ---
-$1b43       ---
-$1b45       ---
-$1b47       ---
-$1b49       ---
-$1b4a       ---
-$1b4c       ---
+$1b36       [load_adjust]
+            ???
+
+$1b36-$1b38 Branche si l'utilisateur a activé le mode `return if error`.
+$1b3a-$1b3c Branche s'il y a une erreur système.
+
+$1b3e       [ret_if_err]
+$1b3e       A prend le type de fichier lu.
+$1b41       %CHAR
+$1b41-$1b43 Branche si le type de fichier lu est `M`.
+$1b45       %CHAR
+$1b47       Branche si le type de fichier lu n'est pas ` `.
+$1b49       Charge `cascom` dans A.
+$1b4a-$1b4c Branche s'il y a une erreur signalée.
 $1b4e       ---
 $1b51       ---
-$1b54       [skip1B54]
+$1b54       [mem_adjust]
+            ???
 $1b57       ---
 $1b58       ---
 $1b5a       ---
@@ -3621,8 +3621,10 @@ $1b7f       ---
 $1b81       ---
 $1b82       [skip1B82]
 $1b83       ---
-$1b86       [skip1B86]
-$1b89       ---
+
+$1b86       [hl_contxt]
+$1b86       HL contient l'adresse dans `(contxt)`, (probablement la variable ou le tableau lu ???)
+
 
 $1b8a       [get_bauds]
             Récupère le paramètre optionnel de vitesse sur les opérations K7, et place le flag correspondant dans "cascom".
@@ -3679,57 +3681,74 @@ $1bcd       Si on s'est arrêté avant 6 caractères, place un $00 de terminaiso
 $1bcf       [cp_name_end]
 $1bcf       Restaure le pointeur vers le buffer de texte BASIC.
 
-$1bd1       [call1BD1]
-$1bd3       [loop1BD3]
-$1bd6       ---
-$1bd7       ---
-$1bd9       ---
-$1bdb       ---
-$1bdd       ---
-$1be0       ---
-$1be2       [loop1BE2]
-$1be5       ---
-$1be6       ---
-$1be7       ---
-$1be8       ---
-$1bea       ---
-$1beb       [call1BEB]
-$1bee       ---
-$1bf0       [loop1BF0]
-$1bf1       ---
-$1bf2       ---
-$1bf3       ---
-$1bf4       ---
-$1bf5       ---
-$1bf6       ---
-$1bf7       ---
-$1bf8       ---
-$1bf9       ---
-$1bfb       ---
-$1bfc       [call1BFC]
-$1bfd       ---
-$1bfe       ---
-$1c01       ---
-$1c03       ---
-$1c05       ---
-$1c08       ---
-$1c0b       ---
-$1c0d       [loop1C0D]
-$1c0e       ---
-$1c0f       ---
-$1c11       ---
-$1c12       ---
-$1c13       ---
-$1c15       [skip1C15]
-$1c18       ---
-$1c1a       ---
-$1c1b       ---
-$1c1e       ---
-$1c1f       ---
-$1c20       [skip1C20]
-$1c21       ---
-$1c22       ---
+$1bd1       [read_ft]
+            Se synchronise sur les 10 premiers octets de l'en-tête, puis charge le descripteur de fichier.
+
+            Ce chargement se fait de manière incomplète et en décalé. Il s'agit en effet de conserver les
+            informations déjà présentes dans le descripteur pour identifier le fichier.
+
+$1bd1       En attente de 10 fois l'octet d'en-tête.
+
+$1bd3       [rd_ft_head]
+$1bd3       Lit un octet depuis la k7
+$1bd6       Retourne en cas de problème ou d'interruption de commande
+$1bd7-$1bd9 Boucle tant que $d3 n'est pas lu depuis la k7.
+$1bdb       Boucle 10 fois
+$1bdd       Charge dans HL l'adresse du premier numéro de ligne dans le descripteur de fichier.
+$1be0       Lit $16 (22) octets.
+
+$1be2       [read_ft_pl]
+$1be2       Lit un octet depuis la k7.
+$1be5       Retourne en cas de problème ou d'interruption de commande
+$1be6-$1be7 Remplit le descripteur de fichier avec les octets lus.
+$1be8       Boucle sur les 22 octets.
+
+$1beb       [cmp_filenam]
+            Compare le nom de fichier du descripteur de fichier avec les 6 premiers caractères pointés par HL.
+
+            La comparaison s'arrête dès la fin du nom du descripteur de fichier.
+
+            Retour:
+            - Z à 1 si la le nom dans le descripteur de fichier est indentique au début du nom pointé par HL.
+            - Z à 0 sinon.
+
+$1beb       BC pointe vers le nom de fichier du descripteur de fichier.
+$1bee       Comparaison de 6 caractères.
+
+$1bf0       [cmp_bytes]
+$1bf0-$1bf2 Retour dès que BC pointe vers un octet nul.
+$1bf3-$1bf4 Compare les deux octets pointés par BC et HL respectivement.
+$1bf5-$1bf6 Avance les deux pointeurs.
+$1bf7       Retour si les deux octets sont différents.
+$1bf8       Décrémente le compteur de caractères.
+$1bf9       Boucle 6 fois.
+
+$1bfc       [out_k7_msg]
+            Affiche le message k7 pointé par HL suivi par le nom de fichier lu depuis la k7.
+
+            Si le bit 0 de `cascom` est à 1, n'affiche que le retour chariot, et n'affiche pas le message.
+
+$1bfc-$1bfd Préserve DE et AF
+$1bfe-$1c01 Vérifie si l'utilisateur veut supprimer l'affichage des messages k7.
+$1c03       Branche si ce n'est pas le cas (bit 0 à 1)
+$1c05       Affiche la chaîne pointée par HL.
+$1c08       Pointe vers l'actuel nom de fichier chargé depuis la k7.
+$1c0b       6 caractères maximum à afficher
+$1c0d       [out_filenam]
+$1c0d-$1c0f Branche si on a atteint la fin du nom, plus court que 6 caractères.
+$1c11       HL pointe un caractère plus loin.
+$1c12       Affichage du caractère.
+$1c13       Boucle 6 fois maximum.
+
+$1c15       [end_k7_msg]
+$1c15       Affiche un retour chariot (même si les messages ne sont pas affichés)
+$1c18-$1c1f Provoque un rafraichissement de l'écran, fin que le message soit visible.
+$1c20       [skip_k7_msg]
+$1c20-$1c21 Restaure AF et DE
+
 $1c23       [call1C23]
+            Fait quelque chose après avoir chargé un programme BASIC...
+
 $1c27       [loop1C27]
 $1c28       ---
 $1c29       ---
@@ -3898,53 +3917,59 @@ $1d15       Restauration de BC.
 $1d16       Incrémente C pour le mettre à 1.
 $1d17       Termine la commande.
 
-$1d19       [call1D19]
-$1d1c       ---
-$1d1e       ---
-$1d20       ---
-$1d23       ---
-$1d25       ---
-$1d27       ---
-$1d2a       ---
-$1d2b       ---
-$1d2c       ---
-$1d2d       [skip1D2D]
-$1d30       ---
-$1d31       [skip1D31]
-$1d33       ---
-$1d35       ---
-$1d38       ---
-$1d39       [skip1D39]
-$1d3b       ---
-$1d3d       ---
-$1d40       ---
-$1d41       [skip1D41]
-$1d44       ---
-$1d46       ---
-$1d48       ---
-$1d4b       ---
-$1d4c       ---
-$1d4e       ---
-$1d51       ---
-$1d52       [loop1D52]
-$1d55       ---
-$1d58       ---
-$1d59       ---
-$1d5a       ---
-$1d5b       ---
-$1d5c       ---
-$1d5f       ---
-$1d62       ---
-$1d65       [skip1D65]
-$1d68       ---
-$1d69       ---
-$1d6b       ---
-$1d6e       ---
-$1d6f       ---
-$1d70       ---
-$1d71       ---
-$1d73       [skip1D73]
-$1d76       ---
+$1d19       [load_addres]
+            Place dans HL l'adresse à laquelle les données doivent être chargées depuis la K7.
+
+            Sortie :
+            - HL pointeur vers la zone de données à écrire.
+
+$1d19       A prend le type de fichier lu depuis la k7
+$1d1c       %CHAR
+$1d1c-$1d1e Branche s'il est différent d'un espace
+$1d23       %CHAR
+$1d20-$1d25 C'est un programme en BASIC. Branche si la commande utilisée n'est pas `CLOADA`
+$1d27-$1d2b `CLOADA`, le chargement se fera vers deux octets avant `(vartab)`, c'est-à-dire à la suite du programme BASIC actuellement en mémoire.
+
+$1d2d       [txttab_hl]
+$1d2d       `CLOAD`, le chargement se fera vers `(txttab)`, c'est-à-dire à la place du programme BASIC actuellement en mémoire.
+
+$1d31       [bin_format]
+            %CHAR
+$1d31-$1d33 Branche si le type n'est pas `M`
+$1d35       Format de 'CSAVEM`, binaire, le chargement se fera vers l'adresse dans `(high)` (??? comment est-elle arrivée là ?)
+
+$1d39       [scr_format]
+            %CHAR
+$1d39-$1d3b Branche si le type n'est pas `S`
+$1d3d       Format de `CSAVES`, le chargement se fera vers le buffer de l'écran.
+
+$1d41       [var_or_ary]
+$1d41       Chargement d'une variable ou d'un tableau, HL pointe vers le decripteur de la variable.
+$1d44-$1d46 Branche si ce n'est pas le format `CSAVE*`
+$1d48-$1d4c Branche si le format dans le descripteur de fichier n'était pas 1, on charge une variable.
+$1d4e       Va chercher le tableau à charger.
+$1d51       Sauve BC
+$1d52       [verify_mem]
+$1d52       Sauvegarde HL temporairement dans `(contxt)`
+$1d55       Récupération dans HL du nombre d'octets à charger depuis le descripteur de fichier lu.
+$1d58       Compare le contenu de `handler` et DE, l'adresse du tableau.
+$1d59       BC récupère le nombre d'octets à charger depuis la pile.
+$1d5a-$1d5b Retour si Carry est à 1 ou Z est à 1
+$1d5c       Restaure HL.
+$1d5f       Arrête la K7
+$1d62       Branche vers le message d'erreur de dépasement de capacité.
+
+$1d65       [var_format]
+$1d65-$1d69 Vérifie que le format de fichier est bien $FF
+$1d6b       Lit une expression alphanumérique.
+$1d6e       Sauve l'adresse du résultat.
+$1d6f       Sauve DE
+$1d70       BC dans DE
+$1d71       Continue sur le code commun variable et tableau.
+
+$1d73       [wrg_format]
+$1d73       Arrête la K7.
+$1d76       Branche sur une erreur d'opération illégale.
 
 $1d79       [fetch_dim]
             Récupère le pointeur et la longueur vers un tableau DIM
@@ -4219,66 +4244,63 @@ $1f21       ---
 $1f24       ---
 $1f25       ---
 $1f27       ---
-$1f28       [call1F28]
-$1f29       ---
-$1f2a       ---
-$1f2d       ---
-$1f30       ---
-$1f33       ---
-$1f36       ---
-$1f37       ---
-$1f38       ---
-$1f39       ---
-$1f3a       ---
-$1f3b       [loop1F3B]
-$1f3d       [loop1F3D]
-$1f40       ---
-$1f41       ---
-$1f43       ---
-$1f45       ---
-$1f47       ---
-$1f4b       [loop1F4B]
-$1f4e       ---
-$1f4f       ---
-$1f50       ---
-$1f51       ---
-$1f54       ---
-$1f55       ---
-$1f56       ---
-$1f57       ---
-$1f59       ---
-$1f5a       ---
-$1f5b       ---
-$1f5e       ---
-$1f5f       ---
-$1f60       ---
-$1f61       ---
-$1f62       ---
-$1f64       ---
-$1f67       ---
-$1f69       ---
-$1f6c       ---
-$1f6d       [skip1F6D]
-$1f6e       ---
-$1f70       ---
-$1f73       ---
-$1f76       ---
-$1f78       ---
-$1f7b       ---
-$1f7d       ---
-$1f7f       ---
-$1f82       ---
-$1f83       [skip1F83]
-$1f84       ---
-$1f85       ---
-$1f86       ---
-$1f87       ---
-$1f89       ---
-$1f8a       ---
-$1f8b       ---
-$1f8e       ---
-$1f92       ---
-$1f93       ---
+$1f28       [read_contnt]
+            Charge les données du fichier sur la K7 vers la zone mémoire pointée par HL.
+
+            (ou vérifie ???)
+
+            Entrée :
+            - HL contient l'adresse mémoire où charger les données chargées.
+            - A est à 0 si on effectue un chargement, et à $FF si on effectue une vérification de fichier.
+
+$1f28       Sauve HL, l'adresse de destination.
+$1f29       Sauve AF, le paramètre de vérification. ???
+$1f2a       Calibre la lecture.
+$1f2d       Retour (avec nettoyage de la pile) en cas d'erreur ou d'interruption de commande.
+$1f30       Charge l'indicateur de protection dans le descripteur de fichier lu (qui est toujours décalé)
+$1f33-$1f37 Ajuste la possibilité d'exécuter le moniteur BASIC (si `allflg` est à 1, on ne reviendra pas sur l'invite de commande du BASIC)
+$1f38-$1f39 Récupère le paramètre de vérification (???) et l'adresse de destination.
+$1f3a       Copie A, le masque de comparaison ou lecture, dans D
+$1f3b       [read_ct]
+$1f3b       Initialise la lecture de 10 octets d'entete.
+$1f3d       [rd_ct_head]
+$1f3d       Lecture d'un octet
+$1f40       Retour en cas d'erreur ou d'interruption de commande.
+$1f41-$1f43 Boucle tant que l'octet lu n'est pas `$d6`
+$1f45       Lecture de 10 octets `$d6`
+$1f47       Récupération du nombre d'octets à lire depuis la k7 (valeur du descripteur de fichier chargé)
+$1f4b       [read_ct_pl]
+$1f4b       Lecture d'un octet depuis la k7.
+$1f4e       Retour en cas d'erreur ou d'interruption de commande.
+$1f4f       Place l'octet lu dans E
+$1f50       Sauve HL
+$1f51-$1f5b Ajoute la valeur de l'octet lu au calcul du `sumcheck`.
+$1f5e       Restaure HL, qui pointe vers la mémoire à remplir
+$1f5f       Récupère l'octet qui vient d'être lu
+$1f60-$1f62 En faisant la soustraction de l'octet lu et de l'octet présent en mémoire,
+            masque par le selecteur de vérification ou chargement, on branche en cas de chargement ou, en cas de vérification, si l'octet
+            chargé et l'octet en mémoire sont identiques.
+$1f64-$1f69 Sinon, il y a une erreur de vérification, qui est indiqué dans la variable `cascom`.
+$1f6c       L'octet ne sera pas écrit en mémoire, et on continue
+$1f6d       [byte_ok]
+$1f6d       L'octet lu est écrit en mémoire.
+$1f6e-$1f76 Changement direct de la couleur de marge.
+$1f7b       %CHAR
+$1f78-$1f7d Branche si le type de fichier lu n'est pas ' '.
+$1f7f       Vérifie qu'il reste de la mémoire.
+$1f82       Ou retourne immédiatement dans le cas contraire.
+
+$1f83       [read_ct_cnt]
+$1f83       Pointe vers l'octet suivant.
+$1f84       Décrémente le nombre d'octets à charger.
+$1f85-$1f87 Boucle s'il reste des octets à charger.
+$1f89       Récupère dans C le sélecteur de chargement ou vérification.
+$1f8a       Sauve HL
+$1f8b       Charge la somme de contrôle calculée dans HL.
+$1f8e       Charge dans DE la somme de contrôle lue depuis la k7.
+$1f92       Compare les deux `sumcheck`.
+$1f93       Restaure HL
+
 $1f94       [sumchk_err]
 $1f94       Retour si Z est levé.
 $1f95-$1f98 Sinon, signal l'erreur de somme de contrôle dans la variable `cascom`
@@ -9096,9 +9118,11 @@ $481e       [ft_sum_pos]
 $4820       [ft_addr]
 $4822       [ft_data_len]
 $4824       [ft_sumchk]
+$4825       [ft_sumchk1]
 $4826       [low]
 $4828       [high]
 $482a       [handler]
+$482c       [ft_sumchkr]
 $482e       [lowlim]
 $482f       [winwid]
 $4830       [ramlow]
