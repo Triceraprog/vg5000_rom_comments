@@ -3102,6 +3102,8 @@ $1000       [start]
             la ROM à une adresse multiple de 16ko, l'initialisation va
             penser que c'est de la RAM accessible.
 
+            == DEBUT DE SECTION BIINIT (BASIC INITIALISATION) ==
+
 $1000       Désactivation de l'IRQ.
 $1001-$100a Copie de la ROM en boucle sur toute la mémoire addressable.
 $100c-$100d Transfert de HL (qui vaut $c000) vers BC. DE vaut $0000 suite à `ldir`.
@@ -3550,26 +3552,30 @@ $1ae6-$1ae7 Place les drapeaux en fonction du contenu de C (qui contient quoi ??
 $1ae8       Charge le contenu de `cascom` dans A
 $1ae9       Branche si C était égal à zéro.
 $1aeb-$1aed Branche si `cascom` a signalé une erreur.
+
 $1aef       [ok_clear]
-            Affiche le message d'invite "Ok!" et réinitialise le chaînage et les variables.
-$1af2       ---
-$1af5       ---
-$1af8       [mem_out_err]
-$1afa       ---
-$1afc       Affiche l'erreur "Out of Memory"
+            Affiche le message d'invite "Ok!" et réinitialise le chaînage (???) et les variables.
+$1aef-$1af2 Affiche la chaîne "Ok!"
+
+$1af8       [mem_out_k7]
+            Indique une erreur de fichier trop grand dans `cascom` et affiche une erreur de dépassement de mémoire (vraiment celui-là ???)
+$1af8       Signale l'erreur de fichier trop grand dans `cascom`
+$1afa-$1afc Affiche l'erreur "Out of Memory"
+
 $1aff       [abort_n_ok]
-$1b01       ---
-$1b04       ---
-$1b07       ---
-$1b08       ---
-$1b0a       ---
-$1b0d       ---
+            Indique une erreur d'abandon dans `cascom` et affiche l'erreur correspondante dans la bonne langue.
+$1aff       Signale l'erreur d'abandon dans `cascom`
+$1b01-$1b0d Pointe vers le texte d'erreur dans la bonne langue et branche vers l'affichage de l'erreur avant de boucler dans le moniteur BASIC.
+
 $1b0f       [out_k7_err]
+$1b0f       %CHAR
+
 $1b0f-$1b11 Branche si ce n'était pas un cas d'erreur de vérification.
 $1b13-$1b1f Prépare l'affichage du message d'erreur de vérification dans la bonne langue.
 $1b21       [out_bad_fle]
 $1b24       [print_n_ok]
-$1b27       ---
+$1b27       Continue vers la boucle BASIC.
+
 $1b2a       [bad_file]
             Charge le message "Mauvais fichier" dans la bonne langue.
 
@@ -3590,72 +3596,75 @@ $1b45       %CHAR
 $1b47       Branche si le type de fichier lu n'est pas ` `.
 $1b49       Charge `cascom` dans A.
 $1b4a-$1b4c Branche s'il y a une erreur signalée.
-$1b4e       ---
-$1b51       ---
+$1b4e       Construit le chaînage du listing BASIC chargé.
+$1b51       À la fin du chaînage, HL pointe à la fin du listing, qui devient donc l'adresse pour les variables, mis dans `(vartab)`.
+
 $1b54       [mem_adjust]
             ???
-$1b57       ---
-$1b58       ---
-$1b5a       ---
-$1b5d       ---
-$1b5e       ---
-$1b5f       ---
-$1b61       ---
-$1b63       ---
-$1b65       ---
-$1b67       [skip1B67]
-$1b6a       ---
-$1b6b       ---
-$1b6c       ---
-$1b6e       [skip1B6E]
-$1b71       ---
-$1b73       ---
-$1b75       ---
-$1b78       [skip1B78]
-$1b79       ---
-$1b7b       [loop1B7B]
-$1b7c       ---
-$1b7d       ---
-$1b7e       ---
-$1b7f       ---
-$1b81       ---
-$1b82       [skip1B82]
-$1b83       ---
+$1b54       État de l'exécution BASIC
+$1b57-$1b58 Branche si `(allflg)` est différent de 0, ce qui signifie que le moniteur BASIC ne doit pas tourner (??? pas sur, ça a l'air de servir comme variable temporaire pendant le chargement)
+$1b5a       Pointe vers le buffer de travail.
+$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul (mais que contient-il ?)
+$1b61       %CHAR
+$1b61-$1b63 Branche si le premier octet du buffer de travail est `0`.
+$1b65       Branche dans les autres cas (??? lesquels).
+
+$1b67       [run_or_end]
+$1b67       Lecture du descripteur de fichier en décalé, donc numéro de ligne de départ (en ASCII)
+$1b6a-$1b6c Branche si le premier octet n'est pas nul, il y a un numéro de ligne auquel démarrer.
+
+$1b6e       [end_rd_file]
+$1b71       %CHAR
+$1b6e-$1b73 Branche si le type de fichier lu est `M` (placement de HL de `(contxt)` et retour).
+$1b75       Branche vers le moniteur BASIC.
+
+$1b78       [run_k7_at]
+            La routine recopie le numéro de ligne de départ du BASIC et met le système dans un état où l'instruction `RUN` suivi d'un numéro de ligne aurait été entré.
+
+            Entrées :
+            - HL pointe vers un buffer temporaire pour y placer l'argument pour `RUN`.
+            - DE pointe vers le buffer source contenant le numéro de ligne BASIC.
+
+$1b78       Sauve HL
+$1b79       5 octets à copier.
+$1b7b       [cp_line_nb]
+$1b7b-$1b7f Copie des 5 octets du descripteur de fichier vers le buffer pointé par HL (un buffer temporaire)
+$1b81       Restaure HL.
+$1b82       [k7_run]
+$1b82       Décrémente A pour quelles valeurs ???
+$1b83       Branche sur l'instruction RUN.
 
 $1b86       [hl_contxt]
 $1b86       HL contient l'adresse dans `(contxt)`, (probablement la variable ou le tableau lu ???)
 
 
 $1b8a       [get_bauds]
-            Récupère le paramètre optionnel de vitesse sur les opérations K7, et place le flag correspondant dans "cascom".
+            Récupère le paramètre optionnel de vitesse sur les opérations K7, et place le flag correspondant dans `cascom`.
 $1b8a       Replace le pointeur de texte sur le caractère précédent
 $1b8b       Afin de récupérer le caractère.
 $1b8c       Retourne tout de suite s'il n'y a rien.
-$1b8d       ---
-$1b8f       Retourne s'il n'y a pas une '('
+$1b8d       %CHAR
+$1b8d-$1b8f Retourne s'il n'y a pas une `(`
 $1b90       Sinon, récupére le caractère suivant.
 $1b91       S'il n'y a rien, c'est une erreur de syntaxe
-$1b94       ---
-$1b96       Saute si le paramètre est 1
-$1b98       ---
-$1b9a       Si ce n'est pas 2, c'est un appel illégal.
+$1b94       %CHAR
+$1b94-$1b96 Saute si le paramètre est 1
+$1b98       %CHAR
+$1b98-$1b9a Si ce n'est pas 2, c'est un appel illégal.
 $1b9d       [valid_bauds]
-            Met dans D l'argument entre parenthèses (qui est la vitesse d'enregistrement)
-$1b9e       ---
-$1b9f       Si la commande s'arrête là, c'est une erreur de syntaxe.
+$1b9d       Met dans D l'argument entre parenthèses (qui est la vitesse d'enregistrement)
+$1b9e-$1b9f Si la commande s'arrête là, c'est une erreur de syntaxe.
 $1ba2       Vérifie que le caractère suivant est ')' ou c'est aussi une erreur de syntaxe.
             Caractère ')'
-$1ba3       ---
+$1ba3       %DATASKIP
 $1ba4       Sauve HL
-$1ba5       ---
-$1ba8       Met le flag de vitesse de la cassette à 0 (1200 bauds)
-$1baa       ---
-$1bab       Test le bit de poids faible de l'argument ('1' ou '2' en ASCII, soit $31 ou $32).
+$1ba5-$1ba8 Met le flag de vitesse de la cassette à 0 (1200 bauds)
+$1baa-$1bab Test le bit de poids faible de l'argument ('1' ou '2' en ASCII, soit $31 ou $32).
 $1bad       Saute s'il n'est pas nul, c'est-à-dire si l'argument était '1'.
 $1baf       Sinon, passe le flag de vitesse à 1, pour '2400 bauds'
 $1bb1       [bauds_keep]
-            Restaure HL
-$1bb2       ---
+$1bb1       Restaure HL
+
 
 $1bb3       [buf_to_name]
             Amorce le remplissage du nom de fichier par le contenu pointé par HL.
@@ -3746,64 +3755,81 @@ $1c18-$1c1f Provoque un rafraichissement de l'écran, fin que le message soit vi
 $1c20       [skip_k7_msg]
 $1c20-$1c21 Restaure AF et DE
 
-$1c23       [call1C23]
-            Fait quelque chose après avoir chargé un programme BASIC...
+$1c23       [mk_chain_k7]
+            Construit le chaînage du listing BASIC lu depuis la k7.
 
-$1c27       [loop1C27]
-$1c28       ---
-$1c29       ---
-$1c2a       ---
-$1c2b       ---
-$1c2c       ---
-$1c2d       ---
-$1c2e       [loop1C2E]
-$1c2f       ---
-$1c30       [loop1C30]
-$1c31       ---
-$1c32       ---
-$1c34       ---
-$1c36       ---
-$1c37       ---
-$1c39       ---
-$1c3a       ---
-$1c3b       ---
-$1c3c       ---
-$1c3d       ---
+            Sortie :
+            - HL pointe vers le premier emplacement libre après le listing BASIC.
+
+$1c23       Charge `(txttab)`, le début du programme en BASIC, dans DE
+$1c27       [next_line]
+$1c27-$1c28 HL = DE
+$1c29-$1c2d Retour immédiat à la fin du chaînage du programme BASIC (le pointeur vers la ligne suivante est à 0).
+
+$1c2e       [skip_16b]
+$1c2e-$1c2f Passe sur le numéro de ligne.
+
+$1c30       [read_byte]
+$1c30       Lit le premier caractère ou token de la ligne BASIC.
+$1c31       Et déplace le pointeur de lecture un octet plus loin.
+$1c32-$1c34 Branche si le token est le marqueur de nombre sur 16 bits, afin de passer par dessus ces deux octets.
+$1c36-$1c37 Branche si le caractère ou le token n'est pas nul.
+$1c39       On est arrivé à la fin de la ligne. En échangeant HL et DE, DE contient le pointeur après la fin de ligne, et HL le pointeur sur le début de la ligne.
+$1c3a-$1c3c Écrit dans l'adresse de chaînage de la ligne courante l'adresse de la ligne suivante.
+$1c3d       Cherche la ligne suivante.
+
 $1c3f       [k7_advance]
-$1c40       ---
-$1c42       ---
+$1c3f       Incrémente HL, pointeur vers le texte BASIC.
+$1c40       Initialise le compteur B à 3.
+$1c42       C'est un patch de la ROM 1.0, branche plus loin (??? vérifier)
+
 $1c45       [init_ft]
-$1c46       HL pointe vers FT+7 (numéro de version)
-$1c49       ---
-$1c4a       ---
+            Initialise le descripteur de fichier
+
+            Les champs effacés sont :
+            - numéro de version
+            - numéro de ligne de départ
+            - octet de protection
+            - position de checksum (??? vérifier comment est utilisée cette information)
+
+            Les champs initialisés sont :
+            - octet de protection avec la valeur de `(allflg)`
+            - addresse de départ
+            - longueur du fichier
+
+$1c45       Sauve HL
+$1c46       HL pointe le numéro de version du descripteur de fichier.
+$1c49       A = 0
+$1c4a       Efface 9 octets.
 $1c4c       [zero_ft]
-            Efface FT de 7 inclus à 16 exclus en y mettant des 0 (numéro de version, numéro de ligne de départ, octet de protection, position de checksum)
-$1c4d       ---
+$1c4c-$1c4d Met l'octet pointé à 0.
 $1c4e       Fin de la boucle d'effacement
-$1c50       Récupère l'octet de proection
+$1c50       Récupère l'octet de protection actuel.
 $1c53       Et le place à sa position dans FT
 $1c56       Récupère le type du fichier depuis FT
-$1c59       ---
-$1c5b       Branche si le type n'est pas $20
-$1c5d       Traitement du type $32 (CSAVE simple)
+$1c59       %CHAR
+$1c59-$1c5b Branche si le type n'est pas ' '
+$1c5d       Traitement du type ' ' (CSAVE simple)
 $1c60       Récupération dans HL de (txttab) (début du listing BASIC)
-$1c63       ---
+$1c63       Sauve HL contenant `(txttab)` vers DE.
 $1c64       Récupération dans HL de (vartab) (début des variables, et aussi fin + 1 du listing BASIC)
 $1c67       Préparation de la soustraction en effaçant la Carry
 $1c68       Soustraction des deux pointeurs pour avoir la taille de la zone BASIC
 $1c6a       [wrt_k7_len]
-            Écriture de la taille du fichier dans FT + 18 (taille du fichier)
-$1c6d       ---
+$1c6a       Écriture de la taille du fichier dans le descripteur de fichier.
+$1c6d       Branche vers la récupération optionnelle du numéro de ligne.
+
 $1c6f       [ft_type_4d]
-$1c71       Branchement si le type de fichier n'est pas $4d
+$1c6f       %CHAR
+$1c71       Branchement si le type de fichier n'est pas 'M' ($4d).
 $1c73       Traitement du type $4d (CSAVEM). Récupération du pointeur de parsing.
 $1c74       Vérification de la présence d'une virgule ou erreur de syntaxe
-$1c75       ---
+$1c75       %DATASKIP
 $1c76       Évaluation du paramètre numérique (S = adresse du premier octet à stocker)
 $1c79       Valeur entière dans DE
 $1c7c       Placement de l'adresse de départ dans FT+16 (adresse de départ)
 $1c80       Vérification de la présence d'une virgule ou erreur de syntaxe
-$1c81       ---
+$1c81       %DATASKIP
 $1c82       Évaluation du paramètre numérique (T = longueur à stocker)
 $1c85       Valeur entière dans DE
 $1c88       Sauvegarde du pointeur de parsing
@@ -3811,40 +3837,44 @@ $1c89       Placement de la longueur dans HL
 $1c8a       Et branchement sur la suite identique à CSAVE (pour l'écriture de la longueur et le paramètre optionnel I)
 $1c8c       [ft_type_53]
             Traitement du type de fichier $53 (sauvegarde de l'écran)
-$1c8e       Branchement si le type n'est pas $53
-$1c90       ---
-$1c93       L'adresse de départ est celle de l'écran
-$1c96       En vrai ld hl,$07d0 (taille de l'écran)
-$1c99       [write_k7_len2]
-            Placement de la longueur comme étant $7d0
-$1c9c       ---
+$1c8c       %CHAR
+$1c8e       Branchement si le type n'est pas 'S' ($53)
+$1c90-$1c93 L'adresse de départ est celle de l'écran
+$1c96       %NOT_LABEL
+            HL prend la taille de l'écran.
+$1c99       [wrt_k7_len2]
+$1c99       Place HL dans la taille du fichier du descripteur de fichier.
+$1c9c       Termine la commande d'initialisation du descripteur de fichier.
+
 $1c9e       [ft_type_bb]
-            Récupère le pointeur de parsing. Traitement de CSAVE*
-$1c9f       ---
-$1ca1       Branchement si le type n'est pas $bb
+            Traitement de CSAVE*
+$1c9f       Récupère le pointeur de parsing.
+$1ca1       Branchement si le type n'est pas $bb (qui est le token de '*')
 $1ca3       Récupération des informations de tableau
 $1ca6       Sauvegarde du pointeur de parsing
 $1ca7       Sauvegarde de l'adresse du tableau dans l'adresse de départ de FT
 $1cab       Placement de la longueur (DE) dans HL
 $1cac       Mutualisation d'écriture de longueur sans autre paramètre.
+
 $1cae       [ft_type_58]
-            Lecture de l'expression chaine de caractère
+            Traitement de CSAVEX
+$1cae       Lecture de l'expression chaine de caractère
 $1cb1       Placement de l'adresse de début de chaîne
 $1cb5       Placement de la longueur de la chaîne.
-$1cb9       ---
+
 $1cba       [k7_line_prm]
             Récupération du paramètre optionnel de numéro de ligne
-$1cbb       ---
-$1cbc       ---
+$1cba       Récupére le pointeur vers le texte BASIC
+$1cbb-$1cbc Lit le caractère pointé.
 $1cbd       S'il n'y a pas de paramètre optionnel, on a terminé.
 $1cbe       Sinon, il doit y avoir une virgule ou bien c'est une erreur de syntaxe.
-$1cbf       ---
-$1cc0       DE pointe sur FT + 8 (numéro de première ligne)
+$1cbf       %DATASKIP
+$1cc0       DE pointe sur le numéro de la première ligne BASIC du descripteur de fichier.
 $1cc3       Récupération des 5 prochains octets directement (il n'y a pas de traduction en entier pour ce paramètre, il est sauvé directement en ASCII)
 $1cc5       [prm_i_loop]
-            Sauvegarde du pointeur de parsing
+$1cc5       Sauvegarde du pointeur de parsing
 $1cc6       [ft_end]
-            Récupération du pointeur de parsing
+$1cc6       Récupération du pointeur de parsing
 $1cc7       Si on a terminé le parsing, on sort de la fonction
 $1cc8       Si le caractère n'était pas un chiffre, c'est une erreur de syntaxe.
 $1ccb       Copie du chiffre (en caractère) vers FT
@@ -3972,72 +4002,85 @@ $1d73       Arrête la K7.
 $1d76       Branche sur une erreur d'opération illégale.
 
 $1d79       [fetch_dim]
-            Récupère le pointeur et la longueur vers un tableau DIM
-$1d79       ---
-$1d7b       Mise à 1 de subflg pour demander la recherche d'un tableau
+            Récupère le pointeur et la longueur vers un tableau DIM.
+            Utilisé par les routines de k7.
+
+            Entrée :
+            - HL pointe vers le texte BASIC
+
+            Sorties :
+            - DE pointe sur la zone mémoire contenant le descripteur du tableau (???)
+            - HL pointe vers le texte BASIC avec le descripteur de tableau
+
+$1d79 -$1d7b Mise à 1 de subflg pour demander la recherche d'un tableau
 $1d7e       Recherche de la variable
 $1d81       "Appel illégal" si le tableau n'a pas été trouvé
 $1d84       Remise à 0 de subflg (???)
-$1d87       ---
 
-$1d88       [read_str_expr]
+$1d88       [rd_str_expr]
             Évalue une expression de type chaîne de caractères.
-            DE pointe vers l'adresse de la chaîne.
-            C contient la longueur de la chaîne.
+
+            Entrée :
+            - HL pointe vers le texte BASIC
+
+            Sorties :
+            - DE pointe vers l'adresse du descripteur de chaîne.
+            - C contient la longueur de la chaîne.
 $1d88       Évaluation de l'expression
-$1d8b       ---
-$1d8c       DE pointe sur l'adresse de la chaine évaluée(la vérification du type chaîne est incluse)
-$1d8f       ---
-$1d90       ---
-$1d91       Recalage de HL pour pointer vers la taille de la chaîne.
-$1d92       ---
-$1d94       BC contient le taille de la chaine
-$1d95       Restauration de HL
-$1d96       ---
-$1d97       [sendchar_k7]
-$1d99       ---
-$1d9a       ---
-$1d9d       ---
-$1d9e       ---
-$1d9f       ---
-$1da1       ---
-$1da3       ---
-$1da4       ---
-$1da7       ---
-$1daa       ---
-$1dac       ---
-$1daf       ---
-$1db0       ---
-$1db4       ---
-$1db5       ---
-$1db6       ---
-$1db8       ---
-$1db9       ---
-$1dbb       ---
-$1dbc       ---
-$1dbf       ---
-$1dc2       ---
-$1dc3       ---
-$1dc4       ---
-$1dc6       ---
-$1dc7       ---
-$1dc9       ---
-$1dca       ---
-$1dcd       ---
-$1dcf       ---
-$1dd2       ---
-$1dd3       [skip1DD3]
-$1dd4       [skip1DD4]
-$1dd7       ---
-$1dd8       ---
-$1dd9       ---
-$1ddc       ---
-$1ddd       ---
-$1dde       ---
-$1ddf       ---
+$1d8b       Sauve HL
+$1d8c       DE pointe sur l'adresse de la chaine évaluée, C contient la longueur et A le premier caractère. HL pointe sur le deuxième octet de l'adresse de la chaîne dans son decripteur.
+$1d8f-$1d91 Recalage de HL pour pointer vers la taille de la chaîne dans son descripteur.
+$1d92-$1d94 Taille de la chaîne dans BC.
+$1d95       Restauration de HL, pointeur vers le texte BASIC.
+
+$1d97       [sd_char_k7]
+            Envoie vers le buffer d'écriture de la k7 un octet ASCII sur 7 bits.
+            Utilisé par `SAVE` à travers `outdo` ainsi qu'en direct pour envoyer l'octet de terminaison.
+
+            ??? À vérifier, cela copie des morceaux de (txttab) ???
+
+            Entrée :
+            - A contient le caractère à écrire. Seuls les 7 bits de poids faible sont pris en compte.
+            - (ft_addr) contient l'adresse de destination pour le caractère.
+
+$1d97       Met le bit de poids fort de A à 1.
+$1d99       Sauve HL
+$1d9a       HL pointe vers la zone à sauver déclarée dans le descripteur de fichier.
+$1d9d       Place l'octet à écrire à cette adresse.
+$1d9e       Pointe sur l'octet suivant
+$1d9f-$1da1 Branche si l'octet était $83 (marqueur de fin de listing)
+$1da3-$1da4 Sélectionne l'écran comme périphérique de sortie.
+$1da7       Vérifie la mémoire restante entre HL et la pile.
+$1daa-$1dac Sélectionne la k7 comme périphérique de sortie.
+$1daf       Sauve DE
+$1db0       Récupère l'adresse de la ligne exécutée en BASIC dans DE.
+$1db4-$1db6 Branche si la ligne actuellement exécutée en BASIC est 0 (donc, mode direct).
+$1db8       Efface les drapeaux pour la soustraction qui suit.
+$1db9       HL contient la différence de mémoire entre la ligne exécutée et le buffer de travail pour la sauvegarde.
+$1dbb       Sauve cette valeur sur la pile.
+$1dbc-$1dbf Place l'adresse de la ligne exécutée en BASIC comme étant la première du listing BASIC.
+$1dc2       Place HL (début de listing) dans DE, HL prend la valeur de la ligne exécutée du BASIC.
+$1dc3       Récupère la différence calculée dans BC.
+$1dc4       Copie un bloc d'octets de (HL) vers (DE) de taille BC.
+$1dc6       Sauve DE, l'adresse de destination.
+$1dc7       Différence entre les adresses de destination et de source.
+$1dc9       Sauve cette différence dans DE.
+$1dca       Récupère l'adresse de la zone des variables dans HL (??? qu'est-ce que ça signifie exactement ?)
+$1dcd       Soustrait la différence précédente de l'adresse de la zone des variables.
+$1dcf       Et déclare cette adresse comme la nouvelle zone des variables.
+$1dd2       Récupère dans HL l'adresse de destination.
+$1dd3       [sd_direct]
+$1dd3       Restaure le DE initial.
+$1dd4       [sd_char_end]
+$1dd4       Sauve HL dans `(ft_addr)`, pointeur vers le prochain caractère à traiter.
+$1dd7       Se replace sur le dernier caractère ayant été traité.
+$1dd8-$1ddd Met à jour la somme de controle par XOR successifs des octets écrits.
+$1dde       Restaure HL.
+
 
 $1de0       [save_asc_k7]
-            ???
+            Écrit le buffer initialement rempli par `SAVE` sur la k7.
+
 $1de0       Récupère le pointeur sur la fin de la zone de travail.
 $1de3       Y place A, la somme de contrôle.
 $1de4       Avance HL, pointeur vers le buffer de travail contenant les données à écrire.
@@ -4045,11 +4088,11 @@ $1de5       Met (vartab) dans DE
 $1de9       Met A à 0, mais surtout passe le Carry à 0.
 $1dea       Différence entre HL, pointeur vers la fin du buffer de travail, et DE, le début.
 $1dec       Ce qui donne la taille du buffer, que l'on pousse sur la pile.
-$1ded       A passe à $FF (???)
+$1ded       A = $FF pour le paramètre de l'appel suivant.
 $1dee       Démarre la k7 et envoie l'entête de synchronisation.
 $1df1       Récupère la taille du buffer.
 $1df2       Retour en cas d'erreur.
-$1df3       [loop1DF3]
+$1df3       [write_byte]
 $1df3       Lecture d'un caractère du buffer dans A.
 $1df4       Pointe dans le buffer un octet plus loin.
 $1df5       Décrémente la taille du buffer restante.
@@ -4134,27 +4177,25 @@ $1e84       Echange DE et HL
 $1e85-$1e87 Place $03 dans le caractère pointé par HL (qui est ???)
 
 $1e89       [fetch_next]
-            Va chercher une adresse stockée dans le compteur 'high' (normalement utilisé par les cassettes)
-            L'incrémente et va y chercher la valeur en entrée.
-            Si cette valeur est $03, alors termine l'action en revenant sur le clavier.
-            Sinon, la valeur est retournée par A pour être décodée.
-$1e89       ---
-$1e8d       ---
-$1e8e       ---
-$1e8f       ---
-$1e93       ---
-$1e95       ---
-$1e96       ---
-$1e97       Replace le périphérique d'entrée sur le clavier
-$1e9a       ---
+            Récupère un octet lu avec `LOAD` depuis l'adresse stockée en `(high)`.
+            Provoque le basculement vers le périphérique clavier à la fin du buffer.
+
+            Entrée :
+            - L'adresse à lire est dans `(high)`
+
+            Sortie :
+            - A contient l'octet lu si ce n'était pas le marqueur de fin.
+
+$1e89-$1e8f A contient le prochain octet lu et l'adresse dans `(high)` est incrémentée.
+$1e93-$1e95 Retour si la valeur lue n'est pas le marqueur de fin de listing.
+$1e96-$1e97 Replace le périphérique d'entrée sur le clavier
+$1e9a       Réinitialise le moniteur après avoir affiché "Ok!"
 
 $1e9d       [k7_1200]
-            Paramètre K7 pour 1200 bauds
-$1e9d       ---
+$1e9d       Paramètre K7 pour 1200 bauds
 
 $1ea2       [k7_2400]
-            Paramètre K7 pour 2400 bauds
-$1ea2       ---
+$1ea2       Paramètre K7 pour 2400 bauds
 
 $1ea7       [k7_set_prms]
             Remet le flag 'abort' à 0.
@@ -4375,6 +4416,8 @@ $1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comm
 
 $2000       [instructions]
             $SECTION(bintrp)
+
+            == DEBUT DE SECTION BINTRP (BASIC INTERPRETER) ==
 $2064       [functions]
 $209d       [prekeywords]
 $209e       [keywords]
@@ -7938,7 +7981,7 @@ $37fb       [inst_len]
 $37fb       Adresse de retour qui renvoie l'entier qui est dans A
 $37fe       ---
 $37ff       [fetch_str]
-$3802       A cet endroit, C contient la longueur de la chaine de caractères, mais on n'a pas l'air de s'en servir
+$3802       C contient la longueur de la chaine de caractères, utilisées par certaines routines appelantes.
 $3803       ---
 $3804       C'est une valeur numérique
 $3807       HL pointe vers la longueur de chaine, qui est donc mise dans A pour valeur de retour
@@ -8121,7 +8164,7 @@ $38da       [getvar]
             Fonction qui parse le nom de la variable et initialise l'espace nécessaire après vartab, en poussant
             l'existant. Puis inscrit l'identifiant. Si la variable existe, se contente de la retourner.
             En entrée: HL pointe sur la zone de parsing.
-            En sortie: DE pointe sur la zone de mémoire contenant la valeur et cas d'assigntion,
+            En sortie: DE pointe sur la zone de mémoire contenant la valeur et cas d'assignation,
                        l'accumulateur flottant la valeur en cas d
                        HL sur la zone de parsing.
             L'identifant est sur deux caractères. Si le type est alphanum, alors le second caractère a son bit de poids fort à 1.
@@ -8400,20 +8443,28 @@ $3a55       [end_dim]
             MS_BASIC=ENDDIM
             Récupération dans HL du pointeur de parsing
 $3a58       En cas de lecture du tableau, DE contient le pointeur vers l'entrée cherchée.
-$3a59       [jump3A59]
+
+$3a59       [k7_advance2]
+            Fait avancer la k7 pour sauter l'amorce. Rien n'est écrit, ni lu.
+
+            Il semble que cette fonction soit patchée depuis la ROM 1.0, vérifier (???)
+            Elle est appelée depuis `k7_advance`.
+
             $SECTION(caset)
-$3a5b       ---
-$3a5d       ---
+$3a59-$3a5b Allume le moteur du lecteur de k7.
+$3a5d       Désactive les interruptions.
+
 $3a5e       [loop3A5E]
-$3a5f       ---
+$3a5e       Sauve le compteur B.
+$3a5f       BC = 0
 $3a62       [loop3A62]
-$3a63       ---
-$3a64       ---
-$3a65       ---
-$3a66       ---
-$3a68       ---
-$3a6a       ---
-$3a6b       ---
+$3a62-$3a64 Attente de 19 + 19 + 4 états.
+$3a65       Décrémente la partie C de BC.
+$3a66       Boucle 256 fois (sur C)
+$3a68       Boucle 256 fois (sur B), pour un total de 65536.
+$3a6a       Récupère le compteur global.
+$3a6b       Et boucle sur celui-ci (mis à 3 au début).
+
 $3a6d       [wait_stp_k7]
             Attend le temps de compter jusqu'à 65535 puis éteint le moteur de la K7.
 
@@ -8429,6 +8480,8 @@ $3a7e       Restaure AF
 $3a7f       Permet l'IRQ
 
 $3a81       [save_sync]
+            ??? Mieux comprendre l'effet du paramètre A.
+
 $3a81       Place les drapeaux en fonction de A.
 $3a82       Sauve les drapeaux sur la pile.
 $3a83-$3a85 Allume le moteur du lecteur k7.
@@ -8822,7 +8875,7 @@ $3ca5       ---
 $3ca8       [get_line2]
 $3cab       ---
 $3cac       Saute si le périphérique d'entrée actuel est le clavier.
-$3cae       Traitement si inputsel ne désigne pas un clavier (!= 0). A priori, on arrive ici lorsque l'on décode du BASICODE à travers LOAD. À vérifier.
+$3cae       Traitement si inputsel ne désigne pas un clavier (!= 0). A priori, on arrive ici lorsque l'on décode du BASICODE à travers LOAD. À vérifier. ???
 $3cb1       ---
 $3cb3       ---
 
