@@ -4199,92 +4199,78 @@ $1ea2       Paramètre K7 pour 2400 bauds
 
 $1ea7       [k7_set_prms]
             Remet le flag 'abort' à 0.
-            Si le flag de suppression LHH n'est pas mis, alors recopie les informations de cycles de la K7 vers les paramètres actuels.
-$1ea7       ---
-$1eaa       Met le flag 'abort' de la K7 à 0.
-$1eac       ---
-$1ead       Test le flag de supression des informations de vitesse K7
+            Si le flag de suppression L/H/H n'est pas mis, alors recopie les informations de cycles de la K7 vers les paramètres actuels.
+$1ea7-$1eaa Met le flag 'abort' de `cascom` à 0.
+$1eac-$1ead Test le flag de supression des informations de vitesse K7
 $1eaf       Et sort de la routine s'il est mis
-$1eb0       Prépare la copie des 5 octets de paramétrage de la K7
-$1eb3       ---
-$1eb6       ---
-$1eb9       ---
-$1ebb       Saute si le flag de vitesse de K7 est à 1200 bauds
+$1eb0-$1eb6 Prépare la copie des 5 octets de paramétrage de la K7
+$1eb9-$1ebb Saute si le flag de vitesse de K7 est à 1200 bauds
 $1ebd       Sinon, pointe vers les 5 octets suivants pour la vitesse à 2400 bauds.
 $1ebe       [k7_params]
-            Copie les paramètres de vitesse de la K7
-$1ec0       ---
+$1ebe       Copie les paramètres de vitesse de la K7
 
-$1ec1       [k7_chksum]
-            Calcul le Checksum, synchronise la K7, écrire l'entête (D3) puis le contenu de FT
+$1ec1       [k7_wr_data]
+            Calcule le sumcheck des données puis Synchronise la K7, y écrit l'entête (D3) puis le contenu de FT.
+
 $1ec1       Monte les timings en RAM
-$1ec4       DE = FT + $10 (Start address)
-$1ec8       BC = FT + $12 (Taille à sauver)
-$1ecc       ---
-$1ecd       ---
-$1ece       HL = 0
+$1ec4       DE = adresse de démarrage des données
+$1ec8       BC = taille des données à écrire
+$1ecc-$1ece HL = 0
+
 $1ecf       [k7_sum_lp]
-            Octet pointé par DE
-$1ed0       ---
-$1ed1       L += cet octet
+$1ecf       Récupération de l'octet de donnée pointé par DE.
+$1ed0-$1ed1 Ajoute la valeur de A à L (L += A)
 $1ed2       A = 0, sans toucher aux flags
-$1ed4       ---
-$1ed5       Ajout de la retenue éventuelle à H.
+$1ed4-$1ed5 Ajout de la retenue éventuelle à H. Ce qui donne au final : HL += A
 $1ed6       Octet suivant
 $1ed7       Et taille diminuée de 1
-$1ed8       ---
-$1ed9       ---
-$1eda       Boucle tant que BC est différent de 0
-$1edc       Écriture de la somme de contrôle.
-$1edf       A = $FF
+$1ed8-$1eda Boucle tant que BC est différent de 0, afin de calculer le sumcheck sur l'intégralité des données.
+$1edc       Écriture de la somme de contrôle (`sumcheck`) dans le descripteur de fichier.
+$1edf       A = $ff
 $1ee0       Synchronisation de la K7
-$1ee3       Retour si BREAK (???)
-$1ee4       ---
+$1ee3       Retour en cas d'erreur ou d'interruption de commande.
+$1ee4       Compteur à 10.
 $1ee6       [k7_head_lp]
-            Ecriture de 10 fois $d3 en entête de fichier.
-$1ee8       ---
-$1eeb       Arrêt en cas de coupure (???)
-$1eec       ---
-$1eee       ---
-$1ef0       ---
+$1ee6-$1ee8 Écrit $d3 sur la k7.
+$1eeb       Retour en cas d'erreur ou d'interruption de commande.
+$1eec       Boucle 10 fois.
+$1eee       Compteur à 22 taille du descripteur de fichier.
+$1ef0       HL pointe vers le descripteur de fichier.
+
 $1ef3       [k7_ft_lp]
-            Écriture de FT dans le fichier
-$1ef4       ---
-$1ef5       ---
-$1ef8       ---
-$1ef9       ---
-$1efb       ---
+$1ef3       Récupère l'octet courant du descripteur de fichier.
+$1ef4       Pointe sur l'octet suivant.
+$1ef5       Écrit l'octet sur la k7.
+$1ef8       Retour en cas d'erreur ou d'interruption de commande.
+$1ef9       Boucle 22 fois.
+
 
 $1efc       [k7_write_pl]
-            Écrit la synchro entre FT et le contenu (D6)
-            Puis le contenu.
-$1efc       ---
-$1efd       ---
-$1f00       ---
-$1f01       ---
+            Synchronise la K7, y écrit l'entête (D6) puis le contenu des données.
+$1efc       A = 0
+$1efd       Synchronisation de la k7.
+$1f00       Retour en cas d'erreur ou d'interruption de commande.
+$1f01       Compteur à 10.
+
 $1f03       [k7_split_lp]
-            Écrit 10 fois $D6 sur la K7
-$1f05       ---
-$1f08       ---
-$1f09       ---
-$1f0b       DE = Adresse de départ
-$1f0f       BC = Taille du contenu
+$1f03-$1f05 Écrit $d6 sur la K7.
+$1f08       Retour en cas d'erreur ou d'interruption de commande.
+$1f09       Boucle 10 fois.
+$1f0b       DE = Adresse de démarrage des données.
+$1f0f       BC = Taille des données à écrire.
 $1f13       [payload_wrt]
-            Boucle d'écriture du contenu sur K7
-$1f14       ---
-$1f15       ---
-$1f16       ---
-$1f19       ---
-$1f1a       ---
-$1f1b       ---
-$1f1c       Continue tant que la taille (BC) restante est non nulle
-$1f1e       ---
+$1f13       Récupèration de l'octet de données à écrire.
+$1f14       Pointe vers l'octet suivant
+$1f15       Décrémente la longueur des données restantes.
+$1f16       Écrit l'octet sur la k7.
+$1f19       Retour en cas d'erreur ou d'interruption de commande.
+$1f1a-$1f1c Continue tant que la taille (BC) restante est non nulle.
+$1f1e       Compteur à 10.
 $1f20       [zero_wrt]
-            Écrit 10 fois $00 après le contenu du fichier.
-$1f21       ---
-$1f24       ---
-$1f25       ---
-$1f27       ---
+$1f20-$1f21 Écrit 0 sur la k7.
+$1f24       Retour en cas d'erreur ou d'interruption de commande.
+$1f25       Boucle 10 fois.
+
 $1f28       [read_contnt]
             Charge les données du fichier sur la K7 vers la zone mémoire pointée par HL.
 
@@ -4410,74 +4396,89 @@ $1ff3       Vérification de l'appuie sur la bouton action du joystick 0
 $1ff5       Complément à 1.
 $1ff6       Masque sur le bits 4 et 5.
 $1ff8-$0ffb Décalage pour amener le résultat sur les bits 0 et 1
-$1ffc       Résultat assu dans B (pourquoi ???)
+$1ffc       Résultat aussi dans B (pourquoi ???)
 
 $1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comme deux octets libres.
 
-$2000       [instructions]
+$2000       [instr_table]
             $SECTION(bintrp)
 
             == DEBUT DE SECTION BINTRP (BASIC INTERPRETER) ==
-$2064       [functions]
+$2064       [funct_table]
 $209d       [prekeywords]
 $209e       [keywords]
 $21fd       [keywstop]
 $21fe       [prio_table]
 $2213       [null_str]
 $2214       [ok_str]
-$2219       [marker_vrfy]
-$221c       HL pointe 4 octet plus haut que le haut de la pile (skip l'adresse de retour de cette fonction et de celle appelante, l'instruction)
-$221d       [call221D]
-$221e       ---
-$221f       Compare au token de FOR
-$2221       Si différent, retourne immédiatement
-$2222       ---
-$2223       ---
-$2224       ---
-$2225       ---
-$2226       ---
-$2227       ---
-$2228       ---
-$2229       ---
-$222a       ---
-$222d       ---
-$222e       ---
-$222f       ---
-$2230       ---
-$2232       [jump2232]
-$2235       ---
+$2219       [back_stack]
+$2219-$221c HL = SP + 4
+$221d       [for_lookup]
+            Cherche le bon bloc `FOR` dans la pile.
+
+            Dans cette version du BASIC, il faut absoluement spécifier une adresse.
+            Le code qui permet à DE d'être nul, trouvable dans d'autres versions de ce BASIC, n'est pas présent.
+
+            Entrée :
+            - DE contient le pointeur vers la variable d'index que l'on cherche.
+
+            Sortie :
+            - HL pointe vers le bloc `FOR` correspondant, dans la pile. (??? vers le step ?)
+            - Drapeau Z à 1 si le bloc a été trouvé, 0 sinon.
+
+$221d       Recupère le marqueur du bloc pointé par HL
+$221e       Et pointe un octet plus loin.
+$221f-$2221 Retourne si le marqueur n'est pas celui de l'instruction `FOR`.
+$2222-$2225 BC = adresse du compteur pour `FOR`.
+$2226       Sauve HL
+$2227-$2228 HL prend l'adresse du compteur pour `FOR`.
+$2229       Compare HL avec l'index paramètre dans DE.
+$222a       Prépare le déplacement du pointeur dans la pile en cas d'échec de comparaison.
+$222d       Récupère le pointeur vers le bloc courant dans la pile, plus exactement vers ce qui suit l'adresse de l'index (???)
+$222e       Retour si l'adresse de l'index recherché correspond.
+$222f       Sinon, déplacement du pointeur 13 (16-3) octets plus loin dans la pile, vers le nouveau bloc.
+$2230       Boucle sur la recherche.
+
+$2232       [str_err_dat]
+            Copie le numéro de ligne trouvée dans `(datlin)` vers `(curlin)` puis affiche une erreur de syntaxe.
+
 $2238       [stx_err_prt]
-$223a       ---
+            Affiche une erreur "Erreur de syntaxe".
+
 $223b       [divbyzero]
             Affiche une erreur "Division par Zéro".
-$223d       ---
+
 $223e       [missfor]
             Affiche une erreur "NEXT sans FOR"
-$2240       ---
+
 $2241       [redim]
             Affiche une erreur "Tableau redimensionné"
-$2243       ---
+
 $2244       [undeffn]
             Affiche une erreur "Fonction utilisateur non définie"
-$2246       ---
+
 $2247       [overflow]
             Affiche une erreur "Dépassement de capacité"
-$2249       ---
+
 $224a       [missing_op]
             Affiche une erreur "Opérande manquante"
-$224c       ---
+
 $224d       [wrong_op]
             Affiche une erreur "Opérande mal adaptée"
-$224f       ---
+
 $2250       [no_device]
             %CODE
             Affiche une erreur "Device not supported"
             Les adresses $47F1, $47F4 et $47F7 reçoivent elles un JP $2250.
 
 $2252       [error_out]
-            Fonction : affiche un message d'erreur
-            Entrée : E contient le numéro de l'erreur
-            L'erreur est ensuite cherché dans la table, donc chaque message est séparé des autres par un $00
+            Affiche un message d'erreur BASIC
+
+            L'erreur est cherchée dans la table des messages correspondant à la langue.
+            L'erreur n'est pas récupérable, elle enchaîne sur l'invite de commande BASIC.
+
+            Entrée :
+            - E contient le numéro de l'erreur
 $2252       ---
 $2255       ---
 $2258       ---
