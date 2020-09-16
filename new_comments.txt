@@ -4479,70 +4479,59 @@ $2252       [error_out]
 
             Entrée :
             - E contient le numéro de l'erreur
-$2252       ---
-$2255       ---
-$2258       ---
-$225b       ---
-$225e       ---
-$225f       ---
-$2261       ---
+$2252       Reinitialisation.
+$2255       Curseur à la ligne.
+$2258       Pointe sur la table des erreurs en français.
+$225b-$225f Branche si le système est en français.
+$2261       Sinon, pointe vers la table des erreurs en anglais.
 $2264       [err_msg_fr]
-$2265       ---
-$2266       Ajoute 2 à l'erreur et prends le multiple de 2 inférieur
-$2268       ---
-$226a       ---
-$226b       Saute si E est inférieur à $2b
-$226d       ---
+$2264-$2266 Ajoute 2 à l'erreur et prends le multiple de 2 inférieur
+$2268-$226b Branche si E est inférieur à $2b
+$226d       Sinon fixe l'erreur à $2a (autrement dit, E est maximum $2a)
 $226f       [err_loop]
-            E est le min entre E et $2a
-$2270       ---
-$2271       ---
-$2272       ---
-$2274       ---
-$2275       ---
-$2276       ---
+$226f       Prend l'octet pointé par HL.
+$2270       Pointe un octet plus loin.
+$2271-$2272 Boucle si l'octet n'est pas à 0.
+$2274-$2275 E est décrémenté de 2.
+$2276       Boucle tant que E n'est pas tombé à 0.
 
 $2278       [disp_break]
             Lorsqu'arrive directement ici, c'est pour afficher un arrêt d'exécution en ligne (curlin)
             
             MS_BASIC=ERRIN
-$2278       ---
-$227b       ---
-$227e       ---
-$2281       Si le numéro de ligne est 65534, alors c'est un cold start.
-$2282       ---
-$2285       ---
-$2286       ---
-$2287       ---
-$2288       Il y avait un numéro de ligne, on l'affiche. Sinon fallthrough dans la loop Ok!
-$228b       ---
+$2278       Affiche le message d'erreur pointé par HL
+$227b       Charge dans HL le numéro de ligne courante.
+$227e-$2282 Si le numéro de ligne est 65534, cela provoque un reboot.
+$2285-$2288 Branche si le numéro de ligne n'était pas $ffff
+$228b       Évite le `pop bc` pour aller directement sur la boucle du moniteur BASIC.
+
 $228c       [nok_loop]
             MS_BASIC=POPNOK
+$228c       Enlève l'adresse présent dans la pile avant de continuer vers la boucle du moniteur BASIC.
 
 $228d       [ok_loop]
-            Reset l'imprimante, remet le curseur en début de ligne et affiche "Ok".
-            Puis tombe dans la boucle du moniteur.
+            Boucle "Ok!" puis entrée dans le moniteur BASIC.
             
             MS_BASIC=PRNTOK
-$228d       ---
-$2290       ---
-$2293       Affiche Ok!
-$2296       ---
+$228d       Réinitialise l'imprimante.
+$2290       Met le curseur en début de ligne.
+$2293-$2296 Affiche "Ok!"
+
 $2299       [monitorloop]
-            Ligne courante du BASIC à -1 ; MS_BASIC=GETCMD
-$229c       ---
-$229f       ---
-$22a2       ---
-$22a3       Saute si hors du mode AUTO
+            MS_BASIC=GETCMD
+$2299-$229c Met la ligne courante du BASIC à -1 ($ffff), c'est-à-dire, par de ligne courante
+$229f-$22a3 Branche si `(autflg)` est à 0, `AUTO` n'est pas actif.
 $22a5       Ligne courante du mode AUTO dans HL
-$22a8       ---
+$22a8       Patch par rapport à la ROM 1.0, branche plus loin. (???)
 
 $22ab       [out_space]
             Suivant si la ligne a déjà du contenu ou pas, le mode de numérotation automatique
-            arrivera sur out_space ou out_loop, puis tombera dans la boucle de l'éditeur.
-$22ab       Affiche le caractère espace puis continue dans la boucle BASIC
+            du mode `AUTO` arrivera sur `out_space` ou `out_loop`, puis continuera sur la boucle du moniteur.
+
+$22ab       Affiche le caractère espace puis continue dans la boucle BASIC.
+
 $22ad       [out_loop]
-            Affiche le caractère qui est dans A puis continue dans la boucle BASIC
+$22ad       Affiche le caractère qui est dans A puis continue dans la boucle BASIC. Le caractère est soit $20 soit $a0.
 
 $22ae       [stoploop]
             Boucle de traitement du BASIC
@@ -9012,23 +9001,27 @@ $3d8c       ---
 $3d8e       ---
 $3d90       ---
 $3d91       [reset_prog_3]
-            0 dans (autoflg)
+            0 dans (autflg)
 $3d94       0 dans les deux premiers octets de (txttab). Cela coupe le premier lien du listing BASIC.
 $3d95       ---
 $3d96       ---
 $3d97       ---
 
 $3d9a       [auto]
-            Traitement appelé lorsque le mode AUTO est activé
-            DE contient l'ancien numéro de ligne (ou le premier en début de AUTO)
-            HL contient le nouveau numéro de ligne.
-$3d9a       ---
-$3d9b       ---
-$3d9e       Récupération du numéro de ligne
-$3d9f       Recherche de la ligne (pointeur dans HL si résultat)
-$3da2       Continue par l'affiche d'un espace si la ligne n'a pas été trouvée
-$3da5       ---
-$3da7       Sinon, affiche le caractère $a0 pour indiquer qu'il y a déjà du contenu.
+            Traitement du mode AUTO actif.
+
+            Cette partie est patchée par rapport à la ROM 1.0
+
+            Entrée :
+            - HL contient l'ancien numéro de ligne
+
+$3d9a       Sauve HL sur la pile.
+$3d9b       Affiche HL sur le périphérique de sortie.
+$3d9e       Récupération du numéro de ligne dans DE
+$3d9f       Recherche de la ligne
+$3da2       Branche si la ligne n'a pas été trouvée (affichera un espace avant de continuer sur la boucle du moniteur BASIC)
+$3da5-$3da7 Sinon, affiche le caractère $a0 pour indiquer qu'il y a déjà du contenu. Puis continue aussi sur la boucle du moniteur BASIC.
+
 $3daa       [after_auto]
             Traitement d'un overflow sur AUTO. Si HL est devenu trop grand, on arrête.
 $3dac       ---
@@ -9205,9 +9198,9 @@ $4875       [prtcom]
 $4876       [prtint]
 $4878       [prtxlt]
 $487a       [contbl]
-$4884       [autoflg]
+$4884       [autflg]
             Etat courant de la commande AUTO
-$4885       [autoline]
+$4885       [autlin]
             Ligne courante de la commande AUTO
 $4887       [autostep]
             Incrément du mode AUTO
