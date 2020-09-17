@@ -592,6 +592,7 @@ $0183       [skip0183]
 $0184       ---
 $0185       ---
 $0186       [skip_dsplay]
+$0186       Incrémente le compteur de répétition des touches.
 $0189       ---
 $018a       ---
 $018b       ---
@@ -785,6 +786,10 @@ $02a7       [kbscan_impl]
 
             Ces tables sont en RAM et remplies à l'initialisation en fonction de la langue
             du sytème.
+
+            Sortie :
+            - A contient le caractère ASCII produit par la touche appuyée, ou bien 0.
+            - Le Carry Flag indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
 
 $02a7       Prépare C avec le premier port à scanner ($87) et B avec le nombre de ports (7).
 $02aa       [kb_row_loop]
@@ -4184,7 +4189,8 @@ $1e89       [fetch_next]
             - L'adresse à lire est dans `(high)`
 
             Sortie :
-            - A contient l'octet lu si ce n'était pas le marqueur de fin.
+            - A contient l'octet lu si ce n'était pas le marqueur de fin. Drapeau Z à 0.
+            - A contient 0 si l'octet lu était le marqueur de fin. Drapeau Z à 1.
 
 $1e89-$1e8f A contient le prochain octet lu et l'adresse dans `(high)` est incrémentée.
 $1e93-$1e95 Retour si la valeur lue n'est pas le marqueur de fin de listing.
@@ -4535,20 +4541,17 @@ $22ad       Affiche le caractère qui est dans A puis continue dans la boucle BA
 
 $22ae       [stoploop]
             Boucle de traitement du BASIC
-$22ae       ---
-$22b1       Lorsque monitor sort avec Carry (touche STOP), on boucle immédiatement.
+$22ae       Acquisition d'une ligne de commande BASIC.
+$22b1       Lorsque l'acquisition sort avec Carry à 1, une annulation a été demandée. On boucle alors sur l'acquisition d'une nouvelle ligne.
 
-$22b3       Lorsqu'on arrive ici, CR a été appuyée.
-            HL pointe sur l'adresse précédente le buffer en entrée, qui se termine par 0.
-            (Ce buffer est tout le temps basbuf en entrée normale ?)
-$22b3       Acquisition d'un nouveau caractère depuis HL dans A
-$22b4       ---
-$22b5       On ne test pas avec "or a" à cause du test de Carry plus loin en $22ca. Le inc,dec n'affecte pas le Carry flag.
-$22b6       Si rien n'a été entré, on repart pour un tour.
-$22b8       Sauve le Carry flag.
-$22b9       ---
-$22bc       ---
-$22bd       Si le flag d'exécution BASIC est différent de 0, branchement en 0 pour un reset de la machine. C'est le cas avec les programmes "protégés", dont l'arrêt provoque le RESET de la machine.
+$22b3       Lorsqu'on arrive ici, la touche Entrée a été appuyée, la ligne est donc validée.
+            HL pointe sur l'adresse précédente le buffer qui a été rempli par l'acqusition des touches, et qui se termine par un $00.
+
+            Pour une entrée normale, le buffer est `(buf)`, existe-t-il un autre cas ? (avec `LOAD` ???)
+$22b4-$22b5 Afin de tester si A est égal à zéro sans toucher au Carry, utilise une paire `INC`/`DEC` qui touche à Z mais pas à Carry.
+$22b6       Le premier caractère entrée était $00, ce qui signifie que la ligne est vide, on boucle sur la moniteur.
+$22b8       Sauve le drapeau Carry.
+$22b9-$22bd Si `(allflg)` est différent de 0, la machine reboot. C'est le cas avec les programmes "protégés", dont l'interruption d'exécution provoque le reset de la machine.
 $22c0       ---
 $22c3       DE contient soit un numéro de ligne, soit 0.
 $22c4       ---
@@ -6044,71 +6047,66 @@ $2acf       ---
 $2ad2       ---
 $2ad3       ---
 
-$2ad4       [acquirekey]
+$2ad4       [acq_key]
             $SECTION(te)
-            Fonction: décode une touche du clavier et l'affiche à l'écran à la position du curseur.
-            Attends un refresh (HALT) puis scrute le clavier.
-            Si rien n'a été appuyé, sort immédiatement. A == 0
-            Si la touche a été traitée, A == 0
-            Quand est-ce que A != 0 ?
-            Sinon, traitement.
-$2ad4       ---
-$2ad5       ---
-$2ad6       ---
-$2ad7       ---
-$2ada       ---
-$2adc       ---
+            Décode une touche du clavier.
+            
+            Affiche sa valeur à l'écran en traitant les touches spéciale.
+            Dans le cas d'un traitement pour la commande INPUT, ignore certaines touches.
+
+            Si une touche a été traitée, provoque un rafraichissement de l'écran.
+
+            Sortie :
+            - A est à 0 si aucune touche n'a été appuyée ou si elle a été traitée.
+            - Quelques touches spéciales n'ont pas l'air d'être traitées et sont alors renvoyées dans A. Lesquelles ???
+
+
+$2ad4-$2ad6 Sauve BC, DE et HL sur la pile.
+$2ad7-$2adc Branche si la ligne n'est pas entrée depuis le BASIC. (depuis un INPUT ???)
 $2adf       Attente d'une interruption
-$2ae0       ---
-$2ae3       ---
-$2ae4       Saute en fin de fonction si aucun caractère n'a été entré
-$2ae6       ---
-$2ae7       ---
-$2ae8       Son lorsqu'un caractère est reçu
-$2aeb       ---
-$2aee       ---
-$2af1       ---
-$2af4       ---
-$2af7       ---
-$2af8       ---
-$2af9       ---
-$2afb       Bit pour indiquer que la ligne est entrée en BASIC (quelque chose a été entré en tout cas et sera traité par le saut en $2adc)
-$2afe       ---
-$2aff       Si le bit de signe était 1 dans le caractère lu
-$2b02       Comparaison de la touche avec ENTREE
-$2b04       ---
+$2ae0       Décode une touche du clavier.
+$2ae3-$2ae4 Branche si aucun caractère n'a été validé.
+$2ae6       Sauve AF
+$2ae7       Bascule sur les registres alternatifs.
+$2ae8-$2aeb Configure le son émis lors de l'appuie d'un caractère.
+$2aee       Pendant une durée très courte.
+$2af1       Émet le son.
+$2af4-$2afb Indique qu'un caractère a été entré depuis une interaction en BASIC.
+            Pourquoi les deux NOPs ???
+$2afe       Restaure AF
+$2aff       Branche si la touche validée était une touche de fonction.
+$2b02       Comparaison de la touche appuyée avec la touche Entrée.
+$2b04       Il s'agit de code patché par rapport à la ROM 1.0, on branche donc plus loin avant de revenir juste après.
 
-$2b07       [acquirekeyn3]
-            Suite (2) du traitement de l'entrée
-$2b07       ---
-$2b09       ---
-$2b0c       ---
-$2b0e       ---
-$2b11       ---
-$2b13       ---
-$2b16       ---
-$2b19       ---
-$2b1a       [jump2B1A]
-$2b1d       ---
-$2b1f       ---
-$2b21       ---
+$2b07       [acq_key_3]
+            Suite du traitement de l'appuie de touche, si la boucle BASIC est active.
 
-$2b23       [acquirekeyn7]
-            Suite (6) du traitement de l'entrée
-$2b23       ---
-$2b24       [acquire_sync]
-            Attend le prochain affichage puis passe dans l'annulation de la valeur acquise et la sortie.
-            Force un affichage
-$2b28       ---
-$2b2c       ---
-$2b2d       [acquire_nul]
-            Ici, la valeur acquise passe à zéro avant de sortir de la fonction
-            A est effacée en traitement normal de touche (et déjà 0 si pas de touche entrée)
-$2b2e       [endacquirek]
-            Nettoyage de fin de fonction
-$2b2f       ---
-$2b30       ---
-$2b31       ---
+$2b07-$2b09 Branche pour traiter la touche Tab.
+$2b0c-$2b0e Branche pour traiter la touche Saut de ligne.
+$2b11-$2b13 Branche pour traiter la touche Saut de page.
+$2b16       Poursuit le traitement de l'acquisition d'une touche appuyée.
+
+$2b19       Octet inutilisé
+
+$2b1a       [key_effe]
+            La touche EFFE a été appuyée
+$2b1a-$2b1f Branche si la drapeau de commande INPUT est activé.
+$2b21       Sinon, remet la valeur $1f dans la touche appuyée.
+
+$2b23       [acq_key_7]
+$2b23       Au final, la touche appuyée est émise vers le périphérique sélectionné.
+
+$2b24       [acq_sync]
+$2b24-$2b2c Force un affichage à la prochaine interruption et attend la prochaine interruption.
+
+$2b2d       [key_nul_ret]
+            Efface la valeur de la touche activée.
+            
+            La touche a été soit affichée, soit traitée en tant que touche spéciale,
+            soit est annulée car la touche n'a pas d'effet (dans une commande INPUT par exemple).
+
+$2b2e       [key_acq_end]
+$2b2e-$2b31 Restaure les registres. D'où viennent les branchements directs ici ??? Toujours d'un traitement de touche ?
 
 $2b32       [bufferstart]
             Fonction : lorsque le bit 1 de $4871 est à 1, arrive ici pour analyse
@@ -7139,47 +7137,59 @@ $32ab       Et attend le prochain rafraichissement.
 
 $32ad       ---
 
-$32b7       [deckeyb]
-            Fonction : décode le clavier
-$32b7       ---
-$32b8       ---
-$32bb       ---
-$32bd       ---
-$32be       ---
-$32c2       ---
-$32c5       ---
-$32c8       ---
-$32ca       ---
-$32cd       [jump32CD]
-$32cf       [jump32CF]
-$32d2       ---
-$32d6       ---
-$32d7       ---
-$32da       [skip32DA]
-$32de       [jump32DE]
-$32e2       ---
-$32e4       ---
-$32e6       ---
-$32ea       ---
-$32ec       ---
-$32f0       ---
-$32f4       ---
-$32f6       [skip32F6]
-$32fa       ---
-$32fe       [skip32FE]
-$3302       ---
-$3304       [skip3304]
-$3308       ---
-$330a       ---
-$330c       ---
-$330e       ---
-$3310       ---
-$3312       ---
-$3314       ---
-$3316       [jump3316]
-$3317       [skip3317]
-$3318       ---
-$3319       ---
+$32b7       [dec_keybrd]
+            Décode le clavier et modifie la forme du curseur en fonction de la touche de vérouillage majuscules.
+
+            La routine gère aussi la répétition des touches laissées appuyées.
+
+            Sortie :
+            - A contient le caractère appuyé ou 0.
+            - Le drapeau Z correspond au contenu de A.
+            - Le drapeau M est levé si la touche est une touche de fonction.
+
+$32b7       Échange les registres avec les registres alternatifs.
+$32b8       Scan le clavier
+$32bb       Branche si une nouvelle touche a été appuyée.
+$32bd       Sauve la touche lue dans L
+$32be       Teste si  le bit 7 de `repena`. À 0, on est sur la première attente de répétition (longue), à 1, on est sur les attentes suivantes (courtes).
+$32c2       Charge dans A la valeur du compteur de répétition.
+$32c5       Branche si la répétition est active, pour une attente courte.
+$32c8       Sinon, compare le compteur avec `$80`, attente longue.
+
+$32cd       [short_rep]
+$32cd       Compare le compteur avec $08, pour une attente courte avant la répétition de la touche.
+$32cf       [long_rep]
+$32cf       Branche si le compteur est inférieur à la valeur comparée. Le compteur est incrémenté à chaque interruption, qu'il y ait rafraichissement de l'affichage ou pas.
+$32d2       Une première répétition de touche a eu lieu, on bascule sur les répétition courtes.
+$32d6       Récupération de la touche appuyée.
+
+$32da       [new_key]
+$32da       Une nouvelle touche vient d'être appuyée, on bascule sur une répétition longue.
+$32de       [new_key_p]
+$32de       La touche est validée, le compteur de répétition est mis à 0.
+$32e2-$32e4 Branche si la touche appuyée n'est pas la touche de vérouillage majuscule.
+$32e6-$32ea Branche si la touche de vérouillage était inactive.
+$32ec       Désactive le vérouillage des majuscules.
+$32f0       Affichage du curseur en souligné.
+
+$32f6       [set_lock]
+$32f6       Active le vérouillage des majuscules.
+$32fa       Affichage du curseur en forme pleine.
+
+$32fe       [lock_key]
+$32fe       Demande un rafraichissement d'écran à la prochaine interruption.
+
+$3304       [not_caps]
+$3304-$3308 Branche si le clavier n'est pas en vérouillage majuscule.
+$330a-$330c Branche si le caractère lu est inférieur à $61 (début des minuscules)
+$330e-$3310 Branche si le caractère lu est supérieur ou égal à $7b (après les minuscules)
+$3312       Transforme une minuscule en majuscule.
+
+$3316       [key_era_end]
+$3317       [end_dec_key]
+$3317       Place les drapeaux en fonction de A.
+$3318       Revient sur les registres initiaux.
+
 $331a       [sendchar_t2]
 $331b       ---
 $331c       ---
@@ -7406,8 +7416,9 @@ $3496       ---
 $3497       ---
 $349a       ---
 $349b       ---
-$349d       [jump349D]
-$34a0       ---
+$349d       [if_input]
+$349d       Branche si le drapeau de commande INPUT était actif.
+$34a0       Sinon, on remet la valeur $06 (Insertion de ligne) pour la valeur de touche appuyée.
 $34a2       ---
 $34a5       [skip34A5]
 $34a7       ---
@@ -8785,12 +8796,9 @@ $3c4c       ---
 $3c4e       Recale le pointeur HL sur le derniere caractère non espace ($20) avant le CR ($0D)
 $3c50       HL pointe donc à présent juste après le dernier caractère de la ligne à traiter
 
-$3c51       [hl_oncrunch]
-            Met un zéro à l'emplacement pointé par HL puis fait pointer HL en début de buffer de crunch.
-$3c51       ---
-$3c52       Place un $0 à la fin de la chaîne
-$3c53       ---
-$3c56       Ayant été appelé par jp, ce RET va sortir de la boucle de traitement de basicloop (et se retrouver en $22b1)
+$3c51       [hl_on_buf]
+$3c51-$3c52 Place un $0 sur ce que pointe HL, qui est la fin d'un buffer pour la ligne entrée dans le moniteur.
+$3c53       Et faite pointer HL un octet avant le buffer de travail `buf`.
 
 $3c57       [crdo]
             Fonction : Envoi d'un retour chariot sur la sortie de caractère actuel
@@ -8856,27 +8864,26 @@ $3c9f       ---
 $3ca1       ---
 
 $3ca2       [get_line]
-            Fonction: Récupération d'une ligne d'instruction entrée au BASIC
+            Récupération d'une ligne d'instruction entrée au BASIC
             Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
             
             MS_BASIC=GETLIN
-$3ca2       Appel au HOOK de GetLine
-$3ca5       ---
+$3ca2       Appel au hook d'entrée de ligne.
+$3ca5       HL pointe vers le buffer de travail
 $3ca8       [get_line2]
-$3cab       ---
-$3cac       Saute si le périphérique d'entrée actuel est le clavier.
-$3cae       Traitement si inputsel ne désigne pas un clavier (!= 0). A priori, on arrive ici lorsque l'on décode du BASICODE à travers LOAD. À vérifier. ???
-$3cb1       ---
-$3cb3       ---
+$3cab-$3cac Branche si le périphérique d'entrée actuel est le clavier.
+$3cae       Sinon, l'entrée est autre chose. Pour la ROM de base, c'est la k7, via la routine de chargement de `LOAD`. ???
+            L'adresse à lire est dans `(high)` et l'octet lu sera en retour dans A.
+            Le drapeau Z est à 1 si l'octet lu était le marqueur de fin de buffer, $03 et dans ce cas, A est à 0.
+$3cb1       Branche si un octet a été lu depuis le buffer.
+$3cb3       Sinon, la fin du buffer a été atteinte, et on branche pour finaliser la ligne entrée.
 
 $3cb5       [keyloop]
-            Fonction : Traitement du moniteur pour une entrée par le clavier
-$3cb5       ---
-$3cb8       ---
-$3cb9       Saute si une touche a été appuyée et nécessite un traitement. La plupart des touches renvoient 0 dans A. Quelles touchent sortent avec A != 0 ? STOP par exemple.
-$3cbb       ---
-$3cbe       Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
-$3cc0       La touche STOP a été appuyée. Carry est à 1.
+            Traitement du moniteur pour une entrée par le clavier.
+$3cb5       Traitement de l'appuie d'une touche, qui est éventuellement traitée.
+$3cb8-$3cb9 Branche si une touche validée nécessite un traitement. La plupart des touches sont traitées directement et A est alors à 0. Quelles touchent sortent-elles avec A != 0 ??? STOP par exemple.
+$3cbb-$3cbe Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
+$3cc0       La combinaison d'interruption de commande (SHIFT+STOP) a été détectée. Carry est à 1 et on termine l'acquisition des touches. Le retour se fait en $22b1
 
 $3cc1       [decodebasic]
             Fonction : décode la ligne en BASIC ?
@@ -9073,17 +9080,18 @@ $3df1       Met le flag INPUT à 1
 $3df4       Paramètres du curseur
 $3df8       ---
 
-$3dfb       [acquirekeyn4]
-            Suite (3) du traitement de l'entrée
-$3dfb       ---
-$3dfd       ---
-$3dff       Si le caractère d'entrée était ACK
-$3e02       Test du flag INPUT actif
-$3e04       ---
-$3e07       [acquirekeyn6]
-$3e0a       [acquirekeyn5]
-            Test de Unit Separator
-$3e0c       Si différent, branche
+$3dfb       [acq_key_4]
+            Suite du traitement de l'entrée de caractère.
+            On arrive ici que la boucle de BASIC soit active ou non.
+
+            Il s'agit ici de code patché pour la ROM 1.1
+$3dfb-$3dfd Branche si la touche appuyée n'est pas Insertion de ligne (touche INSL, valeur non ASCII)
+$3dff-$3e02 Test du drapeau de commande INPUT actif
+
+$3e07       [acq_key_6]
+$3e07       Trampoline qui permet d'utiliser le `JR` conditionnel pour un saut long... Pourquoi ne pas utiliser un `JP` conditionnel ???
+$3e0a       [acq_key_5]
+$3e0a-$3e0c Branche si la touche appuyée n'est pas Effacement de l'écran (touche EFFE, valeur non ASCII)
 $3e0e       ---
 $3e11       [jump3E11]
 $3e14       ---
@@ -9097,18 +9105,21 @@ $3e25       ---
 $3e27       ---
 $3e2a       ---
 
-$3e2d       [acquirekeyn2]
-            Suite (1) du traitement de l'entrée
-$3e2d       Saut si la touche appuyée était ENTREE
-$3e30       ---
-$3e31       ---
-$3e34       ---
-$3e35       Si on est en basexec == 1
-$3e37       ---
-$3e38       ---
-$3e3b       [skip3E3B]
-$3e3c       ---
-$3e3f       ---
+$3e2d       [acq_key_2]
+            Suite du traitement de l'entrée de caractère.
+
+            Il s'agit ici de code patché pour la ROM 1.1
+
+$3e2d       Branche si la touche appuyée est Entrée.
+$3e30       Sauve AF
+$3e31-$3e35 Branche si la boucle BASIC n'est pas active, pour éviter de traiter certaines touches d'édition.
+$3e37       Restaure AF
+
+$3e3b       [skip_ctrl_k]
+$3e3b       Restaure AF
+$3e3c       Évite le traitement des touches d'édition.
+
+$3e3f       [end_of_rom]
 $4000       [screen]
 $47d0       [inthk]
 $47d3       [calhk]
