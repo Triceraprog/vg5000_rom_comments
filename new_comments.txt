@@ -4552,9 +4552,9 @@ $22b4-$22b5 Afin de tester si A est égal à zéro sans toucher au Carry, utilis
 $22b6       Le premier caractère entrée était $00, ce qui signifie que la ligne est vide, on boucle sur la moniteur.
 $22b8       Sauve le drapeau Carry.
 $22b9-$22bd Si `(allflg)` est différent de 0, la machine reboot. C'est le cas avec les programmes "protégés", dont l'interruption d'exécution provoque le reset de la machine.
-$22c0       ---
-$22c3       DE contient soit un numéro de ligne, soit 0.
-$22c4       ---
+$22c0       Tentative de lecture de numéro de ligne depuis le buffer pointé par HL
+$22c3       DE, aui contient soit un numéro de ligne, soit 0, est sauvé sur la pile.
+$22c4       Appelle la tokenisation de la ligne.
 $22c7       En fin de tokenisation, A == 0, donc B prend 0 aussi (ou plutôt, A contient la longueur de la ligne tokenisée ??? Ou bien est-ce C ???)
 $22c8       Récupération du numéro de ligne dans D
 $22c9       Récupération du AF de $22b8
@@ -4688,93 +4688,92 @@ $2368       Retour immédiat si HL > DE dans le test de ligne (on a dépassé la
 $2369       Retour en début de recherche
 
 $236b       [tokenize]
-            Fonction : effectue la tokenisation du buffer d'entrée (HL) vers BASBUF
-            Entrée : HL pointe vers le contenu à traiter
-            Sortie : C contient la taille du résultat de tokenisation en octets (?)
+            Effectue la tokenisation du buffer pointé par HL.
+
+            Le résultat est construit dans la zone de travail `buf`.
+
+            Entrée :
+            - HL pointe vers le contenu à traiter
+
+            Sortie :
+            - C contient la taille du résultat de tokenisation en octets (???)
             
             MS_BASIC=CRUNCH
-$236b       ---
-$236c       Le flag est à 0 pour signaler la tokenisation
-$236f       ---
+$236b-$236c Mise à 0 re (`dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
+$236f       ???
 $2371       DE pointe sur le buffer de tokenisation
 $2374       [analyze]
-            Récupération dans A du caractère à traiter
-$2375       ---
-$2377       Est-ce un espace ?
-$237a       B contient le caractère aussi
-$237b       ---
-$237d       Sont-ce des guillemets ?
-$2380       ---
-$2381       Est-ce NUL ?
-$2384       ---
-$2387       Préparation du test de flag de tokenisation
+$2374       Récupération dans A du caractère à traiter
+$2375       %CHAR
+$2375-$2377 Branche si c'est un espace
+$237a       Copie du caractère à traiter dans B.
+$237b       %CHAR
+$237b-$237d Branche si ce sont des guillemets.
+$2380-$2381 Branche si c'est le caractère nul.
+$2384-$2387 Préparation du test de drapeau de tokenisation
 $2388       A est à nouveau le caractère à l'étude
-$2389       Si on est hors tokenisation, on saute.
-$238c       ---
-$238e       ---
-$2390       Est-ce que le caractère est '?' ? A est préchargé avec $94 dans ce cas. Raccourci vers l'instruction PRINT.
+$2389       Branche si on se trouve en mode littéral (non tokenisé)
+$238c       %CHAR
+$238c-$2390 Branche si le caractère est '?', avec A contenant la valeur du token pour `PRINT`.
 $2393       A est à nouveau le caractère à l'étude
-$2394       ---
-$2396       ---
-$2398       Est-ce que le caractère est '…' ? A est préchargé avec $AF dans ce cas. Raccourci vers DISK (est-ce vraiment utilisé, DISK est vectorisée ?)
+$2394-$2398 Branche si le caractère est '…', avec A contenant la valeur du token pour `DISK`.
 $239b       A est à nouveau le caractère à l'étude
-$239c       ---
-$239e       Est-ce inférieur à '0' ?
-$23a0       ---
-$23a2       Est-ce inférieur à '<' ? (les chiffres et ':' et ';' ne sont pas tokenisés)
+$239c       %CHAR
+$239c-$239e Branche si le caractère est inférieur à '0'.
+$23a0       %CHAR
+$23a0-$23a2 Branche si le caractère est inférieur à '<'. Les chiffres et les caractères ':' et ';' sont traités comme des littéraux.
 $23a5       [specialchr]
-            Ici, A contient tout caractère hors chiffre et ':; "?…\0'. Et le flag de tokenisation est à 0 (donc, actif). DE, qui contient le buffer de tokenisation, est sauvé sur la pile.
-$23a6       DE contient le début du buffer des mots clés du BASIC -1 (car le traitement commence par augmenter le pointeur)
-$23a9       Pourquoi sauve-t-on BC ?
-$23aa       BC contient $244b
-$23ad       BC est sauvé sur la pile, ce qui provoquera la sortie à cette adresse si le token n'est pas trouvé
-$23ae       B contient $7F et sera incrémenté avec chaque token étudié. Le premier token a donc pour numéro $80
+            À cet endroit, A contient un caractère hors chiffre ni ':; "?…\0'.
+$23a5       Sauve le pointeur vers le buffer de travail sur la pile.
+$23a6       DE pointe un octet avant le début du tableau des mots clés du BASIC.
+$23a9       Sauve le compteur C, initialement égal à 5, sur la pile.
+$23aa-$23ad Place sur la pile l'adresse qui sera utilisée par `ret` si le mot-clé n'a pas été trouvé.
+$23ae       B initialisé à `$7F`. B sera incrémenté à chaque mot-clé essayé, et sera le numéro de token associé. Le premier token a donc pour numéro $80.
 $23b0       A est à nouveau le caractère à l'étude
-$23b1       ---
-$23b3       Est-ce inférieur à 'a' ?
-$23b5       ---
-$23b7       Est-ce supérieur à 'z' ?
-$23b9       Passage en majuscule
-$23bb       Mise dans le buffer de la lettre passée en majuscule
+$23b1       %CHAR
+$23b5       %CHAR
+$23b1-$23bb Transforme les lettres minuscules en majuscules directement dans le buffer d'entrée.
 $23bc       [notlowerchr]
-            C contient le caractère à traiter
-$23bd       HL pointe sur le buffer de keywords - 1
+$23bc       C contient le caractère à traiter
+$23bd       HL pointe vers le tableau de mots-clés. DE vers le buffer d'entrée.
 $23be       [nextkeyword]
-$23bf       ---
-$23c0       Boucle jusqu'au premier caractère avec un bit de poids fort à 1 (cela indique le début d'un mot)
-$23c3       Augmenter l'index de mot-clé
-$23c4       ---
-$23c5       A contient le premier caractère de la table des mots clé, sur 7 bits (nécessaire pour enlever le marqueur de début de mot)
-$23c7       Si égal à NUL, alors la fin du buffer est atteinte, on sort. Comme tokennotfound est actuellement en haut de pile, c'est vers là que l'on sort.
-$23c8       ---
-$23c9       Si le caractère à traiter et celui du mot-clé sont différent, on cherche le mot clé suivant
-$23cb       Le pointeur sur le mot clé à traité est mis dans DE. HL contient à nouveau l'adresse du buffer en traitement.
-$23cc       ---
+$23be       Avance le pointeur vers le tableau de mots-clés.
+$23bf-$23c0 Boucle jusqu'au premier caractère du tableau avec un bit de poids fort à 1. Cela est le marqueur d'un nouveau mot-clé.
+$23c3       Augmente l'index du mot-clé actuellement pointé.
+$23c4-$23c5 A contient le premier caractère de la table des mots-clé, sur 7 bits, ce qui enlève le marqueur de premier caractère.
+$23c7       Si le caractère est nul, alors la fin du tableau des mots-clé est atteinte, on sort.
+            La sortie se fait vers l'adresse poussée précédemment sur la pile : `not_a_tk`.
+$23c8-$23c9 Branche si le caractère pointéà traiter et celui du mot-clé sont différents. On cherche le mot-clé suivant dans le tableau.
+$23cb       Le pointeur vers le tableau de mots-clés retourne dans DE.
+            HL contient à nouveau l'adresse du buffer en traitement.
+$23cc       Sauvegarde de HL.
 $23cd       [strcmpkw]
-$23ce       ---
-$23cf       ---
-$23d0       Puisqu'on atteint un nouveau marqueur de mot clé, c'est que le match a été fait correctement.
-$23d3       C contient le caractère courant dans le buffer des mots clé
-$23d4       A contient le caractère du buffer d'entrée à traiter
-$23d5       Marqueur pour ?
-$23d7       ---
-$23d9       Marqueur pour ?
-$23db       ---
-$23dd       [marker_1]
-            Lecture du caractère suivant pour l'oublier (le marqueur $8c ou $88)
-$23de       ---
-$23df       [marker_2]
-$23e0       Lecture d'un nouveau caractère.
+$23cd       Avance le pointeur de mot-clé vers le caractère suivant.
+$23ce       Place le caractère suivant dans A
+$23cf-$23d0 Branche si on atteint un nouveau marqueur de mot clé. Cela signifie que le mot-clé a été trouvé.
+$23d3       Place dans C le caractère courant du mot-clé.
+$23d4       Place dans A le numéro de token trouvé.
+$23d5-$23d7 Branche si le mot-clé actuel est `GOSUB`
+$23d9-$23db Branche si le mot-clé actuel est `GOTO`
+$23dd       [goto_or_sub]
+$23dd       Lecture du caractère suivant du buffer d'entrée.
+            Il faut se rappeler que la routine 'saute' les espaces.
+$23de       Annule un déplacement de HL effectué par la lecture précédente.
+            Cela a pour effet de sauter par dessus les espaces éventuels, permettant l'écriture `GO TO` ou `GO SUB`.
+$23df       [no_space]
+$23df-$23e0 Lecture d'un nouveau caractère depuis le buffer d'entrée.
+$23e1       %CHAR
 $23e1       ---
-$23e3       ---
-$23e5       Passage en majuscule (voir $23b9), mais on ne vérifie pas le supérieur à 'z' cette fois. En effet, seuls les caractères alphabétiques matcherons un mot clé de toute façon.
-$23e7       [notlower2]
-$23e8       Pour le moment, ça match, on continue.
+$23e3       Branche si le caractère est inférieur à 'a'.
+$23e5       Sinon, passage du caractère en majuscule.
+            Il n'y a pas de vérification de caractère supérieur à 'z'. En effet, le tableau de mots-clés ne contient de toute façon que des caractères alphabétiques.
+$23e7       [not_low]
+$23e7-$23e8 Les caractères du buffer d'entrée et du mot-clé courant sont identiques, la comparaison continue.
 $23ea       ---
 $23eb       Ça ne matche pas, on essaie le mot clé suivant après avoir récupéré le pointeur vers la chaîne à traiter depuis son début de mot…
 $23ed       [foundkeyw]
 $23ee       Pop de HL l'adresse du début du mot
-$23ef       Pop de l'adresse de retour 'tokennotfound'
+$23ef       Pop de l'adresse de retour 'not_a_tk'
 $23f0       A contient le token
 $23f1       ---
 $23f3       Saut si le token est $88 (GOTO)
@@ -4845,7 +4844,7 @@ $2447       [token_end]
 $2448       Sauvegarde du pointeur tokenisé
 $2449       Sauvegarde de IY... ?
 
-$244b       [tokennotfound]
+$244b       [not_a_tk]
             Arrivée ici que la tokenisation échoue ou réussie.
 $244b       HL pointe à nouveau sur le buffer en entrée
 $244c       [tokencomplete]
