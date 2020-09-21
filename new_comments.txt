@@ -13,7 +13,9 @@ $0000       [reset]
 
             == DEBUT DE SECTION IN (bas niveau et interruptions) ==
 
-$0003       %NTS
+$0003       ???
+$0004       [num_ver]
+$0004       %NTS
             Numéro de la version de la ROM
 
 $0008       [chkchr]
@@ -4699,8 +4701,8 @@ $236b       [tokenize]
             - C contient la taille du résultat de tokenisation en octets (???)
             
             MS_BASIC=CRUNCH
-$236b-$236c Mise à 0 re (`dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
-$236f       ???
+$236b-$236c Mise à 0 de (`dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
+$236f       Taille initial du buffer de sortie (pourquoi 5 ???)
 $2371       DE pointe sur le buffer de tokenisation
 $2374       [analyze]
 $2374       Récupération dans A du caractère à traiter
@@ -4722,7 +4724,7 @@ $239c       %CHAR
 $239c-$239e Branche si le caractère est inférieur à '0'.
 $23a0       %CHAR
 $23a0-$23a2 Branche si le caractère est inférieur à '<'. Les chiffres et les caractères ':' et ';' sont traités comme des littéraux.
-$23a5       [specialchr]
+$23a5       [special_chr]
             À cet endroit, A contient un caractère hors chiffre ni ':; "?…\0'.
 $23a5       Sauve le pointeur vers le buffer de travail sur la pile.
 $23a6       DE pointe un octet avant le début du tableau des mots clés du BASIC.
@@ -4733,10 +4735,10 @@ $23b0       A est à nouveau le caractère à l'étude
 $23b1       %CHAR
 $23b5       %CHAR
 $23b1-$23bb Transforme les lettres minuscules en majuscules directement dans le buffer d'entrée.
-$23bc       [notlowerchr]
+$23bc       [not_lower]
 $23bc       C contient le caractère à traiter
 $23bd       HL pointe vers le tableau de mots-clés. DE vers le buffer d'entrée.
-$23be       [nextkeyword]
+$23be       [next_keyw]
 $23be       Avance le pointeur vers le tableau de mots-clés.
 $23bf-$23c0 Boucle jusqu'au premier caractère du tableau avec un bit de poids fort à 1. Cela est le marqueur d'un nouveau mot-clé.
 $23c3       Augmente l'index du mot-clé actuellement pointé.
@@ -4747,7 +4749,7 @@ $23c8-$23c9 Branche si le caractère pointéà traiter et celui du mot-clé sont
 $23cb       Le pointeur vers le tableau de mots-clés retourne dans DE.
             HL contient à nouveau l'adresse du buffer en traitement.
 $23cc       Sauvegarde de HL.
-$23cd       [strcmpkw]
+$23cd       [cmp_kw]
 $23cd       Avance le pointeur de mot-clé vers le caractère suivant.
 $23ce       Place le caractère suivant dans A
 $23cf-$23d0 Branche si on atteint un nouveau marqueur de mot clé. Cela signifie que le mot-clé a été trouvé.
@@ -4763,129 +4765,135 @@ $23de       Annule un déplacement de HL effectué par la lecture précédente.
 $23df       [no_space]
 $23df-$23e0 Lecture d'un nouveau caractère depuis le buffer d'entrée.
 $23e1       %CHAR
-$23e1       ---
-$23e3       Branche si le caractère est inférieur à 'a'.
+$23e1-$23e3 Branche si le caractère est inférieur à 'a'.
 $23e5       Sinon, passage du caractère en majuscule.
             Il n'y a pas de vérification de caractère supérieur à 'z'. En effet, le tableau de mots-clés ne contient de toute façon que des caractères alphabétiques.
 $23e7       [not_low]
 $23e7-$23e8 Les caractères du buffer d'entrée et du mot-clé courant sont identiques, la comparaison continue.
-$23ea       ---
-$23eb       Ça ne matche pas, on essaie le mot clé suivant après avoir récupéré le pointeur vers la chaîne à traiter depuis son début de mot…
-$23ed       [foundkeyw]
-$23ee       Pop de HL l'adresse du début du mot
-$23ef       Pop de l'adresse de retour 'not_a_tk'
-$23f0       A contient le token
-$23f1       ---
-$23f3       Saut si le token est $88 (GOTO)
-$23f5       ---
-$23f7       Saut si le token est $8c (GOSUB)
-$23f9       ---
-$23fb       Saut si le token est $8b (RESTORE)
-$23fd       ---
-$23ff       Saut si le token n'est pas $b6 (???)
+$23ea-$23eb Le mot-clé ne correspond pas, on essaie le mot clé suivant après avoir récupéré le pointeur vers la chaîne à traiter depuis son début de mot.
+
+$23ed       [kw_found]
+$23ed       Sauvegarde dans C du numéro de token.
+$23ee       L'adresse du début de mot sur la pile est nettoyée.
+$23ef       L'adresse de retour en cas d'échec de recherche est dépilée.
+$23f0       A prends le numéro de token (pourquoi ne pas avoir fait directement LD A,B à ce niveau ???)
+$23f1-$23f3 Branche si le token est $88 (`GOTO`)
+$23f5-$23f7 Branche si le token est $8c (`GOSUB`)
+$23f9-$23fb Branche si le token est $8b (`RESTORE`)
+$23fd-$23ff Branche si le token n'est pas $b6 (`THEN`)
 $2401       [test_number]
             Vérifie s'il y a un paramètre nombre derrière l'instruction
-$2402       ---
-$2403       ---
-$2404       Ce qui suit n'est pas un nombre, on considère qu'il n'y a pas de paramètre.
-$2406       Sauvegarde du HL courant dans DE
-$2407       pop IY ?!!! (on doit en être à la sauvegarde de BC)
-$2409       Pop de la valeur de DE en $23a5, qui pointe sur le buffer de tokenisation
+$2401       Sauve HL, pointeur vers le buffer d'entrée.
+$2402       Lit le caractère dans le buffer d'entrée.
+$2403       Restaure à nouveau HL, qui pointe au début de la partie à vérifier.
+$2404       Si Carry est à 0, le caractère n'était pas un nombre, il n'y a pas donc pas de paramètre numérique.
+$2406       Sauvegarde de HL, pointer vers le buffer d'entrée, dans DE.
+$2407       Récupération dans Y du compteur C initialement mis à 5.
+$2409       Récupération dans HL du pointeur vers le buffer en entrée.
+
 $240a       [dec_number]
-            On place le token dans le buffer de tokenisation.
-$240b       On récupère et on sauve DE, qui pointe sur la zone à parser.
-$240c       ---
-$240d       Échange des registres secondaires.
-$240e       Récupération dans HL de la zone à parser.
-$240f       Remise dans la pile de l'adresse de la zone à parser.
-$2410       Tentative de récupération d'un numéro de ligne.
-$2413       ---
-$2414       ---
-$2415       Si le numéro de ligne est 0 (ligne invalide), on sort.
-$2417       Récupération dans BC de la zone à parser (pour remettre la pile en état)
+$240a       Le token est placé dans le buffer de travail lors de la première arrivé. Ensuite, c'est la virgule de séparation préparée plus loin qui sera copiée.
+$240b       DE pointe sur l'octet suivant du buffer d'entrée.
+$240c       Et on sauve DE sur la pile.
+$240d       Utilisation des registres secondaires.
+$240e       Récupération dans HL du buffer d'entrée
+$240f       Remise sur la pile de l'adresse du buffer d'entrée.
+$2410       Tentative de récupération d'un numéro de ligne depuis le buffer d'entrée HL.
+$2413-$2415 Branche si le numéro de ligne est invalide (à 0).
+$2417       Nettoyage de la pile en enlevant l'adresse du buffer d'entrée.
 $2418       Octet bas du numéro de ligne dans A (exx n'echange pas AF, on garde donc une partie de numéro de ligne, voir plus loin)
-$2419       ---
-$241a       Mise dans la pile dans l'adresse de décodage ajustée
-            On incrémente le pointeur de la zone de tokenisation
-$241b       On repasse au registre primaires
-$241c       On récupère dans DE le pointeur à parser.
-$241d       ---
-$241e       On annote avec $0e pour indiquer qu'un paramètre suit.
-$2420       ---
-$2421       Placement de la première partie du numéro de ligne
-$2422       ---
-$2423       ---
-$2424       Récupération de la seconde partie du numéro de ligne
-$2425       ---
-$2426       La seconde partie du numéro de ligne est placée dans C
-$2427       ---
-$2429       ---
-$242b       Hein ???
+$2419-$241a Mise dans la pile dans l'adresse de décodage ajustée à l'octet avant la dernière lecture de numéro de ligne.
+$241b       On repasse aux registres initiaux.
+$241c       On récupère dans DE le buffer d'entrée.
+$241d       HL, qui pointe vers le buffer de travail, est incrémenté.
+$241e       $0e est placé dans le buffer de travail comme marqueur de nombre entier sur 16 bits pré-décodé.
+$2420-$2421 Placement de la première partie du numéro de ligne
+$2422       Avancement dans le buffer de travail.
+$2423-$2426 Récupération dans C de la seconde partie du numéro de ligne
+$2427-$242b La taille du buffer de travail est augmentée de 3 (pour le token, le marqueur et la première partie du nombre)
 $242d       [miss_line]
-$242e       DE doit toujours être supérieur à HL, sinon, c'est qu'il n'y avait pas d'opérande lorsqu'une était attendue (vérifier)
-$2431       HL contient le buffer à parser, DE le buffer tokenisé en cours.
-$2432       Sauvegarde du pointeur de parsing en cours
+$242d       Comparaison de DE, buffer d'entrée, et de HL, buffer de travail.
+$242e       DE doit toujours être plus loin que HL. Sinon, branche vers l'erreur Opérande manquante. pourquoi ???
+$2431       HL contient le buffer en entrée, DE le buffer de travail.
+$2432       Sauvegarde du buffer d'entrée.
 $2433       Lecture du caractère suivant.
-$2434       DE=buffer à parser, HL=buffer tokenisé
-$2435       Comparaison du dernier caractère lu avec $2ca (virgule ',')
-$2437       Si pas de virgule, c'est terminé
-$2439       Sinon, on place la deuxième partie du numéro de ligne dans le buffer tokenisé
-$243a       Puis passage à l'emplacement suivant dans le buffer tokenisé
-$243b       Mais que pointe iy ?
-$243d       C contient maintenance $2c (virgule), préparer pour être copié à la prochaine itération.
-$243f       Pop de l'adresse de parsing (pour balance)
-$2440       ---
+$2434       DE contient le buffer en entrée, HL le buffer de travail.
+$2435       %CHAR
+$2435-$2437 Branche si le caractère suivant n'est pas une virgule. Le décodage de l'instruction est terminé.
+            La fin de la routine copiera la seconde partie du numéro de ligne décodé en cours.
+            Il peut y avoir des virgules pour `ON ... GOTO` et `ON ... GOSUB`.
+$2439       Sinon, on place la deuxième partie du numéro de ligne dans le buffer de travail.
+$243a       Et on avance le pointeur vers le buffer de travail.
+$243b       La taille du buffer de travail est augmentée.
+$243d       %CHAR
+            Préparation dans C d'une virgule pour la prochaine boucle.
+$243f       Nettoie la pile du buffer d'entrée.
+$2440       Boucle sur le paramètre potentiel suivant.
+
 $2442       [invalid_lin]
-$2443       ---
-$2444       ---
-$2445       ---
+$2442       Reviens sur les registres initiaux.
+$2443       Récupération dans DE du buffer d'entrée
+$2444       Recalage, puisqu'il n'y avait pas de numéro de ligne.
+$2445       Poursuite du décodage.
+
 $2447       [token_end]
-            DE recupère le pointeur de parsing final
-$2448       Sauvegarde du pointeur tokenisé
-$2449       Sauvegarde de IY... ?
+$2447       Récupération du buffer d'entrée dans DE.
+$2448       Sauvegarde du pointeur vers le buffer de travail.
+$2449       Sauvegarde du compteur d'octets dans le buffer de travail.
 
 $244b       [not_a_tk]
-            Arrivée ici que la tokenisation échoue ou réussie.
-$244b       HL pointe à nouveau sur le buffer en entrée
-$244c       [tokencomplete]
-            Récupération du caractère dans A. Dans le cas où l'on a réussi la tokenisation, C contient le token. Dans le cas où l'on a décodé un numéro de ligne, C contient la deuxième partie (haute) du numéro.
-$244d       Nettoyage de la pile
-$244e       DE pointe sur la partie tokenizée
+            Arrivée ici lorsque :
+            - aucun mot clé n'a été trouvé
+            - un mot clé suivi de paramètres numériques a été trouvé
+$244b       HL pointe vers le buffer en entrée, DE pointe vers le buffer de travail.
+$244c       [complete_tk]
+            Arrive ici lorsqu'un token a été trouvé et que ses éventuels paramètres de type ligne ont été décodées.
+$244c       Récupération du caractère C dans A.
+            Dans le cas où l'on a réussi la tokenisation, C contient le token.
+            Dans le cas où l'on a décodé un numéro de ligne, C contient la deuxième partie (haute) du numéro de ligne.
+
+$244d       Récupération de C, qui contient la taille du buffer de travail.
+$244e       DE pointe sur le buffer de travail.
 $244f       [no_token]
-$2450       Recopie du caractère actuel (ou du token ?) dans la partie tokenisée
-$2451       Passage à l'adresse suivante dans le buffer tokenisé
-$2452       Pourquoi agumenter C ? (vérifier suivant arrivée par no_token ou autre cas)
-$2453       ---
-$2455       Saut si A est égal à ':'
+            On arrive ici soit par un token, soit en copie directe du buffer d'entrée vers le buffer de travail.
+            Quoiqu'il arrive, la donnée à copier à dans A.
+$244f       Incrémente le pointeur vers le buffer d'entrée.
+$2450       Copie la donnée actuelle dans le buffer de travail.
+$2451       Avance le pointer vers le buffer de travail.
+$2452       Augmente la taille du buffer de travail.
+$2453       %CHAR
+$2453-$2455 Branche si le caractère est ':'
 $2457       Avec la soustraction précédente, cela fait que l'on compare le caractère à $83
-$2459       Saut si le caractère n'est pas le marqueur $83 (qui est ?)
+$2459       Branche si le caractère n'est pas le marqueur $83 (`DATA`)
+
 $245b       [is_colon]
-            A est forcément égal à 0. On passe en tokenisation.
-$245e       [not_83]
-            Avec la soustraction précédente, cela fait que l'on compare le caractère à $8E
-$2460       Saut si le caractère n'est pas le marqueur $8E (qui est ?) pour une nouvelle analyze de token
-$2463       ---
+$245b       Si le caractère était ':', alors A est à 0. Sinon, le token était `DATA` et A est différent de 0, ce qui fait passer en mode littéral.
+
+$245e       [not_data]
+$245e       Avec la soustraction précédente, cela fait que l'on compare le caractère à $8E (`REM`)
+$2460       Branche si le caractère n'est pas le marqueur $8E (`REM`) pour une nouvelle analyze de token
+$2463       B = 0, qui sert de caractère marqueur de fin de copie.
+
 $2464       [trailing]
-            Recopie le reste de la chaîne à traiter
-$2465       ---
-$2466       Sort si le caractère à parser est NUL
-$2468       ---
-$2469       Saute si le caractère nouveau est identique au précédent (qui a été soustrait !)
+            Recopie les caractères du buffer d'entrée vers le buffer de travail jusqu'à trouver le caractère marqueur fourni dans B.
+$2465       A contient le prochain caractère du buffer d'entrée.
+$2466       Sort si ce caractère est nul.
+$2468-$2469 Branche si le caractère marqueur a été trouvé.
+
 $246b       [ifquote]
-$246c       Copie le caractère nouveau dans le buffer de tokenisation
-$246d       Augmente C (pourquoi ?)
-$246e       Augmenter le pointeur de buffer de tokenisation
-$246f       ---
+$246b       Avance le pointeur vers le buffer d'entrée.
+$246c       Copie le caractère dans le buffer de travail.
+$246d       Incrémente la taille du buffer de travail.
+$246e       Avance le pointer vers le buffer de travail.
+$246f       Boucle sur la copie littérale.
 
 $2471       [ifnul]
-            Arrive ici lorsque la chaîne a été complètement parsée.
-$2471       HL est placé juste avant le buffer de traitement
-$2474       DE pointe sur la fin du buffer tokenizé. Comme A contient 0, le buffer est terminé par trois 0.
-$2475       ---
-$2476       ---
-$2477       ---
-$2478       ---
-$2479       Fin de la fonction de tokenisation
+            Arrive ici lorsque le buffer d'entrée a rencontré le caractère nul final.
+
+$2471       HL est placé juste avant le buffer de travail.
+$2474-$2478 Termine le buffer de travail avec trois caractères nuls.
+$2479       Fin de la routine de tokenisation
+
 $247a       [inst_for]
             %CODE
 $247c       ---
