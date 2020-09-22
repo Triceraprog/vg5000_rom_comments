@@ -4557,78 +4557,72 @@ $22b9-$22bd Si `(allflg)` est différent de 0, la machine reboot. C'est le cas a
 $22c0       Tentative de lecture de numéro de ligne depuis le buffer pointé par HL
 $22c3       DE, aui contient soit un numéro de ligne, soit 0, est sauvé sur la pile.
 $22c4       Appelle la tokenisation de la ligne.
-$22c7       En fin de tokenisation, A == 0, donc B prend 0 aussi (ou plutôt, A contient la longueur de la ligne tokenisée ??? Ou bien est-ce C ???)
-$22c8       Récupération du numéro de ligne dans D
-$22c9       Récupération du AF de $22b8
-$22ca       Carry est set lorsqu'il y avait un numéro de ligne. Dans le cas contraire, exécution immediate.
-$22cd       Push numéro de ligne
-$22ce       Push de C qui contient la taille du résultat de tokenisation (B = 0 depuis $22c7)
-$22cf       Push de l'adresse de tokenisation (un octet avant)
-$22d0       ---
-$22d3       Incrément du mode AUTO. DE contenait la ligne décodée, HL contient la ligne suivante.
-$22d4       ---
+$22c7       A = 0, donc B = 0.
+$22c8       Récupération du numéro de ligne dans DE
+$22c9       Récupération des drapeaux. Le Carry est celui de `chget` et donc est à 1 si la ligne commence par un nomnbre.
+$22ca       Branche si la ligne ne commençait pas par un nombre, c'est-à-dire pas par un numéro de ligne.
+$22cd       Sauve le numéro de ligne.
+$22ce       Sauve la taille du buffer résultat tokenisé.
+$22cf       Sauve l'adresse du buffer résultat (HL pointe un octet avant le premier octet du buffer).
+$22d0-$22d3 Augmente le numéro de ligne gérée par la commande `AUTO`. HL contient le numéro numéro de ligne.
+$22d4       Branche sur le code patché pour la ROM 1.1
+
 $22d7       [line_record]
-            Récupération de l'adresse de tokenisation
-$22d8       Et du prochain token à décoder
-$22d9       ---
-$22da       Préparation et sauvegarde d'un test sur le token récupéré
-$22db       ---
-$22de       Le numéro de ligne qui était dans DE (le numéro de la ligne en cours) a été trouvé.
-$22e0       ---
-$22e1       ---
-$22e2       Si le caractère récupéré était NUL, alors on sort vers le moniteur. En effet, si la ligne n'existait pas et qu'il n'y a rien à y encoder, on ne fait rien.
-$22e5       Pourquoi refaire un "or a,a" ici ? Il faut apparamment clearer le Carry flag
+$22d7       Récupération de l'adresse du buffer résultat.
+$22d8       Lecture du prochain caractère du buffer résultat.
+$22d9-$22da Préparation et sauvegarde du test de caractère nul.
+$22db       Recherche du numéro de ligne (depuis DE)
+$22de       Branche si le numéro de ligne a été trouvé.
+$22e0-$22e1 Sinon, récupère le résultat du test de caractère nul précédent ainsi que le caractère lu, en gardant la valeur sur la pile.
+$22e2       Retourne au moniteur si le buffer était vide (mais pourquoi avoir testé le numéro de ligne entre temps ???)
+$22e5       Pourquoi refaire un "or a,a" ici ??? Il y a besoin que Carry soit à 0, mais il devrait l'être à cause de $22d9
+
 $22e6       [prev_found]
-            BC contient l'adresse de la ligne trouvée.
-            Sauvegarde dans la pile de l'adresse de ligne précédente trouvée
-$22e7       Saut si on ne vient pas $22de directement. Autrement dit, si la ligne courante n'a pas été trouvée.
-$22e9       DE=adresse de la ligne suivante à celle trouvée
-$22ea       HL=pointeur de la zone des variables
+$22e6       BC contient l'adresse de la ligne trouvée si elle l'a été, ou de la ligne précédente sinon.
+            Cette adresse est sauvée dans la pile.
+$22e7       Branche si le numéro de ligne n'a pas été trouvé.
+$22e9       DE prend l'adresse suivante de la ligne trouvée.
+$22ea       HL pointe vers la zone des variables.
+
 $22ed       [erase_line]
-            Copie de la zone depuis la ligne suivante à celle trouvée jusqu'à l'adresse de la ligne trouvée. Autrement dit, on écrase la ligne courante. Ce qui invalide au passage tous les pointeurs de chaînage.
-$22ee       ---
-$22ef       ---
-$22f0       ---
-$22f1       ---
-$22f2       Boucle pour la copie
-$22f4       ---
-$22f5       ---
-$22f6       Ajustement de la nouvelle valeur de (vartab) (comme étant la dernière adresse recopiée dans le bloc précédent)
+$22ed-$22f0 Copie un octet de la ligne suivante vers la ligne cherchée
+$22f1-$22f2 Boucle jusqu'à ce que DE atteigne HL. Autrement dit, la ligne courante est effacée par recopie de tout ce qui la suit à partir de son emplacement.
+            Au passage, les pointeurs de chaînages à partir de cette ligne deviennent invalides.
+$22f4-$22f6 Ajustement de la nouvelle valeur de `(vartab)` comme étant la dernière adresse recopiée dans le bloc précédent.
+
 $22f9       [prev_nfound]
-            Récupération de l'adresse initiale de la ligne trouvée (avant déplacement)
+$22f9       Récupération dans DE de l'adresse initiale de la ligne trouvée (entre temps effacée) ou de la précédente si elle n'avait pas été trouvée.
 $22fa       Récupération du résultat du test du token sauvé en $22e1 (fait en $22d9)
-$22fb       ---
+$22fb       Branche si la ligne est vide après le numéro de ligne.
 $22fd       HL pointe sur l'adresse des variables
 $2300       Récupération dans HL de la taille de la tokenisation
-$2301       Récupération dans BC de l'adresse des variables (vartab)
-$2302       HL contient la nouvelle valeur voulue pour (vartab)
-$2303       Sauvegarde de cette valeur
-$2304       Déplacement du bloc text vers le haut de la mémoire pour faire la place nécessaire à la ligne qui arrive (avec vérification que HL n'a pas touché la stack, sinon, erreur)
-$2307       Récupération de la valeur voulue pour (vartab)
-$2308       Et mise à jour de (vartab)
+$2301       Récupération dans BC de l'adresse des variables `(vartab)`
+$2302       HL contient la nouvelle valeur pour `(vartab)`.
+$2303       Sauve cette valeur.
+$2304       Déplacement du bloc de texte vers le haut de la mémoire pour faire la place nécessaire à la ligne qui arrive.
+            La routine vérifie aussi qu'il y a assez de place en mémoire pour ça et génère une erreur BASIC dans le cas contraire.
+$2307-$2308 Récupération et mise à jour de `(vartab)`. Fait uniquement si le déplacement mémoire a réussi.
 $230b       Récupération dans HL de l'adresse de la ligne
-$230c       Mise en place de la première partie de l'adresse de chaînage (nécessaire pour éviter que le chaînage ne soit NUL plus tard et confondre avec la fin de chaîne)
-$230d       DE récupère le numéro de ligne
-$230e       ---
-$230f       ---
-$2310       ---
-$2311       ---
-$2312       ---
-$2313       Placement du numéro de ligne, HL pointe sur le début du contenu de la ligne (qui n'est pas encore là)
-$2314       Sauvegarde du pointeur de contenu
-$2315       HL pointe sur le buffer de tokenisation
+$230c       Mise en place d'une valeur dans la première partie de l'adresse de chaînage.
+            Nécessaire pour éviter que le chaînage ne soit nul plus tard et confondre avec une fin de chaîne. ??? vraiment ???
+$230d       DE récupère le numéro de la nouvelle ligne.
+$230e-$230f Déplace le pointeur vers l'emplacement du numéro de ligne.
+$2310-$2313 Placement du numéro de ligne. HL pointe sur le début du contenu de la ligne (qui n'est pas encore là).
+$2314       Sauvegarde du pointeur sur la ligne dans DE.
+$2315       HL pointe sur le buffer de résultat de tokenisation.
+
 $2318       [cpy_line]
-            Commence la copie du contenu de la ligne
-$2319       ---
-$231b       Cas spécial pour les valeurs numériques sur 16 bits
-$231d       ---
-$231f       ---
-$2321       La copie des deux octets des valeurs numériques
-$2323       ---
+$2318       Récupère l'octet source dans A.
+$2319       Copie un octet de (HL) vers (DE), incrémente les deux et décrémente BC (qui n'est pas utilisé)
+$231b-$231d Branche pour le cas normal de copie de caractère.
+$231f-$2321 Copie des deux octets composant les entiers 16 bits décodés.
+$2323       Boucle sur la copie du contenu de la nouvelle ligne.
+
 $2325       [cpy_not_num]
-$2326       Continue la copie tant que la valeur n'est pas zéro. En sortie de boucle, la ligne a été insérée dans la partie texte.
+$2325-$2326 Continue la copie tant que le caractère n'est pas nul. En sortie de boucle, la ligne a été insérée dans la partie texte.
+
 $2328       [line_empty]
-            Saut si la ligne est vide
+            Arrive ici si la ligne était vide (et donc a été effacée) ou a été transférée au bon endroit.
 $232b       HL pointe sur (txttab)
 $232c       DE pointe sur (txttab)
 $232d       [make_chain]
@@ -4698,7 +4692,10 @@ $236b       [tokenize]
             - HL pointe vers le contenu à traiter
 
             Sortie :
-            - C contient la taille du résultat de tokenisation en octets (???)
+            - HL pointe un octet avec le buffer résultat
+            - DE pointe à la fin du buffer résultat
+            - C contient la taille du buffer résultat
+            - A est égal à 0
             
             MS_BASIC=CRUNCH
 $236b-$236c Mise à 0 de (`dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
@@ -9036,19 +9033,20 @@ $3d9f       Recherche de la ligne
 $3da2       Branche si la ligne n'a pas été trouvée (affichera un espace avant de continuer sur la boucle du moniteur BASIC)
 $3da5-$3da7 Sinon, affiche le caractère $a0 pour indiquer qu'il y a déjà du contenu. Puis continue aussi sur la boucle du moniteur BASIC.
 
-$3daa       [after_auto]
-            Traitement d'un overflow sur AUTO. Si HL est devenu trop grand, on arrête.
-$3dac       ---
-$3dad       Préparation de la comparaison avec $fff9 (65529, plus haut numéro de ligne valide)
-$3db0       ---
-$3db1       ---
-$3db2       si HL (le numéro de ligne courant) est égal ou supérieur à $fff9, on arrête AUTO
-$3db4       Sinon, la nouvelle ligne auto est validée
-$3db7       ---
-$3db9       [stopauto]
-            Stop le traitement de AUTO
-$3dba       ---
-$3dbd       [after_auto2]
+$3daa       [auto_patch]
+            Partie patchée en ROM 1.1 avec l'amélioration de la commande `AUTO`.
+$3daa       Branche si le calcul de la nouvelle ligne a provoqué un dépassement de capacité. `AUTO` est terminé.
+$3dac-$3db1 Compare le numéro de ligne avec $fff9 (65529, plus haut numéro de ligne valide)
+$3db2       Branche si le numéro de ligne courant (dans HL) est égal ou supérieur à 65529.
+$3db4       Sinon, la nouvelle ligne de `AUTO` est validée et enregistrée.
+$3db7       Branchement vers la suite du patch
+
+$3db9       [stop_auto]
+$3db9-$3dba Annule le mode `AUTO`.
+
+$3dbd       [auto_patch2]
+$3dbd       Retour à la suite de la routine. Fin du patch pour `AUTO`.
+
 $3dc0       [initscreen1]
 $3dc3       ---
 $3dc6       ---
