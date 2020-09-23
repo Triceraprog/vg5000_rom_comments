@@ -121,10 +121,8 @@ $0033       [warmgo]
             %CODE
             Indirection pour le redémarrage à chaud.
 
-            Est-ce jamais utilisé ???
-
 $0033       Saute vers l'implémentation du démarrage à chaud.
-$0036       ---
+$0036       Semble ne servir à rien.
 
 $0038       [irq]
             %CODE
@@ -4604,7 +4602,7 @@ $2304       Déplacement du bloc de texte vers le haut de la mémoire pour faire
 $2307-$2308 Récupération et mise à jour de `(vartab)`. Fait uniquement si le déplacement mémoire a réussi.
 $230b       Récupération dans HL de l'adresse de la ligne
 $230c       Mise en place d'une valeur dans la première partie de l'adresse de chaînage.
-            Nécessaire pour éviter que le chaînage ne soit nul plus tard et confondre avec une fin de chaîne. ??? vraiment ???
+            Nécessaire pour éviter que la reconstruction du chaînage ne confonde ce pointeur avec la fin du listing.
 $230d       DE récupère le numéro de la nouvelle ligne.
 $230e-$230f Déplace le pointeur vers l'emplacement du numéro de ligne.
 $2310-$2313 Placement du numéro de ligne. HL pointe sur le début du contenu de la ligne (qui n'est pas encore là).
@@ -4623,28 +4621,27 @@ $2325-$2326 Continue la copie tant que le caractère n'est pas nul. En sortie de
 
 $2328       [line_empty]
             Arrive ici si la ligne était vide (et donc a été effacée) ou a été transférée au bon endroit.
+$2328       Réinitialise les pointeurs des zones mémoires du BASIC.
 $232b       HL pointe sur (txttab)
 $232c       DE pointe sur (txttab)
 $232d       [make_chain]
-$232e       HL <- DE
-$232f       ---
-$2330       ---
-$2331       ---
-$2332       Si le chaînage est NUL, retour au moniteur (d'où l'intérêt de mettre une valeur temporaire dans le chaînage)
+$232d-$232e HL et DE pointent au même endroit, le début des données d'une ligne.
+$232f-$2332 Si le pointeur vers la ligne suivante est nul, le chaînage est terminé.
+            C'est la raison pour laquelle une valeur non nulle a été temporairement donnée au premier octet du pointeur.
 $2335       HL pointe sur le numéro de ligne
-$2336       [skip_2bytes]
-$2337       Saut du numéro de ligne
+
+$2336       [sk_2_bytes]
+$2336-$2337 Avance de 2 octets.
+            Soit pour le numéro de ligne et se positionner sur le premier octet du contenu de la ligne.
+            Soit ensuite pour les nombre entiers sur 16 bits pré-encodés.
+
 $2338       [adv_1byte]
-$2339       Copie dans A de la valeur et avancée du pointeur
-$233a       ---
-$233c       Si on est sur un marqueur de valeur numérique entière, on saute deux octets (en profitant du saut du numero de ligne)
-$233e       ---
-$233f       Si l'octet n'est pas NUL, on continue
-$2341       Fin de ligne. On reprend dans HL le pointeur de la ligne précédente (DE en début de boucle)
-$2342       ---
-$2343       ---
-$2344       Placement dans le chaînage de la ligne précédente du pointeur de ligne actuel
-$2345       ---
+$2338-$2339 Lecture d'un octet des données de la ligne.
+$233a-$233c Si c'est le marqueur de nombre entier sur 16 bits, boucle pour passer avant de deux octets supplémentaires.
+$233e-$233f Si l'octet n'est pas n'est pas nul, boucle pour avancer d'un octet.
+$2341       Sinon, c'est la fin de la ligne. On ramène dans HL le pointeur de la ligne précédente.
+$2342-$2344 Le pointeur vers la ligne suivante, à présent dans DE, est placé dans le pointeur de chaînage de la ligne précédente (HL).
+$2345       Poursuite du chaînage.
 
 $2347       [line_search]
             Chercher la ligne de BASIC à exécuter, présent dans DE
