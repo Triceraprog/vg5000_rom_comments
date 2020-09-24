@@ -4978,89 +4978,81 @@ $24e6-$24e9 Sauve $81 (marqueur du bloc `FOR`) sur la pile.
 
 $24ea       [end_of_inst]
             %CODE
-            Recherche l'instruction suivante
+            Appelée à la fin de chaque instruction lors d'une exécution.
+            Recherche l'instruction suivante.
             
             MS_BASIC=RUNCNT
-$24ea       ---
-$24ed       ---
-$24f0       ---
-$24f1       Comparaison avec ':'
-$24f3       Il y a une autre instruction à exécuter
-$24f5       ---
-$24f6       HL doit pointer sur le NUL de fin de ligne ou bien ':'. Si ce n'est pas le cas, c'est une erreur de syntaxe (l'instruction n'a pas tout consommé)
-$24f9       ---
-$24fa       ---
-$24fb       ---
-$24fc       La dernière ligne chaine sur l'adresse de ligne $0000. C'est ce qu'on lit ici.
-$24fd       Saut si on est sur la dernière ligne du programme (l'adresse de ligne suivante était $0000)
-$2500       ---
-$2501       ---
-$2502       ---
-$2503       ---
-$2504       HL contient le numéro de ligne, DE contient le pointeur sur le contenu de la ligne BASIC
-$2505       Enregistrement du numéro de la ligne courante
-$2508       Récupération dans HL du pointeur sur le contenu de la ligne BASIC
-$2509       [exec_token]
-            Récupère le première token du buffer ; MS_BASIC=EXECUTE
-$250a       ---
-$250d       Met sur la pile une adresse de retour qui est "end_of_inst"
-$250e       [retz]
-            Retourne en "end_of_inst" si le caractère du buffer est NUL, c'est-à-dire que le contenu de la ligne était vide (':' en fin de ligne principalement ? Protection contre une ligne vide ?)
-$250f       [jump250F]
-            Les tokens sont tous supérieurs à $80
-$2511       Si la soustraction a provoqué un Carry, alors ce n'était pas un token. Exécute par défaut l'assignation de variable.
-$2514       ---
-$2516       Si le token est supérieur à $32 (les 50 premiers token sont des instructions, suivent les fonctions dont les 16 premieres n'ont pas d'adresse), affiche une Erreur de Syntaxe.
-$2519       Le token est multiplié par 2
-$251a       puis stocké dans C
-$251b       B est à 0, donc BC contient le numéro de token * 2
-$251d       Sauvegarde de HL dans DE
-$251e       HL est chargé avec la table des adresses d'instructions
-$2521       HL contient le pointeur adresse d'execution de l'instruction tokenisée
-$2522       ---
-$2523       ---
-$2524       BC contient l'adresse d'execution de l'instruction tokenisée
-$2525       L'adresse est mise sur la pile
-$2526       Récupération de l'adresse en cours du buffer tokenisé (cf. $251d)
+$24ea       Vérifie si une interruption de commande a été demandée.
+$24ed       Sinon, sauve le pointeur de texte BASIC.
+$24f1       %CHAR
+$24f0-$24f3 Branche si le caractère suivant est `:`, la ligne n'est pas terminée, il faut exécuter l'instruction suivante.
+$24f5-$24f6 Si le pointeur de texte BASIC ne pointe ni sur ':' ni sur le caractère nul de fin de ligne, c'est une erreur de syntaxe.
+$24f9-$24fd Branche si l'adresse de chaînage de la ligne suivante est nulle. La dernière ligne du programme a été atteinte.
+$2500-$2503 Lecture du numéro de la nouvelle ligne dans DE.
+$2504       HL = le numéro de ligne, DE = pointeur vers les tokens de la ligne.
+$2505       Mise à jour du numéro de la ligne courante.
+$2508       DE = le numéro de ligne, HL = pointeur vers les tokens de la ligne. Prêt à exécuter la ligne suivante.
 
-$2527       [skipch]
-            Fonction: recupère le caractère suivant du pointeur HL
-            Retourne immédiatement si le caractère est superieur à $3a avec NC
-            sinon, fallthrough dans chget_2
-            Retourne avec Z set si le caractère lu était NUL
-            Retourne avec C set si
+$2509       [exec_token]
+            Exécute le contenu d'une ligne BASIC tokenisée.
             
-            La fonction est à la suite du décodage de token, ce qui permet d'avancer le pointeur directement.
-            "RET" signifie donc aussi dans ce contexte un saut à l'adresse de l'instruction.
-$2527       ---
-$2528       ---
-$2529       ---
-$252b       ---
+            MS_BASIC=EXECUTE
+$2509       Récupère le premier octet de l'instruction à exécuter.
+$250a-$250d Met sur la pile l'adresse de retour vers laquelle aller à la fin de l'instruction.
+
+$250e       [if_jump]
+$250e       Si le caractère sur la ligne était nul, alors le retour provoquera le traitement de la fin de ligne.
+
+$250f       [on_jump]
+$250f-$2511 Branche si l'octet n'était pas un token (les tokens sont tous supérieurs à $80). Exécute par défaut l'assignation de variable.
+$2514-$2516 Les 50 ($32) premiers tokens sont des instructions. Au-delà, provoque une erreur de syntaxe, ce n'est pas un token d'instruction.
+$2519-$251b BC = (token - $80) * 2
+$251d       Sauvegarde de HL, pointeur vers le texte BASIC, dans DE.
+$251e       HL pointe vers la table des adresses d'instructions.
+$2521       HL pointe vers l'adresse d'execution de l'instruction.
+$2522-$2524 BC contient l'adresse d'execution de l'instruction.
+$2525       L'adresse est mise sur la pile.
+$2526       HL pointe vers le texte BASIC.
+            La routine continue sur l'acquisition du prochain caractère signifiant du texte BASIC.
+            Le `ret` qui terminera cette routine provoquera le branchement vers l'exécution de l'instruction, avec HL qui pointe vers le premier octet du texte BASIC.
+            A contiendra le caractère lu, et les drapeau Carry et Z seront positionnés.
+
+$2527       [get_char]
+            Recupère le caractère suivant pointé par HL.
+
+            Entrée :
+            - HL pointe vers le buffer à lire
+
+            Sortie :
+            - A contient l'octet lu
+            - Carry est à 0 si l'octet est supérieur ou égal à $3a (':')
+            - Carry à 1 si c'est un chiffre, 0 sinon
+            - Z à 1 si A est nul
+$2529       %CHAR
+$2527-$252b Lit le caractère suivant et retourne immédiatement si celui-ci est supérieur ou égal à ':', tout comme le fait `chget`
 
 $252c       [chget_2]
             Suite du traitement de chget.
-            A contient le caractère lu dans le buffer, qui est inférieur ou égal à $3a
-$252c       HL contient la ligne courante exécutée
-$252e       Se positionne sur le premier caractère qui n'est pas un espace et est inférieur ou égal à '9'
-$2530       Si le caractère est supérieur à ' ', saut plus loin
-$2532       ---
-$2534       Saute si le caractère est entre 0F et 1F (une partie des caractères de contrôle)
-$2536       ---
-$2538       Saute si le caractère est inférieur à 0D (une autre partie des caractères de contrôle, dont 0)
-$253a       Reste les cas 0D et 0E. Dans ce cas, le pointeur d'execution + 3 est sauvé dans (contxt) puis HL est restauré.
-$253b       ---
-$253c       ---
-$253d       ---
-$253e       ---
-$2541       ---
-$2542       [chget_3]
-$2543       Ce RET branchera sur l'instruction à exécuter si un token a été décodé. Si appel depuis RST, retourne normalement avec le flag Z si A était à NUL. Cela signifie aussi que les exécution d'instruction arrivent avec Z=1 si le caractère lu après le token est NUL (modulo le recalage précédent)
-$2544       [chget_4]
-            Compare avec '0'
-$2546       Inverse la retenue. Donc le flag C sera mis si le caractère est supérieur ou égal à '0' (donc un chiffre).
-$2547       ---
-$2548       Manipulation de A pour setter Z si A était NUL
-$2549       ---
+
+            A contient le caractère lu dans le buffer, qui est inférieur à $3a (':')
+$252c-$252e Lit le caractère suivant si celui-ci était un espace. Les espaces ne sont pas significatifs.
+$2530       Branche si le caractère est entre ' ' et ':'
+$2532-$2534 Branche si le caractère est entre %0f et $1f (contient les caractères accentués, le caractère `DISK` et deux caractères de contrôle)
+$2536-$2538 Branche si le caractère est inférieur strictement à $0d (une autre partie des caractères de contrôle, dont 0)
+$253a       Reste les cas $0d (retour chariot, cas normalement impossible) et $0e (marqueur d'entier 16 bits).
+            Le pointeur sur le texte BASIC est sauvé.
+$253b-$253e Le position après le nombre entier sur 16 bits est mise dans `(contxt)`.
+$2541       Et HL pointe à nouveau sur le texte BASIC en cours d'exécution.
+
+$2542       [chget_std]
+$2542       Place les drapeaux en fonction de la valeur de A.
+$2543       Retour soit de `chget`, soit exécution de l'instruction donc l'adresse a été poussée sur la pile.
+
+$2544       [chget_digit]
+$2544       %CHAR
+$2544-$2546 Carry à 1 si le caractère est supérieur ou égal à '0' et inférieur strictement à ':'. Donc un chiffre.
+$2547-$2548 Permet de positionner le Z sans toucher à Carry.
+$2549       Retour soit de `chget`, soit exécution de l'instruction donc l'adresse a été poussée sur la pile.
 
 $254a       [num_read]
             Lecture d'un nombre depuis une chaine pointée par HL.
