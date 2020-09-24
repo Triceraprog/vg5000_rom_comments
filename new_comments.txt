@@ -4431,18 +4431,20 @@ $221d       [for_lookup]
             Sortie :
             - HL pointe vers le bloc `FOR` correspondant, dans la pile. (??? vers le step ?)
             - Drapeau Z à 1 si le bloc a été trouvé, 0 sinon.
+            - BC est à $000d si le bloc a été trouvé.
 
 $221d       Recupère le marqueur du bloc pointé par HL
 $221e       Et pointe un octet plus loin.
 $221f-$2221 Retourne si le marqueur n'est pas celui de l'instruction `FOR`.
-$2222-$2225 BC = adresse du compteur pour `FOR`.
-$2226       Sauve HL
+$2222-$2225 BC = adresse de la variable associée pour `FOR`.
+$2226       Sauve HL, pointeur vers le bloc `FOR` en cours d'analyse.
 $2227-$2228 HL prend l'adresse du compteur pour `FOR`.
 $2229       Compare HL avec l'index paramètre dans DE.
 $222a       Prépare le déplacement du pointeur dans la pile en cas d'échec de comparaison.
-$222d       Récupère le pointeur vers le bloc courant dans la pile, plus exactement vers ce qui suit l'adresse de l'index (???)
+$222d       Récupère le pointeur vers le bloc `FOR` en cours d'analyse, qui pointe sur le signe du `STEP`.
 $222e       Retour si l'adresse de l'index recherché correspond.
-$222f       Sinon, déplacement du pointeur 13 (16-3) octets plus loin dans la pile, vers le nouveau bloc.
+$222f       Sinon, déplacement du pointeur d'analyse plus loin dans la pile.
+            Les débuts de blocs sont séparés de 16 octets, desquels on retranche les 3 octets déjà traités, reste 13.
 $2230       Boucle sur la recherche.
 
 $2232       [str_err_dat]
@@ -4576,7 +4578,7 @@ $22e2       Retourne au moniteur si le buffer était vide (mais pourquoi avoir t
 $22e5       Pourquoi refaire un "or a,a" ici ??? Il y a besoin que Carry soit à 0, mais il devrait l'être à cause de $22d9
 
 $22e6       [prev_found]
-$22e6       BC contient l'adresse de la ligne trouvée si elle l'a été, ou de la ligne précédente sinon.
+$22e6       BC contient l'adresse de la ligne trouvée si elle l'a été, ou de la ligne suivante sinon.
             Cette adresse est sauvée dans la pile.
 $22e7       Branche si le numéro de ligne n'a pas été trouvé.
 $22e9       DE prend l'adresse suivante de la ligne trouvée.
@@ -4589,7 +4591,7 @@ $22f1-$22f2 Boucle jusqu'à ce que DE atteigne HL. Autrement dit, la ligne coura
 $22f4-$22f6 Ajustement de la nouvelle valeur de `(vartab)` comme étant la dernière adresse recopiée dans le bloc précédent.
 
 $22f9       [prev_nfound]
-$22f9       Récupération dans DE de l'adresse initiale de la ligne trouvée (entre temps effacée) ou de la précédente si elle n'avait pas été trouvée.
+$22f9       Récupération dans DE de l'adresse initiale de la ligne trouvée (entre temps effacée) ou de la suivante si elle n'avait pas été trouvée.
 $22fa       Récupération du résultat du test du token sauvé en $22e1 (fait en $22d9)
 $22fb       Branche si la ligne est vide après le numéro de ligne.
 $22fd       HL pointe sur l'adresse des variables
@@ -4644,41 +4646,42 @@ $2342-$2344 Le pointeur vers la ligne suivante, à présent dans DE, est placé 
 $2345       Poursuite du chaînage.
 
 $2347       [line_search]
-            Chercher la ligne de BASIC à exécuter, présent dans DE
+            Cherche une ligne BASIC désignée par DE.
+
+            Entrée :
+            - DE contient le numéro de la ligne BASIC à chercher.
+
+            Sorties :
+            - `(prelin)` contient le pointeur vers la ligne précédente à celle recherchée ou 0 s'il n'existe pas de ligne précédente.
+            - Carry à 1 si la ligne a été trouvée, 0 dans le cas contraire.
+            - BC pointe vers les données de la ligne cherchée. Sur les données de la ligne qui a dépassé sinon.
+            - HL pointe vers les données de la ligne suivante si la ligne est trouvée. Contient le numéro de ligne qui a dépassé sinon.
+            - DE contient toujours le numéro de la ligne BASIC à chercher.
+            - Si la fin du listing a été atteinte, alors BC et HL pointent sur le pointeur final.
+
             En sortie, si Carry Flag est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
             Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché. HL contient la ligne suivante à celle pointée par BC.
             (prelin) contient toujours le pointeur vers la ligne cherchée précédemment.
             
             MS_BASIC=SRCHLN
-$2347       ---
-$234a       HL contient la première adresse du listing BASIC
-$234d       [line_search_lp]
-            Met la dernière ligne trouvée dans (prelin) ; MS_BASIC=SRCHLP
-$2351       ---
-$2352       HL dans BC
-$2353       ---
-$2354       ---
-$2355       ---
-$2356       A contient le OR des deux premier octets de la ligne actuelle (HL n'est pas touché)
-$2357       Retour immédiat si A est à 0 (fin des liens)
-$2358       ---
-$2359       Pointe HL deux octets plus loin
-$235a       ---
-$235b       ---
-$235c       ---
-$235d       Lecture de la valeur pointée par HL dans HL. C'est le numéro de la ligne.
-$235e       Comparaison de HL (numéro de ligne considérée) et DE (numéro de ligne recherchée)
-$235f       ---
-$2360       BC dans HL (le pointeur sur la ligne qui avait été sauvé)
-$2361       ---
-$2362       ---
-$2363       ---
-$2364       Lecture dans HL de la valeur pointées par HL. C'est le pointeur vers la ligne suivante.
-$2365       Inverse la retenue. Dans le cas Z, C n'est pas mis, et du coup le set, ce qui indique que la recherche a réussi.
+$2347       Initialise BC à 0.
+$234a       HL pointe vers la première adresse du listing BASIC.
+
+$234d       [search_lp]
+$234d       Met à jour la  dernière ligne trouvée.
+$2351-$2352 BC = HL, pointeur vers un début de données d'une ligne.
+$2353-$2357 Retour immédiat si le pointeur de chaînage est nul. On est arrivé en fin de listing.
+            HL pointe toujours vers le début des données d'une ligne.
+$2358-$2359 HL pointe à présent sur le numéro de ligne BASIC.
+$235a-$235d Lecture du numéro de ligne dans HL.
+$235e       Comparaison de HL (numéro de ligne pointée) et DE (numéro de ligne recherchée)
+$235f-$2360 HL pointe à nouveau en début de données de la ligne.
+$2361-$2364 Lecture dans HL du pointeur de chaînage. HL pointe donc vers les données de la ligne suivante.
+$2365       Inverse la retenue. Si Z est à 1, alors C était à 0, il est donc passé à 1, indiquant que la ligne a été trouvée.
 $2366       Retour immédiat si la ligne considérée était celle cherchée.
-$2367       Inverse la retenue. La remet donc à l'état du test précédent (de_compare)
-$2368       Retour immédiat si HL > DE dans le test de ligne (on a dépassé la ligne sans la trouver)
-$2369       Retour en début de recherche
+$2367       Inverse la retenue et la remet donc à l'état du test HL/DE précédent.
+$2368       Retour immédiat si HL > DE dans le test de ligne. On a dépassé le numéro de la ligne cherchée, elle ne sera donc pas trouvée.
+$2369       Boucle pour étudier la ligne suivante.
 
 $236b       [tokenize]
             Effectue la tokenisation du buffer pointé par HL.
@@ -4889,76 +4892,89 @@ $2474-$2478 Termine le buffer de travail avec trois caractères nuls.
 $2479       Fin de la routine de tokenisation
 
 $247a       [inst_for]
+            Instruction BASIC `FOR`
+
+            La structure d'un bloc `FOR` est la suivante :
+            - Marqueur $81 (1 octet)
+            - Adresse de la variable associée (2 octets)
+            - Signe du `STEP` (1 octet)
+            - Valeur du `STEP` (4 octets, format BCDE)
+            - Valeur du `TO` (4 octets, format BCDE)
+            - Ligne où se trouve l'instruction `FOR` (2 octets)
+            - Adresse de la première instruction après le `FOR` (2 octets)
+
+            Pour un total de 16 octets.
+
             %CODE
-$247c       ---
-$247f       ---
-$2482       ---
-$2483       ---
-$2484       ---
-$2487       ---
-$248a       ---
-$248d       ---
-$248e       [loop248E]
-$2491       ---
-$2493       ---
-$2494       ---
-$2495       ---
-$2496       ---
-$2497       ---
-$2498       ---
-$2499       ---
-$249a       ---
-$249b       ---
-$249c       ---
-$249f       ---
-$24a0       ---
-$24a1       ---
-$24a2       ---
-$24a4       ---
-$24a5       ---
-$24a6       ---
-$24a7       [skip24A7]
-$24a8       ---
-$24a9       ---
-$24ab       ---
-$24ae       ---
-$24af       ---
-$24b2       ---
-$24b3       ---
-$24b4       ---
-$24b7       ---
-$24b8       ---
-$24bb       ---
-$24bc       ---
-$24bd       ---
-$24c0       ---
-$24c1       ---
-$24c4       ---
-$24c5       ---
-$24c6       ---
-$24c7       ---
-$24ca       ---
-$24cb       ---
-$24cc       ---
-$24cd       ---
-$24cf       ---
-$24d1       ---
-$24d3       ---
-$24d4       ---
-$24d7       ---
-$24d8       ---
-$24db       ---
-$24dc       ---
-$24dd       [skip24DD]
-$24de       ---
-$24df       ---
-$24e0       ---
-$24e1       ---
-$24e2       ---
-$24e5       ---
-$24e6       [jump24E6]
-$24e8       ---
-$24e9       ---
+$247a-$247c Indique que la recherche/création de variable se fait pour une commande `FOR`.
+$247f       Juste après le `FOR` se trouve une assignation de variable. Au retour, DE pointe sur la variable.
+$2482       Retire l'adresse de retour de l'instruction `LET` ($24ea)
+$2483       Sauve le pointeur vers le texte BASIC qui pointe à présent après l'assignation de variable.
+$2484       Cherche le début de l'instruction suivante. (est-ce que c'est ce qui provoque l'erreur de syntaxe en mode direct ???)
+$2487       Sauve le pointeur vers l'instruction suivant le `FOR`
+$248a-$248d Pointe 2 octets au-dessus de la pile, c'est-à-dire après le pointeur vers le texte BASIC que l'on vient d'y pousser.
+
+$248e       [search_for]
+$248e       Cherche le bloc `FOR` associé à la variable pointée par DE. (que se passe-t-il s'il est trouvé ? Et si un autre FOR est trouvé ???)
+$2491       Branche si un bloc `FOR` correspondant n'est pas trouvé.
+$2493       Sinon, fait pointer vers la pile après le bloc `FOR` trouvé.
+$2494       Sauve l'adresse de la variable associée.
+$2495-$2498 DE pointe vers la première instruction qui suit le `FOR` trouvé (c'est-à-dire ayant la même variable).
+$2499-$249b Sauve l'adresse de la pile après le `FOR` trouvé.
+$249c       Récupère l'adresse de l'instruction suivant le `FOR` actuel.
+$249f       Compare les deux adresses d'instruction suivante.
+$24a0       Restaure le pointeur sur la pile après le bloc `FOR` trouvé.
+$24a1       Restaure l'adresse de la variable associée.
+$24a2       Les deux instructions suivantes étaient différentes, les deux blocs `FOR` ne sont pas identiques, on continue la recherche.
+$24a4       Restaure le pointeur sur le texte BASIC en cours d'analyse, et n'en fait rien (nettoyage de la pile)
+$24a5       Fixe l'adresse de la pile sur le bloc après le bloc `FOR` trouve, ce qui annule les blocs `FOR` intermédiaires.
+
+            Cela est fait pour traiter les cas du type (invalide, mais exécutable) :
+            > 10 FOR I = 1 TO 10
+            > 20 FOR J = 10 TO 20
+            > 30 PRINT I,J
+            > 40 NEXT I
+            La boucle FOR sur J n'empilera pas un nouveau bloc à chaque rencontre.
+
+$24a6       Incrémente C pour une raison inconnue... La valeur est écrasée juste après.
+
+$24a7       [no_for]
+$24a7       Restaure le pointeur vers le texte BASIC
+$24a8       DE = pas utilisé ???, HL = pointeur vers le texte BASIC
+$24a9-$24ab Vérifie qu'il y a de la place pour 8 niveaux de la pile.
+$24ae       Sauve le pointeur vers le texte BASIC
+$24af       HL pointe sur l'instruction suivant le FOR.
+$24b2-$24b3 Insère l'adresse de cette instruction sous le pointeur texte BASIC dans la pile.
+$24b4       Récupère le numéro de la ligne actuelle en exécution.
+$24b7       Sauve la ligne courante sur la pile et récupère le pointeur vers le texte BASIC.
+$24b8       Vérifie que la variable déclarée était de type numérique.
+$24bb       Le token qui suit doit être $b3 (`TO`)
+$24bc       %DATASKIP
+$24bd       Évaluation de l'expression après `TO`
+$24c0       Sauve le pointeur vers le texte BASIC
+$24c1       Ramène l'expression vers `BCDE` en tant qu'entier 16 bits.
+$24c4       Récupère le pointeur vers le texte BASIC
+$24c5-$24c6 Sauve BCDE dans le bloc `FOR`
+$24c7-$24cb BCDE = 1, `STEP` par défaut
+$24cc-$24cd Vérifie si le token suivant est `STEP`
+$24cf       A = 1, pour signaler le signe positif de `STEP`
+$24d1       Branche s'il n'y a pas de token `STEP`
+$24d3-$24d4 Sinon, évalue l'expression pour `STEP`
+$24d7       Sauve le pointeur vers le texte BASIC
+$24d8       Ramène l'expression vers `BCDE` en tant qu'entier 16 bits.
+$24db       Teste le signe du `STEP`
+$24dc       Récupère le pointeur vers le texte BASIC (dans A)
+
+$24dd       [no_step]
+$24dd-$24de Pousse la valeur du `STEP` dans le bloc `FOR`
+$24df       Sauve le signe de `STEP`
+$24e0       Remonte la pile d'octet, pour ignorer le registre `F`.
+$24e1       Sauve le pointeur vers le texte BASIC
+$24e2       Récupère l'adresse de la variable associée, placée par l'instruction `LET`.
+$24e5       Met l'adresse de la variable sur la pile et récupère dans HL le pointeur vers le texte BASIC.
+
+$24e6       [end_for]
+$24e6-$24e9 Sauve $81 (marqueur du bloc `FOR`) sur la pile.
 
 $24ea       [end_of_inst]
             %CODE
@@ -5191,7 +5207,7 @@ $25f2       [next_data]
 $25f3       [inst_data]
             %CODE
             Instruction DATA
-            En arrivant en DATA, C sera chargé avec $3e (: == end of statement)
+            En arrivant en DATA, C sera chargé avec $3a (':' == end of statement)
 $25f3       ---
 $25f4       ---
 
