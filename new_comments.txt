@@ -5054,36 +5054,42 @@ $2544-$2546 Carry à 1 si le caractère est supérieur ou égal à '0' et infér
 $2547-$2548 Permet de positionner le Z sans toucher à Carry.
 $2549       Retour soit de `chget`, soit exécution de l'instruction donc l'adresse a été poussée sur la pile.
 
-$254a       [num_read]
-            Lecture d'un nombre depuis une chaine pointée par HL.
-            Ce nombre doit être entre 0 et 32767. (avec un parsing tel que str_to_num, on parse un FP)
-            Sortie dans DE.
-            Une structure récurante est d'appeler frnum_impl puis deint_impl, pour récupérer un entier de -32768 à 32767
-            (la vérification du signe est "évitée")
+$254a       [read_index]
+            Lecture d'un nombre entier depuis une chaine pointée par HL.
+
+            En branchant avant `deint_impl`, le nombre doit être positif.
+            En branchant vers `deint_impl`, le nombre peut être positif ou négatif.
+
+            Entrée :
+            - HL pointe vers un buffer de texte
+
+            Sortie :
+            - DE contient le nombre entier sur 16 bits
             
             MS_BASIC=FPSINT
-$254a       ---
+$254a       Cette première entrée est utilisée pour un index de tableau, et commence par ignorer le premier caractère.
 
 $254b       [pos_int]
-            Lecture d'un nombre dans DE
+$254b       Évaluation de l'expression numérique pointée par HL. Utilisé par l'instruction `CLEAR`.
             MS_BASIC=POSINT
-$254b       ---
+
 $254e       [dep_int]
+$254e       Vérifie le signe de l'expression dans FAC
             MS_BASIC=DEPINT
-$254f       Erreur si le nombre est négatif
+$254f       Lance une erreur si le nombre est négatif.
+
 $2552       [deint_impl]
-            Récupère l'exposant
+$2552       Récupère l'exposant de FAC ; MS_BASIC=DEINT
 $2555       Et le compare à $80+16 (donc 16).
-$2557       Si l'exposant est ok, on convertie en INT.
-$255a       Limite haute: -32768
-$255d       ---
-$2560       ---
-$2561       ---
-$2564       ---
-$2565       ---
-$2566       Si dans le range, retour. Sinon, fallthrough dans l'erreur
+$2557       Branche si l'exposant est inférieur ou égal à 16 (codé $80+$10). Dans ce cas, la partie entière du nombre peut tenir sur 16 bits.
+$255a-$255d BCDE = -32768, qui est le seul nombre avec un exposant à $90 qui est valide.
+$2560       Sauve le pointeur vers le texte BASIC.
+$2561       Compare FAC et BCDE.
+$2564       Restaure le pointeur vers le texte BASIC.
+$2565       DE = $8000, soit -32878 sur 16 bits signé.
+$2566       Si FAC = -32768, alors retour.
 $2567       [ill_call]
-$2569       Affichage "Illegal function call"
+$2567-$2569 Erreur "Illegal function call"
 
 $256c       [get_lin_num]
             Fonction : sur la ligne pointée par HL, récupère le paramètre numérique sur 16 bits dans DE
