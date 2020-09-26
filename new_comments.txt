@@ -4381,7 +4381,7 @@ $1fc6-$1fc9 Restaure `cursor`
 
 $1fcd       [margin_off]
 $1fcd-$1fd0 Sauvegarde la valeur de `cursor` dans une variable temporaire inutilisé de la multiplication.
-$1fd3       Met le bit 3 de `cursor` à 0. Coupe l'insert vidéo dans la marge ou bien le bit de poids fort de la couleur de la marge ???
+$1fd3       Met le bit 6 de `cursor` à 0. Coupe l'affichage du curseur.
 $1fd7-$1fdc Force un rafraichissement du VDP.
 
 $1fde       [margin_col]
@@ -5142,16 +5142,22 @@ $2598       Restaure le pointeur vers le texte BASIC.
 
 $259a       [inst_run]
             %CODE
-$259e       ---
-$25a1       ---
-$25a4       ---
-$25a7       ---
+            Instruction BASIC : RUN
+
+            L'instruction RUN sans argument branche sur la boucle d'exécution directement. (tracer ???)
+            Avec un argument, le contexte BASIC est réinitialisé puis continue vers l'instruction `GOTO`.
+
+            MS_BASIC=RUN
+$259a       Coupe l'affichage du curseur (au prochain rafraichissement)
+$259e       Branche s'il n'y a pas d'argument à la commande. (du coup, comment ça démarre ???)
+$25a1       Réinitialise les variables de contexte BASIC.
+$25a4       Prépare le retour dans la boucle d'exécution.
+$25a7       Branche vers l'instruction `GOTO` précédé de la mise sur la pile de BC.
 
 $25a9       [inst_gosub]
             %CODE
-            Instrution : GOSUB
-$25a9       ---
-$25ab       ---
+            Instrution BASIC : GOSUB
+$25a9-$25ab Vérifie qu'il y a 3 niveau dans la pile.
 $25ae       Récupère l'adresse de retour dans BC
 $25af       ---
 $25b0       Sauve le pointeur d'exécution HL une fois, puis réserve un emplacement en haut de la pile (peu importe le contenu)
@@ -5160,7 +5166,7 @@ $25b4       Met le numéro de la ligne courante au sommet de la pile
 $25b5       ---
 $25b7       Place un marqueur sur la pile ($8c, qui est le token d'exécution de GOSUB)
 $25b8       Ajuste la pile pour ne pas enregistrer la partie F de AF.
-$25b9       [inst_run_2]
+$25b9       [run_from_ln]
             Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO. Instruction partagée avec RUN pour lancer un programme.
 
 $25ba       [inst_goto]
