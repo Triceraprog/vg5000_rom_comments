@@ -5092,52 +5092,54 @@ $2567       [ill_call]
 $2567-$2569 Erreur "Illegal function call"
 
 $256c       [get_lin_num]
-            Fonction : sur la ligne pointée par HL, récupère le paramètre numérique sur 16 bits dans DE
-            Sortie : le paramètre dans DE. Le dernier caractère pointé dans A.
-            Le numéro de ligne maximum est limité par le test avec $1998 (6552). Ce nombre est multiplié par 10
-            avant la dernière addition. Ce qui porte le numéro maximum de ligne à 65529. Au delà, le parsing
-            sera étrange. Par exemple 65530 sera compris comme : ligne 6553, qui contient '0'.
-            Le caractère $OE sert de marqueur pour récupérer une valeur 16 bits entière directement dans le buffer.
+            Lecture depuis le buffer pointé par HL d'un nombre entier positif.
+            Ce nombre peut soit être exprimé en ASCII, soit déjà décodé avec le marqueur `$0e`.
+
+            La routine est utilisée pour les numéros de ligne, et vérifie que le nombre est entre 0 (exclu ???)
+            et 65529, numéro de ligne maximum.
             
-            MS_BASIC=ATOH ; ASCII to HEX?
-$256c       ---
+            Entrée :
+            - HL pointe sur un buffer de type texte BASIC
+
+            Sortie :
+            - DE contient le nombre entier décodé depuis HL
+            - A contient le dernier caractère lu
+            
+            MS_BASIC=ATOH
+$256c       Ajuste le pointur vers le texte BASIC.
+
 $256d       [get_lin_nu2]
-            Accès sans recalage de HL
-$256e       ---
-$2570       Si le caractère actuel du buffer n'est pas $OE (shift out), branchement
-$2572       ---
-$2573       ---
-$2574       ---
-$2575       Sinon, récupération du nombre entier sur 16 bits dans DE
-$2576       Puis lecture du caractère dans A
-$2577       ---
-$2578       [not_oe]
-$2579       Initialise le résultat à 0
+$256d       Lecture du caractère. Un branchement direct ici permet d'accéder à la routine sans le recalage de HL.
+$256e-$2570 Branche si le nombre est en ASCII.
+$2572-$2575 Sinon, le nombre a déjà été codé, il est lu directement dans DE.
+$2576       Puis lecture du caractère suivant dans A.
+
+$2578       [ascii_num]
+$2578       Revient en arrière dans le buffer d'entrée.
+$2579       Initialise l'accumlateur de résultat à 0.
 $257c       [num_decode]
-            La boucle décode une valeur numérique depuis sa forme ASCII. Le nombre maximum est $1998 (6552)
-$257d       Si le caractère n'était pas un chiffre, retour immédiat
-$257e       ---
-$257f       ---
-$2580       ---
-$2583       Comparaison de DE (résultat) avec HL ($1998 = 6552).
-$2584       Si DE est supérieur à HL, saut
-$2586       ---
-$2587       ---
-$2588       HL <- DE * 2
-$2589       HL <- DE * 4
-$258a       HL <- DE * 5
-$258b       HL <- DE * 10. Au final, HL contient le résultat précédent multiplié par 10.
-$258c       ---
-$258d       Transposition du caractère "chiffre" en sa valeur entre 0 et 9
-$258f       ---
-$2590       ---
-$2592       Ajout au résultat de la valeur de chiffre décodée.
-$2593       DE contient à présent le résultat précédent multiplié par 10 plus le nouveau chiffre.
-$2594       ---
-$2595       ---
+$257c       Lecture d'un caractère depuis le buffer d'entrée.
+$257d       Si le caractère n'était pas un chiffre, retour immédiat.
+$257e       Sauve HL
+$257f       Sauve AF
+$2580-$2583 Compare l'accumulateur DE avec HL ($1998 = 6552), numéro de ligne maximum divisé par 10.
+$2584       Branche à la fin de la fonction si l'accumulateur a dépassé le numéro de ligne maximum divisé par 10.
+            Cela signifie que dans le cas contraire, le numéro de ligne est au maximum 6552 et qu'un nouveau chiffre a été lu.
+            Par la suite, l'accumulateur va être multiplié par 10 et le nouveau chiffre ajouté, ce qui porte le numéro
+            de ligne maximum à 65529.
+$2586-$258b HL <- DE * 10. Au final, HL contient l'accumulateur multiplié par 10.
+$258c       Restaure AF, A contient le nouveau caractère lu.
+$258d       %CHAR
+$258d-$2590 DE prend la valeur numérique du caractère lu, qui a déjà été vérifiée comme étant un chiffre en ASCII.
+$2592       Ajoute le novueau chiffre à l'accumulateur.
+$2593       DE redevient l'accumulateur.
+$2594       Restaure le pointeur vers le buffer d'entrée.
+$2595       Traite un nouveau chiffre.
+
 $2597       [num_dec_end]
-$2598       ---
-$2599       ---
+$2597       Restaure AF, contenant le dernière caractère lu.
+$2598       Restaure le pointeur vers le texte BASIC.
+
 $259a       [inst_run]
             %CODE
 $259e       ---
