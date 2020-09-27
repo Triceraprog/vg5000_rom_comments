@@ -5478,25 +5478,18 @@ $2741       [print_end]
 $2741-$2742 Sélection l'écran comme périphérique de sortie.
 
 $2746       [bad_input]
-            Arrive ici si les données sont insuffisantes pour les variables à remplir
+            Lorsque les données sont insuffisantes pour remplir les variables d'une instruction `READ` ou `INPUT`, cette routine est appelée.
             
             MS_BASIC=BADINP
-$2746       ---
-$2749       ---
-$274a       Saute dans le cas d'un READ
-$274d       Jette le pointeur de données courant
-$274e       ---
-$2751       ---
-$2754       ---
-$2755       ---
-$2757       ---
+$2746-$274a Branche dans le cas d'un `READ`
+$274d       Jette le pointeur de données qui est sur la pile.
 $275a       [redo_fr]
-            Affiche "Redo from scratch" en fonction de la langue
-$275d       ---
+$274e-$275a Affiche "Redo from scratch" en fonction de la langue
+$275d       Relance l'acquisition de données pour `INPUT`.
 
 $2760       [inst_input]
             %CODE
-            Instruction INPUT
+            Instruction BASIC : INPUT
             
             MS_BASIC=INPUT
 $2760       ---
