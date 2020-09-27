@@ -5159,19 +5159,17 @@ $25a9       [inst_gosub]
             Instrution BASIC : GOSUB
 $25a9-$25ab Vérifie qu'il y a 3 niveau dans la pile.
 $25ae       Récupère l'adresse de retour dans BC
-$25af       ---
-$25b0       Sauve le pointeur d'exécution HL une fois, puis réserve un emplacement en haut de la pile (peu importe le contenu)
-$25b1       HL contient la ligne courante
-$25b4       Met le numéro de la ligne courante au sommet de la pile
-$25b5       ---
-$25b7       Place un marqueur sur la pile ($8c, qui est le token d'exécution de GOSUB)
-$25b8       Ajuste la pile pour ne pas enregistrer la partie F de AF.
+$25af       Sauve le pointeur d'exécution HL.
+$25b0-$25b4 Met le numéro de la ligne courante au sommet de la pile. HL pointe sur le texte BASIC.
+$25b5-$25b8 Place un marqueur `GOSUB` (`$8c`) sur la pile. La pile est ajustée pour ne pas retenir la partie `F` de `AF`.
+
 $25b9       [run_from_ln]
-            Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO. Instruction partagée avec RUN pour lancer un programme.
+$25b9       Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO.
+            Instruction partagée avec RUN pour lancer un programme depuis une ligne particulière.
 
 $25ba       [inst_goto]
             %CODE
-            Instrution : GOTO
+            Instrution BASIC : GOTO
 $25ba       DE contient l'argument (numéro de ligne)
 $25bd       Le reste de la liste ne peut pas être atteint, on ignore donc tout
 $25c0       ---
