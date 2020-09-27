@@ -4418,7 +4418,16 @@ $21fe       [prio_table]
 $2213       [null_str]
 $2214       [ok_str]
 $2219       [back_stack]
-$2219-$221c HL = SP + 4
+            Appelé par `NEXT`, ???
+
+            Appelé par `RETURN`, dépile tous les blocs `FOR` jusqu'à trouver un bloc différent (probablement `GOSUB`).
+
+            Retour :
+            - HL pointe un octet après le début du bloc non `FOR` trouvé.
+            - A contient le premier octet du bloc non `FOR` trouvé.
+
+$2219       %NOT_LABEL
+$2219-$221c HL = SP + 4, pour passer au-dessus des deux adresses de retour empilées (celle qui correspond au `call` ici, et celle de l'instruction)
 $221d       [for_lookup]
             Cherche le bon bloc `FOR` dans la pile.
 
@@ -4427,6 +4436,7 @@ $221d       [for_lookup]
 
             Entrée :
             - DE contient le pointeur vers la variable d'index que l'on cherche.
+            - HL pointe dans le pile au niveau d'un bloc `FOR` ou `GOSUB` potentiel.
 
             Sortie :
             - HL pointe vers le bloc `FOR` correspondant, dans la pile. (??? vers le step ?)
@@ -5157,6 +5167,9 @@ $25a7       Branche vers l'instruction `GOTO` précédé de la mise sur la pile 
 $25a9       [inst_gosub]
             %CODE
             Instrution BASIC : GOSUB
+
+            MS_BASIC=GOSUB
+
 $25a9-$25ab Vérifie qu'il y a 3 niveau dans la pile.
 $25ae       Récupère l'adresse de retour dans BC
 $25af       Sauve le pointeur d'exécution HL.
@@ -5170,256 +5183,299 @@ $25b9       Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO.
 $25ba       [inst_goto]
             %CODE
             Instrution BASIC : GOTO
-$25ba       DE contient l'argument (numéro de ligne)
-$25bd       Le reste de la liste ne peut pas être atteint, on ignore donc tout
-$25c0       ---
-$25c1       Le pointeur sur l'éxecution de la ligne suivante est mis sur la pile. Pourquoi???
-$25c2       ---
-$25c5       C si DE supérieur à HL
-$25c6       ---
-$25c7       Saute si le numéro de ligne du GOTO est au-delà de la ligne courante
-$25ca       Saute si le numéro de ligne du GOTO est avant la ligne courante
-$25cd       ---
-$25ce       ---
-$25cf       ---
-$25d0       Retour en cas de ligne trouvée (HL pointe sur l'octet avant la ligne courante)
+
+            Du fait d'ignorer ce qui se trouve après le numéro de ligne, une ligne qui contient "GOTO 20 HOP HOP" est valide.
+
+            MS_BASIC=GOTO
+
+$25ba       Lit le numéro de ligne dans DE.
+$25bd       Le reste de la liste ne peut pas être atteint, on ignore jusqu'à la fin de la ligne.
+$25c0-$25c1 Et sauve le pointeur ajusté sur la ligne suivante.
+$25c2-$25c5 Compare la ligne courante (HL) et la ligne voulue (DE)
+$25c6       Restaure le pointeur de texte BASIC.
+$25c7       Appelle si le numéro de ligne voulue est au-delà de la ligne courante.
+$25ca       Appelle si le numéro de ligne voulue est avant la ligne courante (ou égal à ???)
+$25cd-$25ce Copie de la ligne trouvée dans HL
+$25cf       Ajuste le pointeur vers la ligne un octet avant.
+$25d0       Retour si la ligne a été trouvée.
 $25d1       [udef_line]
-$25d3       Erreur "Undefined line number"
+$25d1-$25d3 Sinon, lance une erreur "Undefined line number"
 
 $25d6       [inst_return]
             %CODE
-            Instruction : RETURN
-$25d6       S'il y a des choses après le RETURN, retour immédiat. Return n'a pas de paramètre.
-$25d7       ---
-$25d9       ---
-$25dc       Ajuste la pile à la valeur calculée par marker_vrfy. Ce qui remet la pile avant le marqueur (au passage, on n'a plus l'adresse de retour de l'appel à l'instruction en cours). Cela a aussi pour effet d'enlever tous les contextes sur la pile, comme les FOR (uniquement les FOR ?)
-$25dd       Vérification du marqueur placé par GOSUB
-$25df       ---
-$25e1       S'il n'est pas là, lancement d'une erreur "RETURN without GOSUB"
-$25e4       ---
-$25e5       Récuération de l'adresse de la ligne appelante et sauvegarde dans (curlin)
-$25e8       ---
-$25e9       ---
-$25ea       ---
-$25eb       Si on était en mode direct, HL est à $FFFF et donc fallthrough. Sinon, on saute plus loin, on était dans un programme... Mais sur cette implémentation, on ne fait rien de spécial. Ce qui permet un `RETURN` en mode direct après un pending `GOSUB`
+            Instruction BASIC : RETURN
+
+            MS_BASIC=RETURN
+
+$25d6       `RETURN` n'a pas de paramètre. S'il y a quelques chose derrère l'instruction, retour immédiat, ce qui provroquera une erreur de syntaxe.
+$25d7-$25d9 DE à $ff évite qu'une variable associée à un bloc `FOR` soit valide par hasard, et permet donc de dépiler tous les blocs `FOR` jusqu'à un bloc non `FOR`.
+            Après l'appel, A contient l'octet qui débute le bloc non `FOR` et HL pointe un octet plus loin.
+$25dc       La pile est positionnée juste après le marqueur du bloc non `FOR` trouvé.
+$25dd-$25e1 Si l'octet ne contient pas le marqueur de bloc `GOSUB` ($8c), alors branche sur une erreur "RETURN without GOSUB".
+$25e4       Après le marqueur de bloc `GOSUB` se trouve le numéro de ligne qui contenait le `GOSUB`.
+$25e5       Inscription de ce numéro de ligne dans `(curlin)`.
+$25e8-$25eb Si on était en mode direct, HL est à $FFFF et A est donc à 0, la branche n'est pas prise. Sinon, la branche est prise.
+            Mais sur cette implémentation, on ne fait rien de spécial. Ce qui permet un `RETURN` en mode direct (`GOSUB` vers un `STOP` permet de reprendre avec `RETURN`).
+
 $25ed       [useless_jp]
-$25f0       Remise en place en haut de pile de l'adresse de retour de l'instruction. La reste de la ligne est ignoré en fallthrough sur DATA.REM
-$25f1       ---
+$25ed       Préparation de l'adresse de retour de la fonction.
+$25f0       L'adresse de retour est mise sur la pile, HL pointe vers l'instruction `GOSUB` du bloc.
+$25f1       Évite le `pop hl` qui suit pour se caler sur l'instruction qui suit le `GOSUB` actuellement pointé par HL.
+
 $25f2       [next_data]
-            MS_BASIC=NXTDTA, un appel ici suppose que la chaîne à traiter est sur la pile. Fallthrough sur inst_data. On va donc mettre HL sur le statement ou fin de ligne suivante.
+            Un appel ici suppose que la chaîne à traiter est sur la pile.
+            Enchaîne sur DATA pour faire pointer HL vers l'instruction suivante.
+
+            MS_BASIC=NXTDTA
 
 $25f3       [inst_data]
             %CODE
-            Instruction DATA
-            En arrivant en DATA, C sera chargé avec $3a (':' == end of statement)
-$25f3       ---
-$25f4       ---
+            Instruction BASIC : DATA
+
+            En arrivant ici, C sera chargé avec $3a (':' == fin d'instruction).
+            Ainsi, un marqueur possible sera $00, et l'autre ':'. L'instruction est ignorée jusqu'à la prochaine, qu'elle soit séparée par ':' ou par une fin de ligne.
+
+            MS_BASIC=DATA
+$25f3-$25f4 Charge C avec $3a et continue sur le `NOP` plus bas.
 
 $25f5       [inst_rem]
             %CODE
-            Instruction REM
-            En arrivant en REM, C sera chargé avec $00 (identique à la fin de ligne, donc pas de traitement particulier de ':')
-$25f5       ---
-$25f6       ---
-$25f7       ---
+            Instruction BASIC : REM
+            En arrivant ici, C sera chargé avec $00.
+            Ainsi, les deux marqueurs possibles seront tous les deux à $00. Le reste de la ligne sera ignoré.
+
+            MS_BASIC=REM
+$25f5       Charge C avec $00 quand on arrive directement ici.
+$25f6       Avec le $0e précédent, forme ld c,$00, et sert d'adresse d'arrivée pour `inst_data`.
+$25f7       Charge B, le second marqueur, avec $00.
+
 $25f9       [rem_ex_lp]
-$25fa       ---
-$25fb       Swap le contenu de B et C. Donne $3a00 en venant de RETURN (ce qui signfie que l'on cherche un ':'). Cela permet de chercher temporairement " pour les chaîne de caractères en mettant le ':' de côté.
+$25f9-$25fb Échange le contenu de B et C.
+
 $25fc       [rem_loop]
-$25fd       Vérifie la présence d'un argument (numérique sur 16 bits?)
-$25ff       ---
-$2601       ---
-$2602       ---
-$2603       S'il y a un argument, saute le marqueur et la valeur
-$2604       Puis lit dans A la valeur suivante
+$25fc       Lit l'octet pointé par HL.
+$25fd-$25ff Branche si ce n'est pas un marqueur d'entier 16 bits décodé.
+$2601-$2604 Sinon, ignore le nombre codé et lit à nouveau le caractère pointé.
+
 $2605       [no_number]
-$2606       Si la dernière valeur lue est zéro, retour immédiat. C'est la fin de la ligne.
-$2607       Compare avec le caractère spécifique cherché (: ou 0 suivant si on traite REM ou DATA)
-$2608       Retour immédiat si trouvé
-$2609       Sinon, on passe au caractère suivant
-$260a       Comparaison avec " pour une chaîne de caractères.
-$260c       Si c'est $22 ('"'), on loop sur l'échange du caractère recherché
-$260e       Sinon, on continue le parsing de la ligne
+$2605-$2606 Retour si la fin de ligne a été atteinte.
+$2607-$2608 Retour immédiat si le caractère marqueur de fin a été trouvé.
+$2609       Sinon, HL pointe sur le caractère suivant.
+$260a       %CHAR
+$260a       Détection de chaîne de caractères.
+$260c       Si on trouve un marqueur de chaîne de caractères, les deux marqueurs B et C seront échangés.
+            Cela permet de protéger un ':' situé à l'intérieur d'une chaîne de caractères et ne pas considérer qu'il marque une fin d'instruction.
+$260e       Sinon, on continue le traitement de la ligne.
 
 $2610       [inst_let]
             %CODE
-            Instruction : LET
-            Appelé lorsque le buffer tokenisé ne contenait pas un token.
-$2610       ---
-$2613       ---
-$2614       Code $C1 pour la vérification du dessus. $C1 est l'opérateur '=', ici d'assignation. Une erreur de syntaxe est émise s'il n'est pas présent.
-$2615       Sauvegarde de la zone de la variable (deux octets après son identifiant)
-$2616       Récupération de son type
-$2619       Sauvegarde de son type
-$261a       Évaluation de l'expression.
-$261d       Récupération du type. HL pointe actuellement sur la suite du parsing.
-$261e       Récupération dans HL de l'adresse du contenu de la variable
-$261f       Cette adresse est sauvegardée dans (temp)
-$2622       Mise du type de la variable dans le Carry (1 si chaîne, 0 si numérique). A est à 0.
+            Instruction BASIC : LET
+
+$2610       En retour, DE pointe sur la variable, qui a été créée au besoin.
+$2613       Vérifie la présence de l'opérateur '=' (tokenisé), ou génère une erreur de syntaxe.
+$2614       %DATASKIP
+$2615       Sauve le pointeur sur la variable.
+$2616       Récupère le type de la variable.
+$2619       Et le sauve sur la pile.
+$261a       Évaluation de l'expression qui suit le signe '='.
+$261d       Récupère le type de la variable.
+$261e       Sauve le pointeur texte BASIC sur le pile et récupère le pointeur de variable dans HL.
+$261f       Sauve l'adresse de la variable dans `(temp)`
+$2622       Le type de la variable passe dans Carry (1 si chaîne, 0 si numérique).
 $2623       Vérification de la compatibilité du type de l'expression et de la variable.
-$2626       Saut en cas de variable numérique
+            Si la routine revient, c'est que les types étaient identiques.
+$2626       Branche en cas de variable numérique.
 $2628       [let_string]
-            Sauvegarde du pointeur vers la variable
-$2629       Récupération de la valeur de l'expression
-$262c       ... et la sauvegarde
-$262d       ---
-$262e       ---
-$262f       ---
-$2630       ---
-$2631       Adresse de la chaine dans `DE`
-$2632       ---
-$2635       ---
-$2636       Saute si l'adresse de la variable est avant (txttab), autrement dit, dans un buffer temporaire. Il faut donc créer une entrée.
-$2638       ---
-$263b       Vérifie si la chaîne est présente dans le programme
-$263c       Récupère le pointeur sur le descripteur de chaine
-$263d       Si la chaîne est dans le programme, on saute à la fin
-$263f       ---
-$2642       ---
-$2643       Saute aussi si la chaîne n'est pas dans le buffer temporaire
-$2645       On a déjà fait le POP DE, il est sauté
-$2646       [crtstrentry]
-$2647       Récupération de la chaîne en haut du buffer temporaire (qui est popée si elle est égale à `DE`
-$264a       BC contient l'adresse du contenu de la chaîne, DE contient le pointeur vers le descripteur
-$264b       ---
+            Assigne une chaîne de caractères à une variable.
+
+$2628       Sauve le pointeur vers la variable.
+$2629       Récupère depuis FAC le pointeur vers le descripteur de chaîne du resultat de l'expression.
+$262c       Et sauve ce pointeur.
+$262d-$262e Ignore la taille de la chaîne.
+$262f-$2631 Adresse de la chaîne dans `DE`
+$2632-$2635 Compare l'adresse de la chaîne avec `(txttab)`.
+$2636       Branche si l'adresse de la variable est avant `(txttab)`, autrement dit, dans un buffer temporaire. Il faut donc créer une entrée.
+$2638-$263b Vérifie si la chaîne se trouve entre `(txttab)` et `(strend)`, c'est-à-dire dans une zone allouée (programme, variable, tableau...).
+            Le vrai test aurait probablement du être avec `(vartab)`. Une chaîne ne peut pas se trouve entre `(vartab)` et `(strend)`. Cela fonctionne donc quand même.
+$263c       Récupère le pointeur sur le descripteur de chaine.
+$263d       Branche si la chaîne est dans une zone allouée.
+$263f-$2643 Branche si la chaîne n'est pas dans le buffer temporaire de chaîne.
+            Test inutile sur VG5000, puisque le buffer temporaire est de toute façon avant `(txttab)`. Relicat probable du portage BASIC sur cette machine.
+$2645       On a déjà fait le `pop de`, on ignore le suivant.
+$2646       [alloc_str]
+$2646       Récupère le pointeur sur le descripteur de chaine.
+$2647       Récupèration dans BC de la chaîne en haut du buffer de chaînes temporaires.
+$264a       HL = pointeur de descripteur de la chaîne, BC = pointeur vers le contenu de la chaîne
+$264b       Sauve la chaîne dans l'espace de sauvegarde des chaînes de caractères.
+
 $264e       [pop_string]
-            Récupération de la chaîne temporaire en haut du buffer
-$2651       Récupération de l'adresse de la variable
-$2652       Copie de descripteur de chaine vers la variable
-$2655       Restauration du pointeur d'exécution
-$2656       ---
-$2657       [set_num_var]
-$2658       ---
-$265b       ---
-$265c       ---
-$265d       ---
+$264e       Récupération de la chaîne temporaire en haut du buffer
+$2651       Récupération de l'adresse de la variable.
+$2652       Copie le descripteur de chaine vers l'entrée de variable, ce qui donne sa valeur finale à la valeur (longueur et pointeur de chaine).
+$2655       Restauration du pointeur vers le texte BASIC.
+
+$2657       [let_numeric]
+            Assigne un nombre à une variable.
+
+$2657       Sauve le pointeur vers la variable.
+$2658       Copie le contenu de FAC vers la variable.
+$265b       Restaure l'adresse de la variable dans DE (pour quelle raison ???)
+$265c       Restaure le pointeur vers le texte BASIC.
+
 $265e       [inst_on]
             %CODE
-$2661       ---
-$2662       ---
-$2663       ---
-$2665       ---
-$2667       ---
-$2668       ---
-$2669       ---
-$266a       [skip266A]
-$266b       [jump266B]
-$266c       ---
-$266d       ---
-$2670       ---
-$2673       ---
-$2675       ---
-$2676       ---
+            Instruction BASIC : ON
+
+            MS_BASIC=ON
+$265e       Evalue l'expression qui suit `ON` sous la forme d'un entier sur un octet.
+$2661       Lit le token qui suit.
+$2662       Sauve le token dans B.
+$2663-$2665 Branche si le token est `GOSUB`
+$2667       S'assure que le token suivant est `GOTO`, ou provoque une erreur de syntaxe.
+$2668       %DATASKIP
+$2669       Recale le pointeur vers le texte BASIC.
+$266a       [on_line]
+$266a       Copie le résultat de l'évaluation vers C en tant que compteur.
+$266b       [on_branch]
+$266b       Décrémente le compteur
+$266c       Ramène le token (`GOTO` ou `GOSUB`) dans A.
+$266d       Si le compteur est arrivé à 0, provoque le saut en exécutant le token dans A avec la ligne pointée par HL.
+$2670       Lecture du numéro de ligne.
+$2673       %CHAR
+$2673-$2675 Retour s'il n'y a pas de ligne supplémentaire.
+$2676       Essaie le numéro de ligne suivant.
+
 $2679       [inst_if]
             %CODE
-$267c       ---
-$267d       ---
-$267f       ---
-$2681       ---
-$2682       ---
-$2683       ---
-$2684       [skip2684]
-$2687       ---
-$2688       ---
-$268b       ---
-$268c       ---
-$268e       ---
-$2691       ---
+            Instruction BASIC : IF
+
+            MS_BASIC=IF
+$2679       Evaluation de l'expression qui suit `IF`.
+$267c-$267f Branche si le token qui suit est `GOTO`
+$2681       Sinon, s'assure que le token qui suit est `THEN` ou provoque une erreur de syntaxe.
+$2682       %DATASKIP
+$2683       Recale HL sur le token.
+
+$2684       [if_line]
+$2684       S'assure que l'expresison du `IF` est de type numérique.
+$2687       En prend son signe.
+$2688       Si l'expression s'évalue à 0, elle est fausse. Branche sur l'instruction `REM` pour ignorer le reste de la ligne.
+$268b       Lit l'octet suivant.
+$268c-$268e Branche s'il s'agit d'un nombre sur 16 bits déjà décodé. C'est un numéro de ligne qui fonctionne comme un `GOTO`.
+$2691       Sinon, exécute la suite de la ligne.
+
 $2694       [inst_lprint]
             %CODE
-$2696       ---
-$2699       [loop2699]
-$269a       ---
+
+            Instruction BASIC : LPRINT
+$2694-$2696 Indique l'imprimante comme périphérique de sortie.
+
+$2699       [print_next]
+$2699-$269a Relit le caractère pointé par HL (car A a été utilisé).
+
 $269b       [inst_print]
             %CODE
-$269e       ---
-$26a1       [jump26A1]
-$26a4       ---
-$26a6       ---
-$26a8       ---
-$26aa       ---
-$26ac       ---
-$26ad       ---
-$26af       ---
-$26b1       ---
-$26b3       ---
-$26b6       ---
-$26b7       ---
-$26ba       ---
-$26bb       ---
-$26be       ---
-$26bf       ---
-$26c1       ---
-$26c4       ---
-$26c7       ---
-$26c9       ---
-$26cc       ---
-$26cf       ---
-$26d0       ---
-$26d2       ---
-$26d5       ---
-$26d6       ---
-$26d8       ---
-$26da       [skip26DA]
-$26dd       ---
-$26de       ---
-$26df       ---
-$26e1       ---
-$26e4       ---
-$26e5       ---
-$26e6       ---
-$26e7       [skip26E7]
-$26ea       [skip26EA]
-$26ed       ---
-$26ee       [skip26EE]
-$26f1       ---
-$26f2       ---
-$26f4       [skip26F4]
-$26f7       ---
-$26f8       ---
-$26fa       ---
-$26fd       ---
-$26ff       ---
-$2701       [skip2701]
-$2704       ---
-$2705       ---
-$2708       ---
-$2709       ---
-$270a       [skip270A]
-$270d       ---
-$270f       [loop270F]
-$2711       ---
-$2713       ---
-$2714       ---
-$2716       [skip2716]
-$2717       ---
-$271a       ---
-$271b       ---
-$271c       ---
-$271d       ---
-$271e       ---
-$2720       ---
-$2721       ---
-$2723       ---
-$2726       ---
-$2727       ---
-$2729       ---
-$272c       ---
-$272e       [skip272E]
-$2731       [skip2731]
-$2732       ---
-$2733       ---
-$2735       [skip2735]
-$2736       ---
-$2737       ---
-$2739       [loop2739]
-$273a       ---
-$273c       [jump273C]
-$273d       ---
-$273e       ---
-$2741       [jump2741]
-$2742       ---
-$2745       ---
+            Instruction BASIC : PRINT
+$269b       Appel du `hook` sur `PRINT`.
+$269e       Sans argument, affiche une ligne vide. C'est aussi le cas si le `hook` place le drapeau Z à 1.
+
+$26a1       [pr_next_ct]
+$26a1       Il n'y a plus d'expression à afficher, termine l'instruction.
+$26a4-$26a6 Branche si le token `TAB(` a été trouvé.
+$26a8-$26aa Branche si le token `SPC(` a été trouvé.
+$26ac       Sauve le pointeur vers le texte BASIC.
+$26ad       %CHAR
+$26ad-$26af Branche si le caractère est ','
+$26b1       %CHAR
+$26b1-$26b3 Branche si le caractère est ';'
+$26b6       Récupération du pointeur vers le texte BASIC (ne sert pas ???)
+$26b7       Lecture de l'expression pointée par HL.
+$26ba       Sauve le pointeur vers le texte BASIC.
+$26bb-$26bf Branche si l'expression est de type chaine.
+$26c1       Sinon, transforme le résultat numérique dans FAC en chaîne de caractères.
+$26c4       Transfert cette chaîne vers une chaîne de caractères temporaire (il ne s'agit pas des mêmes buffers temporaires)
+$26c7       %CHAR
+            Le nombre est suivi d'un espace.
+$26c9       Récupère l'adresse de la longueur de la chaîne temporaire (le decripteur de chaîne temporaire est dans FAC).
+$26cc-$26d0 Branche si le périphérique de sortie est l'écran.
+$26d2-$26d5 Ajoute la position actuelle en colonnes de l'imprimante avec la longueur de la chaîne à imprimer.
+$26d6       Compare le résultat avec 132.
+$26d8       Puis branche plus loin.
+
+$26da       [print_scr]
+$26da-$26dd Place dans B la longueur d'une ligne à l'écran.
+$26de       Dans A, la longueur d'une ligne à l'écran + 1.
+$26df       Branche si la longueur d'une ligne est $ff, ce qui signifie qu'il n'y a pas de limite.
+$26e1-$26e4 Sinon, ajoute la position du curseur en colonnes avec la longueur de la chaîne à écrire.
+$26e5       Ajuste le résultat (A avait été incrémenté)
+$26e6       Compare le résultat avec la longueur de la ligne.
+
+$26e7       [print_adjst]
+$26e7       Si ce que l'on doti afficher ou imprimer dépasse la longueur permise, un saut de ligne est envoyé.
+
+$26ea       [no_limit]
+$26ea       Émission de la chaîne de caractères vers le périphérique de sortie.
+$26ed       A = 0, qui permet de passer par dessus le `call` juste après.
+
+$26ee       [print_str]
+$26ee       Émission de la chaîne de caractères vers le périphérique de sortie si c'était une chaîne de caractères.
+$26f1       Restaure le pointeur vers le texte BASIC.
+$26f2       Boucle vers l'évaluation de la potentielle expression suivante.
+
+$26f4       [print_zone]
+$26f4-$26f8 Branche si le périphérique de sortie est l'écran.
+$26fa-$26fd Compare la position en colonnes de l'imprimante avec 117.
+
+$2701       [zone_scr]
+$2701-$2704 Place la position de la dernière zone dans B.
+$2705-$2708 Place la position du curseur - 1 dans A.
+$2709       Compare cette position avec la dernière zone.
+
+$270a       [zone_crdo]
+$270a       Si la colonne de la dernière zone est dépassée, alors émet un retour chariot.
+$270d       Puis dans ce cas, branche sur l'impression à la suite.
+
+$270f       [zones_loop]
+$270f       Soustrait 13 de la position.
+$2711       Tant que le résultat est positif.
+$2713       Une fois négatif, prend le complément du résultat, ce qui donnt le nombre d'espace à émettre.
+
+$2716       [print_tab]
+$2716       Sauve le token (`SPC(` ou `TAB(`)
+$2717       Évalue l'expression numérique qui suit avec un résultat sur 8 bits.
+$271a       S'assure qu'une parenthèse fermante est à la suite de l'expression, ou lance une erreur de syntaxe.
+$271b       %DATASKIP
+$271c       Recale le pointeur de texte BASIC.
+$271d       Récupère le token.
+$271e       Soustrait le token d'avec le token pour `SPC(`.
+$2720       Sauve le pointeur de texte BASIC.
+$2721       Branche si c'était `SPC(`.
+$2723-$2727 Branche si le périphérique de sortie est l'écran.
+$2729       Initialise A avec le numéro de colonne de l'imprimante.
+
+$272e       [prepare_spc]
+$272e       Initialise A avec la colonne à l'écran.
+
+$2731       [print_spc]
+$2731-$2732 Pour SPC(), A = argument de SPC() - 0
+            Pour TAB(), A = argument de SPC() - colonne actuelle ( - 1 ???)
+$2733       Continue à la suite si TAB() était inférieur à la colonne actuelle.
+
+$2735       [output_spc]
+$2735-$2736 Nombre d'espaces à émettre dans B
+$2737       %CHAR
+            Caractère espace à émettre dans A.
+$2739       [out_spaces]
+$2739       Émet l'espace.
+$273a       Boucle autant de fois que le compteur B.
+
+$273c       [print_cont]
+$273c       Restaure le pointeur de texte BASIC.
+$273d       Lit l'octet suivant.
+$273e       Évaluation de l'expression potentielle suivante sans retour à la ligne s'il n'y en a pas.
+
+$2741       [print_end]
+$2741-$2742 Sélection l'écran comme périphérique de sortie.
 
 $2746       [bad_input]
             Arrive ici si les données sont insuffisantes pour les variables à remplir
