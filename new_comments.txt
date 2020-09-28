@@ -6800,10 +6800,7 @@ $302c       [str_hex_dec]
             MS_BASIC=HEXTFP
 $302c       ---
 $302d       Vérifie que le début du nombre (après le '&'), est un '"'
-$302e       ---
-$302f       [dummy]
-            %CODE
-            Pour forcer la donnée de chkchr. Le décodage ne fonctionne pas bien ici, c'est vraiment LD DE,$0000 qu'il faut lire. C'est l'initialisation de l'accumulateur de la valeur lue.
+$302e       %DATASKIP
 $3030       ---
 $3031       ---
 $3032       Compteur de chiffres maximum (4 chiffres max, la boucle djnz sort lorsque B est décrémenté à 0)
