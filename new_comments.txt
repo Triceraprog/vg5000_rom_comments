@@ -5492,32 +5492,35 @@ $2760       [inst_input]
             Instruction BASIC : INPUT
             
             MS_BASIC=INPUT
-$2760       ---
-$2763       Appel du hook sur INPUT
-$2766       ---
-$2767       S'il y a un " après INPUT, c'est qu'il y a un texte à afficher.
-$2769       Efface A et laisse les flags (reste de MS pour enable output ? Pas besoin de clearer A ici... !!)
-$276b       ---
-$276d       ---
-$2770       Vérifie que le caractère suivant est un ';'
-$2771        ';'
-$2772       Sauvegarde du pointeur d'exécution
+$2760       Appeler `INPUT` en direct est illégal, l'instruction doit être dans un programe.
+$2763       Appel du `hook` sur `INPUT`
+$2767       %CHAR
+$2766-$2767 S'il y a un '"' après INPUT, c'est qu'il y a un texte à afficher.
+$2769       Relicat de portage. Dans d'autres BASIC, A sert à permettre la sortie de caractères. Dans cette ROM, aucune des deux branches possbles n'utilise cette valeur.
+$276b       Il n'y a rien à afficher, on passer directement à l'acquisition des données.
+$276d       Évalue la chaîne de caractères à afficher.
+$2770       Vérifie que le caractère suivant est un ';' ou provoque une erreur de syntaxe.
+$2771       %DATASKIP 
+$2772       Sauve le pointeur sur le texte BASIC.
 $2773       Affiche la chaine de caractères
-$2776       ---
+$2776       Évite le `push hl` qui suit.
 $2777       [raw_input]
-$2778       ---
-$277b       ---
-$277d       ---
+$2777       Sauve le pointeur sur le texte BASIC.
+$2778       Lance la routine d'acquisition des données.
+$277b       Branche sur l'acquisition des données.
+
+$277d       Octets inutilisés.
+
 $2780       [prompt_2]
-$2783       ---
-$2787       ---
-$278a       ---
-$278c       ---
-$278e       Remet en place le contact du curseur et de l'INPUT flag
-$2791       ---
-$2792       ---
-$2793       [inst_input_2]
+$2780       Acquisition des données.
+$2783       Rend le curseur invisible.
+$2787-$278e Efface la continuité de ligne et signal que l'on a terminé l'instruction `INPUT`.
+
+$2792       Octet inutilisé.
+
+$2793       [input_data]
             Récupération du pointeur d'exécution dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
+
 $2794       Comme on est passé par get_line, si Carry set, c'est qu'on a appuyé sur Break. On arrête le programme.
 $2797       ---
 $2798       ---
@@ -8924,14 +8927,15 @@ $3c96       Réinitialisation du compteur de répétition des touches.
 $3c9a       Set Carry, pour signaler que l'interruption de commande a été demandée.
 
 $3c9c       [print_prt]
-            Affiche le prompt "? " de INPUT.
-            Puis fallthrough sur l'acquisition d'une ligne de texte.
+            Affiche l'invite d'acquisition "? " pour l'instruction `INPUT`.
+
+            Puis continue sur l'acquisition des données.
             
             MS_BASIC=PROMPT
-$3c9c       ---
-$3c9e       ---
-$3c9f       ---
-$3ca1       ---
+$3c9c       %CHAR
+$3c9c-$3c9e Émet '?' sur le périphérique de sortie.
+$3c9f       %CHAR
+$3c9f-$3ca1 Émet ' ' sur le périphérique de sortie.
 
 $3ca2       [get_line]
             Récupération d'une ligne d'instruction entrée au BASIC
@@ -9144,12 +9148,13 @@ $3de6       ---
 $3de8       ---
 $3de9       [ind_inchl]
             Saut intermédiaire pour aller incrémenter HL
-$3dec       [prompt]
-            MS_BASIC=PROMPT (ou pas tout à fait, car chez MS, c'est l'affichage du PROMPT et le branchement sur l'acquisition)
-$3def       ---
-$3df1       Met le flag INPUT à 1
-$3df4       Paramètres du curseur
-$3df8       ---
+
+$3dec       [prompt_1]
+            Code patché de la ROM 1.1 ???
+
+$3dec-$3df1 Signal le fait que l'on est dans une instruction `INPUT` (bit 5 de `picflg`)
+$3df4       Affiche le curseur.
+$3df8       Branche sur la suite de l'initialisation de l'invite d'acquisition.
 
 $3dfb       [acq_key_4]
             Suite du traitement de l'entrée de caractère.
