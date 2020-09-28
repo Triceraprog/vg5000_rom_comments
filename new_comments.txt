@@ -5519,112 +5519,101 @@ $2787-$278e Efface la continuité de ligne et signal que l'on a terminé l'instr
 $2792       Octet inutilisé.
 
 $2793       [input_data]
-            Récupération du pointeur d'exécution dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
-
-$2794       Comme on est passé par get_line, si Carry set, c'est qu'on a appuyé sur Break. On arrête le programme.
-$2797       ---
-$2798       ---
-$2799       ---
-$279a       Peek du premier caractère de la chaine pour voir s'il est NUL.
-$279b       Sauvegarde du pointeur d'exécution.
-$279c       Si c'était la fin de la ligne, alors on saute jusqu'au prochain statement. Les variables ne seront pas touchées.
-$279f       Sinon, on place ',' comme premier caractère (avant la ligne)
-$27a1       ---
+$2793       Récupère le pointeur de texte BASIC dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
+$2794       Branche en cas d'interruption de commande.
+$2797-$279a Lit le premier caractère de la chaine entrée et prépare le drapeau Z (HL pointe un octet avant le buffer d'acquisition)
+$279b       Sauvegarde le pointer sur le texte BASIC.
+$279c       Si le buffer était vide, branche pour ignorer le reste de l'instruction. Cela signifie que la ou les variables d'`INPUT` ne sont pas touchées.
+$279f       %CHAR
+            Dans le cas contraire, on ',' en caractère avant les données entrées. Cela permet d'utiliser la routine de `READ`.
+$27a1       Continue vers la lecture de `DATA` par `READ`.
 
 $27a3       [inst_read]
             %CODE
-            Instruction : READ
+            Instruction BASIC : READ
             
             MS_BASIC=READ
-$27a3       Sauvegarde du pointeur d'exécution
-$27a4       Chargement de l'emplacement du prochain DATA
-$27a7       ---
+$27a3       Sauvegarde du pointeur vers le texte BASIC.
+$27a4       HL pointe vers la prochaine zone de `DATA`.
+$27a7       Initialise A avec $af pour signaler l'instruction `READ` à `(flginp)`. Saute par dessus le `xor a`.
+
 $27a8       [read_data]
+$27a8       A = 0, pour signaler l'instruction `INPUT` à `(flginpu)`.
             MS_BASIC=NXTITM
-$27a9       Si A == 0, on est dans INPUT, sinon, on est dans READ. (flginp) est donc plutôt un Flag Read?
-$27ac       Met sur la pile le pointeur DATA et récupère le pointeur d'exécution.
-$27ad       ---
+$27a9       Si A == 0, on est dans INPUT, sinon, on est dans READ. `(flginp)` porte plutôt mal son nom et devrait plutôt s'appeler `read flag`.
+$27ac       HL = pointeur sur le texte BASIC, haut de la pile = pointeur vers les DATA (pour `READ`) ou le buffer d'acquisition (pour `INPUT`)
+$27ad       Saute par dessus le teste de présence de ','.
+
 $27ae       [data_loop]
-            Vérifie qu'il y a un ',' (sauf la première fois)
-$27af       ','
-$27b0       Récupération de la variable (retour dans DE)
-$27b3       Swap pour récupérer la ligne d'INPUT,DATA
-$27b4       Sauvegarde de la variable
-$27b5       ---
-$27b6       ---
-$27b8       Saute si le prochaine caractère de la donnée est ',' (c'est pour cela que l'INPUT est amorcé avec un ',')
-$27ba       ---
-$27bd       ---
-$27be       Saute si on est dans le cas READ
-$27c1       Il manque des données, réaffiche le prompt
-$27c3       ---
-$27c4       ---
-$27c7       Récupération de la variable
-$27c8       Récupération du pointeur d'exécution
-$27c9       Traitement du break
-$27cc       ---
-$27cd       ---
-$27ce       ---
-$27cf       INPUT line vide ?
-$27d0       Sauvegarde du pointeur d'exécution
-$27d1       Si vide, alors statement suivant, la variable ne sera pas touchée.
-$27d4       Sauvegarde de la variable
+$27ae       Vérifie la présence d'une virgule dans le texte BASIC. Sauf la première fois. C'est la virgule qui sépare les variables.
+$27af       %DATASKIP
+$27b0       Lecture d'un nom de variable. Retour dans DE.
+$27b3       HL = pointeur vers les données, haut de la pile = pointeur vers le texte BASIC.
+$27b4       Sauve le pointeur vers la variable sur la pile.
+$27b6       %CHAR
+$27b5-$27b8 Branche si le prochain caractère des données est ',' (c'est pour cela que l'INPUT est amorcé avec un ',' ???)
+$27ba-$27be Branche pour l'instruction `READ`
+$27c1       %CHAR
+$27c1-$27c4 Il manque des données, lance une nouvelle acquisition de données.
+$27c7       Récupération du pointeur vers variable
+$27c8       Récupération du pointeur sur le texte BASIC
+$27c9       Branche en cas d'interruption de commande.
+$27cc-$27cf Prépare le test du prochain caractère comme étant nul.
+$27d0       Sauvegarde le pointeur sur le texte BASIC.
+$27d1       Fin de ligne lors d'un `INPUT`, ignore le reste de l'instruction et cherche la suivante. Les variables non traitées ne sont pas modifiées.
+$27d4       Sinon, il y a des données, sauve le pointeur vers la variable.
+
 $27d5       [get_value]
-            MS_BASIC=ANTVLU
-$27d8       ---
-$27d9       Saute si la variable est de type numérique ; Si la donnée et le variable ne correspondent pas, que se passe-t-il ???
-$27db       Récupération du prochain caractère
-$27dc       ---
-$27dd       Sauvegarde du caractère dans D et B
-$27de       ---
-$27e0       Saute si le premier caractère est "
-$27e2       ---
-$27e5       A == 0 si on est dans INPUT
-$27e6       Dans ce cas, D contiendra 0, sinon, D sera fixé en $27e9
-$27e7       ---
-$27e9       En cas de READ, D est ':'
+$27d5       MS_BASIC=ANTVLU
+$27d5-$27d9 Branche si la variable est de type numérique.
+$27db       Sinon, lit le prochain caractère
+$27dc-$27dd Copie le caractère dans D et B
+$27de       %CHAR
+$27de-$27e0 Branche si le premier caractère est '"', il s'agit d'un littéral
+$27e2-$27e5 Prépare les cas  `INPUT`/`READ`
+$27e6       Dans le cas `INPUT`, A, et donc D, contiendront 0. D marque la fin des données.
+$27e7       Branche dans le cas `INPUT`.
+$27e9       %CHAR
+$27e9       Sinon, dans le cas `READ`, D est ':'. D marque la fin de instruction `DATA` et donc des données (0 est toujours cherché, quoi qu'il arrive).
+
 $27eb       [data_sep]
-            B == ',', séparateur des données
-$27ed       Remise en place de HL sur le premier caractère dans le cas où il n'était pas "
+$27eb       %CHAR
+            B == ',', séparateur de données.
+$27ed       Recalage de HL, au cas où le premier caractère n'était pas '"'.
+
 $27ee       [lit_string]
-            Au final, B et D contiennent des séparateurs de données, et HL est sur la première position intéressante. Récupération de la chaine.
-$27f1       DE <- adresse de la chaine de caractères.
-$27f2       ---
-$27f5       Branchement pour le RET
-$27f6       Sauvegarde de la chaine de caractères de données
-$27f7       Tout est prêt pour l'assignation de la variable alphanumérique. Le retour se fera à l'adresse juste spécifiée.
+$27ee       Lecture d'une chaîne de caractères terminée par l'un des caractères dans B et D.
+$27f1       DE = pointeur sur la chaine de caractères.
+$27f2-$27f5 L'adresse de retour est fixée par HL, HL récupère l'adresse des données.
+$27f6       Sauve le pointeur sur la chaine de caractères lue.
+$27f7       Tout est prêt pour l'assignation de la variable alphanumérique. Le retour se fera à l'adresse juste spécifiée, partie commune avec la lecture d'une donnée numérique.
+
 $27fa       [num_data]
-$27fb       Transformation de la donnée en nombre
-$27fe       Sauve le pointeur de données, récupération de la variable
-$27ff       Assignation de la variable (par copie du buffer flottant vers HL, qui est le contenu de la variable)
-$2802       Récupération du pointeur de données.
+$27fa       Lecture du premier caractère (??? amorce, ou ignore ?)
+$27fb       Lecture de la donnée sous forme d'un nombre.
+$27fe       HL = pointeur vers la variable, haut de la pile = pointeur vers les données.
+$27ff       Assigne la valeur lue dans FAC à la variable pointée par HL.
+$2802       Récupération du pointeur vers les données.
 $2803       [next_comma]
-$2804       ---
-$2805       Saute si le buffer données est vide
-$2807       ---
-$2809       Saute si le caractère suivant n'est pas ","
+$2803-$2804 Lecture du caractère suivant de buffer de données.
+$2805       Branche si le buffer données est vide
+$2807       %CHAR
+$2807-$2809 Branche si le caractère lu n'est pas ",".
+
 $280c       [empty_data]
-            HL <- pointeur d'exécution. Pointeur DATA sur la pile
-$280d       Recalage
-$280e       ---
-$280f       Saute s'il reste du contenu dans la paramètres d'INPUT ou de READ
-$2811       Récupération du pointeur DATA
-$2812       ---
-$2815       Est-ce qu'on est dans INPUT (== 0) ou READ ?
-$2816       Échange de DATA et d'exécution
-$2817       Mise à jour du pointeur de DATA pour les prochains READ
-$281a       Sauvegarde du pointeur d'exécution
-$281b       Est-ce qu'il restait des choses dans les données pour INPUT ?
-$281c       ---
-$281f       ---
-$2820       ---
-$2823       ---
-$2824       ---
-$2826       ---
+$280c       HL = pointeur sur le texte BASIC, haut de la pile = pointeur vers les données.
+$280d-$280f Branche s'il reste des variables à traiter pour `INPUT` ou `READ`.
+$2811       Récupération du pointeur vers les données.
+$2812-$2815 Préparation du cas `INPUT` ou `READ`.
+$2816       HL = pointeur vers les données, DE = pointeur vers le texte BASIC.
+$2817       Branche dans le cas `READ`
+$281a       Sinon, cas `INPUT`, sauvegarde le pointeur vers le texte BASIC.
+$281b       Comme le cas est `INPUT` (A = 0), cela donne A = (HL). Ce qui prépare le drapeau Z pour conditionner l'affichage du message qui suit.
+$281c-$2826 Pointe vers le message "Extra ignored" en fonction de la langue du système.
 $2829       [ignore_fr]
-$282a       Si oui, on affiche que le reste est ignoré (après restauration des flags)
+$282a       S'il restait des données (drapeau Z à 0), affiche le message.
 $282d       Restauration du pointeur d'exécution
-$282e       ---
+
 $282f       [go_nxt_data]
             MS_BASIC=FDTLP ; Va à la prochaine instruction
 $2832       Test de fin de ligne
@@ -8940,6 +8929,9 @@ $3c9f-$3ca1 Émet ' ' sur le périphérique de sortie.
 $3ca2       [get_line]
             Récupération d'une ligne d'instruction entrée au BASIC
             Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
+
+            Sortie :
+            - Le buffer `buf` contient les données lues.
             
             MS_BASIC=GETLIN
 $3ca2       Appel au hook d'entrée de ligne.
