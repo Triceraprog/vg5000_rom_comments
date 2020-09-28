@@ -5615,96 +5615,112 @@ $282a       S'il restait des données (drapeau Z à 0), affiche le message.
 $282d       Restauration du pointeur d'exécution
 
 $282f       [go_nxt_data]
-            MS_BASIC=FDTLP ; Va à la prochaine instruction
-$2832       Test de fin de ligne
-$2833       Saute si ce n'est pas la fin de la ligne
-$2835       ---
-$2836       ---
-$2837       ---
-$2838       On est à la fin de la ligne, est-ce que la ligne suivante est NUL ?
-$2839       ---
-$283b       Si oui, sors avec "Out of DATA"
-$283e       ---
-$283f       ---
-$2840       ---
-$2841       ---
-$2842       Sinon, charge la ligne de DATA courante. Il y a ici in EX HL,DE dans MS_BASIC, que se passe-t-il ???
+$282f       Avance jusqu'à la prochaine instruction.
+            MS_BASIC=FDTLP
+$2832-$2833 Branche si ce n'est pas la fin de la ligne.
+$2835-$2838 Sinon, vérifie si le chaînage de la ligne suivante est nul.
+$2839-$283b Si oui, sors avec une erreur "Out of DATA".
+$283e-$2842 Sinon, lit le numéro de ligne dans DE et l'inscrit dans `(datlin)`.charge la ligne de DATA courante.
+
 $2846       [test_data]
-$2847       Compare avec le token DATA
-$2849       Saute si ce n'est pas une instruction DATA pour aller chercher plus loin
-$284b       On a trouvé la prochaine donnée, on peut aller l'assigner à la variable
+$2846-$2849 Boucle si l'instruction suivante n'est pas DATA. Jusqu'à en trouver une ou sortir avec l'erreur précédente.
+$284b       HL pointe vers la prochaine zone de données, retour à l'assignation.
 
 $284d       [eval_num_ex]
-            Fonction : Evalue une expression et vérifie que le résultat est numérique.
-$284d       ---
+            Évalue une expression et vérifie que le résultat est numérique.
+
+            Entrée :
+            - HL pointe sur une zone texte BASIC
+
+            Sortie :
+            - Résultat dans FAC, si l'expression était numérique.
+$284d       Lecture d'une expression.
 
 $2850       [type_eq_num]
-            Fonction: vérifie que le type évalué est de type numérique.
-            Le OR A,$37 va faire un clear Carry et sauter le Set Carry du test de type chaîne
-$2850       ---
+            Vérifie que le type évalué est de type numérique.
+
+            `(valtyp)` a du être assigné au préalable.
+$2850       Le `or $37` a pour but de passer le Carry à 0 et de sauter par dessus l'instruction `scf`.
 
 $2851       [type_eq_str]
-            Fonction: vérifie que le type évalué est une chaine de caractère
-$2851       ---
+            Vérifie que le type évalué est de type chaîne de caractère.
+
+            `(valtyp)` a du être assigné au préalable.
+$2851       Place le Carry à 1.
 
 $2852       [type_eq_chk]
-            Fonction: vérifie que deux types sont égaux
-            Entrée: Carry flag pour l'un des deux types, (valtyp) pour le second
-            Sortie: Retour en cas de parité paire, c'est-à-dire si Carry et (valtype) sont égaux.
-            Sinon, branche sur "Opérande mal adapté"
-$2852       ---
-$2855       ---
-$2856       ---
-$2857       ---
-$2858       ---
-$285b       ---
+            Vérifie que deux types de variables sont égaux.
+
+            Entrée :
+            - Carry flag porte le premier type, 0 = numérique, 1 = chaîne de caractères
+            - `(valtyp)` porte le second type, 0 = numérique, 1 = chaîne de caractères
+
+            Sortie :
+            - Si les deux types sont égaux, la routine revient.
+            - Si les deux types diffèrent, la routine branche sur une erreur "Opérande mal adaptée"
+
+            MS_BASIC=CHKTYP
+
+$2852       Charge le type de l'expression la plus récemment évaluée.
+$2855       Double sa valeur et ajoute la retenue (Carry).
+$2856       Met en place les drapeaux.
+$2857       Retour si le résultat est pair (0 pour deux numériques, ou 2 pour deux chaînes).
+$2858       Branche sur l'erreur sinon.
+$285b       4 octets non utilisés ???
 
 $285f       [paren_expr]
-            Fonction appelée récursivement par l'évaluation commencée par read_expr.
-            Commence par vérifier la présence d'une parenthèse ouvrante puis continue l'évaluation.
-            Il n'y a pas de partial instruction en $2860, c'est uniquement le paramètre de chkchr
-$285f       ---
-$2860       Vérifie la parenthèse ouvrante
+            Appelé lorsque l'on débute l'analyse d'une sous-expression entre parenthèses.
+
+$285f       S'assure de la présence d'une parenthèse.
+$2860       %DATASKIP
 
 $2861       [read_expr]
-            Lecture et évaluation d'une expression
-            À chaque parsing, est mis sur la pile l'adresse de l'opérande, suivi du FP (BCDE), suivi du retour en eval_2 (qui sera exécuté par le RET dans l'opérande)
-            Cela forme une liste de commandes à exécuter lorsqu'un bloc est évalué.
-            Lorsqu'un opérateur de plus faible priorité est trouvé, le RET NC permet de faire un saut vers l'adresse d'exécution de l'opérateur, qui trouvera son
-            paramètre sur la pile, suivi de l'adresse de retour en eval_2, qui considère que l'accumulateur FP est rempli (et contient donc l'évaluation).
+            Lecture et évaluation d'une expression.
+
+            Entrée :
+            - HL pointe vers un texte BASIC
+
+            Sortie :
+            - FAC contient le nombre si l'expression est numérique.
+            - FAC contient un descripteur de chaîne si l'expression est alphanumérique.
+
+            Lorsqu'un opérateur est analysé, sont ajoutés sur la pile :
+            - une adresse de retour (eval_2) qui sera utilisée par le `ret` de l'opérateur.
+            - le premier paramètre de l'opérateur sous forme BCDE.
+            - l'adresse d'exécution de l'opérateur.
+
+            Lorsqu'un opérateur de plus faible priorité est trouvé (ou à la fin ???), le `ret nc` permet de faire un saut vers l'adresse d'exécution de l'opérateur.
+            L'opérateur trouvera son paramètre sur la pile, suivi de l'adresse de retour.
             
             MS_BASIC=EVAL
-$2861       ---
-$2862       La priorité est stockée dans D.
+$2861       Recalage du pointeur de texte BASIC.
+$2862       La priorité actuelle d'opérateur est dans D.
+
 $2864       [eval_1]
-            Sauvegarde de la priorité
-$2865       ---
-$2867       Vérification qu'il est possible d'ajouter 1 niveau (C) sur la pile
-$286a       Attention, la lecture de caractère via RST $10 commence par un INC HL, les opérateurs sont donc 'ignorés' naturellement à ce niveau du parsing. D'où aussi la nécessité du DEC HL en début de fonction
-$286d       Sauvegarde de l'adresse de parsing courante
+$2864       Sauve la priorité actuelle.
+$2865-$2867 Vérification qu'il est possible d'ajouter 1 niveau (C) sur la pile
+$286a       Lecture de la prochaine valeur.
+$286d       Sauve le pointeur de texte BASIC.
 $2870       [eval_2]
-            Récupération de l'adresse de parsing courante
-$2873       Récupération de la priorité
-$2874       ---
-$2875       Comparaison avec la priorité de AND et OR
-$2877       Si ce n'est pas AND et OR (la priorité est au moins à $78), vérification que l'on veut un type numérique. Si on revient, c'est que c'était le cas
-$287a       Récupération dans A de l'opérateur suivant (ou de la fonction)
-$287b       Sauvegarde de l'adresse de parsing courante
-$287e       $b9 est le token pour '+', qui est aussi le premier token qui n'est pas une instruction (les opérateurs)
-$2880       Retour si ce qui est parsé est avant le '+', donc ne faisant plus partie de l'expression
-$2881       $c3 est le code de SGN, la première fonction prédéfinie.
-$2883       Si c'est une fonction ou ensuite, ce n'est pas un opérateur, on sort de l'évaluation.
-$2884        $c0 '>' $c1 '=' $c2 '<'
-$2886       Saute si '>' ou au-delà
-$2888       Index de l'opérateur (en commençant par '+' comme 0)
-$288a       Sauvegarde de l'index dans E
-$288b       Saute si l'opérateur n'est pas '+'
-$288d       [no_call]
-            Il n'y a pas d'appel ici, c'est l'appelant qui est un "skip"
-$2890       Type de la valeur : -1=num 0=string
-$2891       Récupération de l'index de l'opérateur sauvé en $288a
-$2892       Si la valeur est une chaîne de caractères, on saute (concatenation de chaînes)
-$2895       [not_plus]
+$2870       Récupère le pointeur de texte BASIC.
+$2873       Récupère la priorité actuelle.
+$2874-$2875 Comparaison avec la priorité de AND et OR
+$2877       La priorité est au moins $78, vérification que l'on cherche un type numérique (d'après `(valtyp)`). Si on revient, c'est que c'était le cas.
+$287a       Lecture dans A de l'octet suivant.
+$287b       Sauve le pointeur vers le texte BASIC
+$287e       $b9 est le token pour '+', qui est aussi le premier token des opérateurs.
+$2880       Retour si l'octet lu est inférieur au token de '+', ce qui signifie que ce n'est pas un opérateur.
+$2881       $c3 est le code de `SGN`, le token de première fonction prédéfinie.
+$2883       Retour si l'octet lu fait partie des fonctions prédéfinie, ce qui signifie que ce n'est pas un opérateur.
+$2884       Les trois derniers opérateurs sont les opérateurs relationels : $c0 '>', $c1 '=', $c2 '<'.
+$2886       Branche dans le cas d'un opérateur relationel.
+$2888-$288a E prend l'index de l'opérateur.
+$288b       Branche si l'opérateur n'est pas '+'.
+$288d-$2890 Z à 1 en cas de type chaîne de caractères.
+$2891       A prend l'index de l'opérateur.
+$2892       Branche si l'opérateur est '+' et que le type est chaîne de caractères. C'est une concatenation de chaînes.
+
+$2895       [not_concat]
 $2896       ---
 $2897       Index de l'opérateur multiplié par 3 dans E
 $2898       Charge la table des priorités
