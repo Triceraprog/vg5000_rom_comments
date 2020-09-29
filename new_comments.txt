@@ -5721,68 +5721,65 @@ $2891       A prend l'index de l'opérateur.
 $2892       Branche si l'opérateur est '+' et que le type est chaîne de caractères. C'est une concatenation de chaînes.
 
 $2895       [not_concat]
-$2896       ---
-$2897       Index de l'opérateur multiplié par 3 dans E
+$2895-$2897 E prend l'index de l'opérateur multiplié par 3. Chaque entrée de la table comporte sa priorité suivi de l'adresse d'exécution de sa routine.
 $2898       Charge la table des priorités
-$289b       ---
-$289d       Indexation dans la table
-$289e       Sauvegarde de la priorité courante
-$289f       Récupération de la priorité du nouvel opérateur
-$28a0       Comparaison des priorités
-$28a1       Si la nouvelle priorité est plus petite, on sort (== on saute à l'adresse de l'opérateur sur la pile)
-$28a2       Sinon, HL pointe sur l'adresse de l'opérateur
-$28a3       On vérifie que l'on a affaire à un type numérique (encore ???)
-$28a6       [jump28A6]
-            Sauvegarde de B (précédente actuelle) et C (???)
-$28a7       ---
-$28aa       Sauvegarde de l'adresse de retour lorsque l'expression de cette priorité sortira
-$28ab       Sauve l'index dans la table de priorité
-$28ac       ---
-$28ad       Monte la valeur FP sur la pile
-$28b0       ---
-$28b1       Restaure l'index dans la table de priorité
-$28b2       ---
-$28b3       ---
-$28b4       Récupération de l'adresse de l'opérateur dans BC
-$28b5       ---
-$28b6       Qui est mis sur la pile
-$28b7       Restauration du pointeur de parsing
-$28ba       On continue le parsing jusqu'á sortir de la priorité courante
+$289b-$289d Pointe vers le bon index de la table des priorités.
+$289e       Sauve la priorité courante.
+$289f       Récupère la priorité de l'opérateur.
+$28a0       Compare les priorités.
+$28a1       Si la nouvelle priorité est plus petite, le `ret` provoque le retour vers l'exécution de l'opérateur précédent.
+$28a2       Sinon, HL pointe sur l'adresse de l'opérateur.
+$28a3       Vérifie que le type est numérique (encore ???)
+$28a6       [op_stack]
+$28a6       Sauve la priorité (B) et C ???
+$28a7-$28aa Sauvegarde de l'adresse de retour pour l'exécution de cet opérateur.
+$28ab-$28ac Sauve le token (E) ainsi que sa priorité (D) dans BC
+$28ad       Pousse la valeur de FAC sur la pile pour continuer la construction du bloc pour l'opérateur.
+$28b0-$28b1 Restaure le token (E) ainsi que sa priorité (D) depuis BC
+$28b2-$28b5 Récupère l'adresse d'exécution de l'opérateur dans BC.
+$28b6       Met cette adresse sur la pile pour compléter le bloc pour l'opérateur.
+$28b7       Restaure le pointeur vers le texte BASIC.
+$28ba       Boucle sur la suite de l'analyse.
 
 $28bd       [eval_comp]
-            Lorsque l'on arrive ici, A contient > = <
-            Il s'agit de chercher un motif d'opérateur de comparaison composé.
-$28bd       ---
+            Évaluation d'un opérateur relationel.
+
+            Entrée :
+            - A contient l'un de '>', '=', '<'
+$28bd       Initialise la détection de opérateurs à deux caractères ('<=', '>=' et les autres)
 $28bf       [comp_loop]
-$28c1       Saut si A est avant >
-$28c4       ---
-$28c6       Saut si A est après <
-$28c9       Est-ce '=' ?
-$28cb       > donne b11, = donne b10, < donne b00
-$28cc       À la première boucle, A n'est pas changé (D == 0). En deuxième boucle, tous les doublons (>>, << et ==) donnent b00, <= et => donnent b01, >= et => donnent b10
-$28cd       ---
-$28ce       Le premier caractère est mis dans D
+$28bf-$28c1 Branche si A est avant '>' (pas possible au premier passage)
+$28c4-$28c6 Branche si A est après '<' (pas possible au premier passage)
+$28c9       Compare avec '='. Carry sera mis à 1 pour '>', 0 dans les autres cas.
+$28cb       Ce qui donne au final b11 pour '>' b11, b10 pour '=' et b00 pour '<'.
+$28cc       À la première boucle, A n'est pas changé (car D est à $00).
+            En seconde boucle, tous les doublons (>>, << et ==) donnent $00, '<=' et '=<' donnent b01, '>=' et '=>' donnent b10
+$28cd       Compare A et D
+$28ce       À la première boucle, le caractère est mis dans D.
+            À la seconde boucle, peu importe.
 $28cf       À la première boucle, A ne peut pas être inférieur à D.
-$28d2       Le pointeur de parsing est ajusté (à la deuxième boucle surtout)
-$28d5       Lecture du caractère suivant
-$28d6       ---
+            Lors de la seconde, si A est inférieur à D, alors c'est une erreur de syntaxe.
+$28d2       Le pointeur vers le texte BASIC est ajusté.
+$28d5       Lecture du caractère suivant.
+$28d6       Boucle sur le second caractère de la paire possible.
 
 $28d8       [parse_value]
-            Fonction: parse une valeur depuis HL+1. Cette valeur peut être numérique, alphanum ou bien une fonction
-            prédéfinie ou utilisateur.
+            Analyse une valeur.
+
+            Entrée :
+            - HL pointe vers le texte BASIC
+
+            Cette valeur peut être numérique, alphanumérique, ou bien une fonction prédéfinie ou utilisateur.
             
             MS_BASIC=OPRND
-$28d8       ---
-$28d9       On cherche un type numérique par défaut
-$28dc       Lecture du prochain caractère (non blanc, numérique, essayer avec INIT ABC ?)
-$28dd       Saute dans le cas où le caractère est NUL
-$28e0       Saute dans le cas où le caractère est un chiffre.
-$28e3       Caractère '&'
-$28e5       Saut si sur le point de parser un nombre en hexa
-$28e8       ---
-$28eb       Saut si la valeur est entre A et Z (on va chercher une variable)
-$28ed       Token pour '+'
-$28ef       La valeur commence par un '+', on ignore et on relance le parsing
+$28d8-$28d9 Par défaut, le type est numérique.
+$28dc       Lecture du prochain caractère significatif.
+$28dd       Émet une erreur d'opérande manquante si le buffer est terminé.
+$28e0       Branche si le caractère est un chiffre.
+$28e3       %CHAR
+$28e3-$28e5 Branche si c'est le début d'un nombre en hexadécimal, qui commence par "&"
+$28e8-$28eb Branche si le caractère est entre 'A' et 'Z', c'est une variable.
+$28ed-$28ef Le token pour '+' est ignoré car pris pour un opérateur unaire.
 $28f1       Caractère '.'
 $28f3       C'est un nombre (flottant)
 $28f6       Token pour '-'
@@ -5915,7 +5912,7 @@ $299a       ---
 $299b       ---
 $299c       ---
 $299d       ---
-$299e       [jump299E]
+$299e       [relation_op]
 $29a1       ---
 $29a4       ---
 $29a5       ---
@@ -5926,7 +5923,8 @@ $29aa       ---
 $29ab       ---
 $29ac       ---
 $29ad       ---
-$29b0       ---
+$29b0       [jp_29b0]
+            %CODE
 $29d3       [str_to_not]
             Charge la priorité pour l'opérateur NOT
 $29d5       Lance une évaluation qui sortira en descente de priorité
