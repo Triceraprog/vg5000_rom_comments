@@ -5780,85 +5780,105 @@ $28e3       %CHAR
 $28e3-$28e5 Branche si c'est le début d'un nombre en hexadécimal, qui commence par "&"
 $28e8-$28eb Branche si le caractère est entre 'A' et 'Z', c'est une variable.
 $28ed-$28ef Le token pour '+' est ignoré car pris pour un opérateur unaire.
-$28f1       Caractère '.'
-$28f3       C'est un nombre (flottant)
-$28f6       Token pour '-'
-$28f8       Saut pour prendre l'opposé du parsing
-$28fa       Caractère '"'
-$28fc       C'est une chaîne de caractères délimité par "
-$28ff       Token pour 'NOT'
-$2901       Saute å l'évaluation d'un NOT
-$2904       Token pour 'FN'
-$2906       Saute à l'évaluation d'une fonction utilisateur
-$2909       Token pour 'SGN', la première des fonctions
-$290b       Saute á l'évaluation d'une fonction prédéfinie
+$28f1       %CHAR
+$28f1-$28f3 C'est un nombre sans partie entière. Sauf pour analyse d'un nombre.
+$28f6-$28f8 Token pour '-', c'est un nombre négatif. Saut pour analyse de l'opposé d'un nombre.
+$28fa       %CHAR
+$28fa-$28fc C'est une chaîne de caractères délimité par "
+$28ff-$2901 Token pour 'NOT'. Branche sur l'évaluation d'un `NOT`.
+$2904-$2906 Token pour 'FN'. Brance sur l'évaluation d'une fonction utilisateur.
+$2909-$290b $c3 est le token pour `SGN`, la première des fonctions prédéfinies. Si le token est supérieur ou égal, branche vers á l'évaluation d'une fonction prédéfinie.
 $290d       [eval_paren]
-            Cas de la sous-expression entre parenthèses, qui est le dernier choix possible. Pour cela, on lance une évaluation de sous expression qui commencera par vérifier l'existence de cette parenthèse.
-$2910       ---
-$2911       Caractère ')' pour le check du-dessus. Donc erreur de syntaxe si une parenthèse fermante n'est pas trouvée.
-$2912       À ce niveau là, la sous-expression est dans l'accumulateur FP.
+$290d       Le dernier choix possible est celui d'une sous-expression entre parenthèses.
+            Appel de l'évaluation d'une expression qui doit commencer par une parenthèse ouvrante.
+
+            Est aussi appelé comme sous-routine directement, pour évaluer une expression entre parenthèses, incluant les paramètres de fonctions.
+
+$2910       Vérification de la parenthèse fermante associée.
+$2911       %DATASKIP
+$2912       Fin de l'évaluation de l'expression entre parenthèse. Le résultat est dans FAC.
+
 $2913       [str_to_min]
-            Un '-' comme opérateur unaire doit s'évaluer sur ce qui suit. Charge la précédence de l'opérateur.
-$2915       Puis évalue l'expression. Qui sortira lorsque la précédence sera moins forte
-$2918       Récupération de l'adresse de parsing du prochain opérateur
-$291b       Que l'on sauve
-$291c       Le temps d'inverser le signe de ce que contient FP
+            Évaluation de '-' comme opérateur unaire.
+
+            Entrée :
+            - HL pointe vers l'expression en cours.
+
+            Sortie :
+            - FAC contient l'évaluation de l'expression.
+            - HL pointe vers la suite de l'expression.
+
+$2913       Charge la priorité de l'opérateur unaire '-' dans D.
+$2915       Puis évalue l'expression. Le retour se fera lorsqu'un opérateur de moins forte priorité sera trouvé (ou une fin d'expression ???).
+$2918       Recupère le pointeur sur le texte BASIC.
+$291b       Sauvegarde de ce pointeur sur la pile.
+$291c       Prends l'opposé de FAC dans FAC.
 $291f       [ret_num]
-            Et de vérifier que l'on a bien affaire à un type numérique
-$2922       Restauration du pointeur d'exécution
-$2923       ---
+$291f       Vérifie que le type évalué est numérique.
+$2922       Restaure le pointeur sur le texte BASIC.
 
 $2924       [str_to_var]
-            Récupère la valeur d'une variable lors d'une évaluation.
-$2924       Récupère l'adresse de la variable dans DE
+            Charge dans FAC la valeur d'une variable indiquée dans le buffer de texte BASIC.
+
+            Entrée :
+            - HL pointe vers l'expression en cours.
+
+            Sortie :
+            - FAC contient la valeur de l'expression numérique ou le pointeur vers la chaîne de caractères.
+            - HL pointe vers la suite de l'expression.
+
+$2924       DE pointe sur l'adresse de la variable.
 $2927       [from_eval]
-            Sauve le contexte
-$2928       HL prend l'adresse de la variable
-$2929       Sauve l'adresse de la variable
-$292c       ---
-$292f       ---
-$2930       Appel si le type de la variable est numérique (pour mettre sa valeur dans FP)
-$2933       Restaure le contexte
-$2934       ---
+$2927       Sauve le pointer vers le texte BASIC.
+$2928       HL = adresse de la variable, DE = peu importe
+$2929       Sauve l'adresse de la variable dans les deux octets les moins significatifs de FAC.
+$292c-$2930 Si le type de la variable est numérique, monte la valeur pointée par HL, le contenu de la variable numérique, dans FAC.
+$2933       Restaure le pointeur vers le texte BASIC.
 
 $2935       [str_to_func]
-            Exécute le code d'une fonction interne lors de l'évaluation d'une expression
-            En entrée, A contient l'index de la fonction (token soustrait du token de la première fonction)
+            Exécute le code d'une fonction BASIC prédéfinie.
+
+            Entrées :
+            - A contient l'index de la fonction, basé sur `SGN` = 0.
+            - HL pointe vers l'expression en cours.
             
+            Sortie :
+            - FAC contient la valeur de sortie de la fonction.
+            - HL pointe vers la suite de l'expression.
+
             MS_BASIC=FNOFST
-$2935       ---
-$2937       Double l'index de la fonction
-$2938       Avec B mis à 0, BC contient l'index doublé de la fonction
-$2939       Que l'on sauve
-$293a       Saute la '(' qui doit suivre
-$293b       A <- index doublé de la fonction
-$293c       Compare par rapport au token 220 (token CHR$ - token SGN, le tout * 2)
-$293e       Saute si c'est une fonction qui renvoie une valeur numérique
-$2940       On est dans une des fonctions renvoyant une valeur alphanumériques. Évaluation du premier paramètre.
-$2943       ---
-$2944       Vérification que le caractère suivant est ','
-$2945       Et que la valeur évaluée est bien alphanumérique.
-$2948       Sauve le pointeur d'exécution
-$2949       HL <- adresse de la chaîne évaluée
-$294c       Que l'on met en haut de la pile (et récupération de l'index doublé)
-$294d       Push de l'index doublé
-$294e       HL <- pointeur d'exécution
-$294f       Récupération d'un entier sur 8 bits (dans A et DE)
-$2952       Pointeur d'exécution dans DE, HL <- l'int récupéré
-$2953       HL <- index doublé, en haut de pile, l'entier du second paramètre
-$2954       ---
-$2956       [num_func]
-            Évaluation du paramètre de la fonction (qui est donc dans FP)
-$2959       HL <- index doublé, en haut de la pile, le pointeur d'exécution
-$295a       ---
-$295d       Prépare l'adresse de retour pour le prochain RET comme retour de fonction numérique
+$2935       Prépare l'index dans le tableau des fonctions.
+$2937       Double l'index de la fonction.
+$2938       BC = index de la fonction multiplié par 2.
+$2939       Sauvegarde de l'index dans le tableau.
+$293a       Ignore la parenthèse après le nom de la fonction (???)
+$293b-$293e Branche si la fonction est après `CHR$`, qui sont les fonctions de traitement de chaînes de caractères qui ont plusieurs paramètres.
+$2940       Sinon, c'est une fonction alphanumérique avec plusieurs paramètres. Évaluation du premier paramètre.
+$2943       Vérification que le caractère suivant est ','
+$2944       %DATASKIP
+$2945       Le premier paramètre doit être alphanumérique.
+$2948       Sauve le pointeur vers le texte BASIC.
+$2949       HL = adresse de la chaîne évaluée en premier paramètre.
+$294c-$294d Que l'on place sous l'index doublé dans la pile.
+$294e       Restaure le pointeur vers le texte BASIC.
+$294f       Évaluation du second paramètre, de type entier sur 8 bits.
+$2952       DE = pointeur vers le texte BASIC, HL = entier évalué en second paramètre.
+$2953       HL = index doublé, Haut de la pile = second paramètre.
+$2954       Branche sur l'exécution de la fonction.
+            Sur la pile se trouve :
+            - la valeur du second paramètre.
+            - le pointeur vers la chaîne de premier paramètre.
+            - l'index doublé de la fonction à exécuter.
+
+$2956       [eval_func]
+$2956       Évaluation du premier et seul paramètre de la fonction.
+$2959       HL = index doublé, Haut de la pile = pointeur vers le texte BASIC
+$295a-$295d Prépare l'adresse de retour pour le prochain `ret` comme retour d'une fonction numérique.
+
 $295e       [exec_func]
-$2961       Pointe dans le tableau d'adresse des fonctions celle correspondant à l'index
-$2962       ---
-$2963       ---
-$2964       ---
-$2965       Chargement de l'adresse dans HL
-$2966       Saut à l'implémentation de la fonction interne
+$295e-$2961 HL pointe dans le tableau d'adresse des fonctions celle correspondant à l'index
+$2962-$2965 HL = adresse de la routine pour la fonction.
+$2966       Branche vers l'exécution de la fonction prédéfinie.
 
 $2967       [exp_sign]
             Retourne D == FF si le caractère dans A est - (token) ou '-', D == 0 si + (token) ou '+' avec Z flag set. Si rien trouvé, NZ (et D = 0), et HL reculé (pour recommencer le parsing)
