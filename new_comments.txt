@@ -5945,19 +5945,46 @@ $2998       Monte AC dans FAC et termine l'instruction.
 $2999       [oper_or]
 $2999-$299c AC = BC | DE
 $299d       Monte AC dans FAC et termine l'instruction.
+
 $299e       [relation_op]
-$29a1       ---
-$29a4       ---
-$29a5       ---
-$29a6       ---
-$29a7       ---
-$29a8       ---
-$29aa       ---
-$29ab       ---
-$29ac       ---
-$29ad       ---
-$29b0       [jp_29b0]
+$299e       Prépare l'adresse de retour si un bloc d'évaluation est poussé sur la pile.
+            Comme la construction du bloc prend un pointeur vers une adresse, HL pointe vers une indirection vers la routine elle-même.
+$29a1-$29a4 Récupère le type de l'évaluation. Carry à 0 signifique numérique ; chaîne de caractères sinon.
+$29a5-$29a7 Calcul la priorité comme le résultat du calcul de l'opérateur multiplié par 2 plus Carry (le type).
+            Cela donne une priorité calculée (???).
+$29a8-$29ac Retour si la priorité est plus faible que $64 (???)
+$29ad       Sinon, met un nouveau bloc à évaluer sur la pile.
+
+$29b0       [comp_addr]
+            Attention, le commentaire trop long ci-dessous est tromqué (bug du parser ???)
+$29b0       Addresse de la fonction qui suit, afin de pouvoir construire le bloc d'évaluation à dépiler ci-dessus.
+
+$29b2       [compare]
             %CODE
+$29b2-$29b4 Type de la donnée dans Carry (d'où vient-elle ???)
+$29b5-$29b6 Récupère le premier argument de comparaison dans BCDE.
+$29b7       Sauve le type de donnée.
+$29b8       Vérifie que le type des deux arguments sont les mêmes, ou provoque une erreur.
+$29bb-$29be L'adresse de retour sera la routine de résultat de la comparaison.
+$29bf       Branche vers la comparaison de nombre si le type est numérique.
+            La routine se terminant par des `ret`, la continuité se fera dans l'adresse poussée dans la pile juste au-dessus.
+$29c2-$29c3 La comparaison de chaîne de caractères donne une valeur numérique, l'indique dans `(valtyp)`.
+$29c6       Branche sur la comparaison de chaînes de caractères.
+
+$29c9       [cmp_result]
+            %CODE
+
+            Calcul pour la sortie des opérateurs de comparaison.
+
+            Tracer le fonctionnement pour comprendre le calcul (???)
+$29c9       ---
+$29ca       ---
+$29cb       ---
+$29cc       ---
+$29cd       ---
+$29cf       ---
+$29d0       ---
+
 $29d3       [str_to_not]
             Charge la priorité pour l'opérateur NOT
 $29d5       Lance une évaluation qui sortira en descente de priorité
@@ -7725,10 +7752,48 @@ $35f3       [jump_ret]
             Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
 $35f4       [char20]
 $35fe       [char7f]
-$3609       [bistrs]
+$3609       [str_cmp]
             %CODE,SECTION(bistrs)
-            This seems to be code, but where is it called from ???
-            It's also the first part of the bistrs section.
+            Comparaison entre deux chaînes de caractères.
+
+            MS_BASIC=CMPSTR
+
+            == DEBUT DE SECTION BISTRS (BASIC string handler) ==
+$3609       ---
+$360a       ---
+$360d       ---
+$360e       ---
+$3610       ---
+$3611       ---
+$3612       ---
+$3613       ---
+$3614       ---
+$3615       ---
+$3616       ---
+$3619       ---
+$361c       ---
+$361d       ---
+$361e       ---
+$361f       ---
+$3620       ---
+$3621       ---
+$3622       ---
+$3623       ---
+$3625       ---
+$3626       ---
+$3627       ---
+$3628       ---
+$3629       ---
+$362a       ---
+$362b       ---
+$362c       ---
+$362d       ---
+$362e       ---
+$362f       ---
+$3630       ---
+$3632       ---
+$3633       ---
+
 $3636       [inst_str]
             %CODE
 $3639       ---
