@@ -5881,57 +5881,70 @@ $2962-$2965 HL = adresse de la routine pour la fonction.
 $2966       Branche vers l'exécution de la fonction prédéfinie.
 
 $2967       [exp_sign]
-            Retourne D == FF si le caractère dans A est - (token) ou '-', D == 0 si + (token) ou '+' avec Z flag set. Si rien trouvé, NZ (et D = 0), et HL reculé (pour recommencer le parsing)
+            Retourne le signe du caractère ou token présent dans A.
+
+            Entrées :
+            - D = 0
+            - A est le dernier caractère lu depuis le buffer d'analyse du nombre
+
+            Retour :
+            - HL pointe sur l'octet suivant à lire.
+            - D = $ff si le signe est négatif
+            - D = $00 si le signe est positif
+            - Z à 1 si un signe était spécifié, à 0 sinon.
             
             MS_BASIC=SGNEXP
-$2967       ---
-$2968       ---
-$296a       ---
-$296b       ---
-$296d       ---
-$296e       ---
-$296f       ---
-$2971       ---
-$2972       ---
-$2974       ---
-$2975       ---
-$2976       ---
+$2967       D = $ff
+$2968-$296a Retour immédiat si l'octet lu est le token du signe '-'.
+$296b       %CHAR
+$296b-$296d Retour immédiat si l'octet lu est le caractère '-'.
+$296e       D = 0
+$296f       %CHAR
+$296f-$2971 Retour immédiat si l'octet lu est le caractère '+'
+$2972-$2974 Retour immédiat si l'octet lu est le token du signe '+'
+$2975       Ce n'était pas un signe, recale HL, pointeur sur le texte analysé.
+
 
 $2977       [fp_bcde_or]
             %CODE
-            Execution de AND et OR. Appelé via la table de priorités.
+            Opérateur BASIC `OR`.
             
-            MS_BASIC=PAND
-$2977       ---
+            Appelé lors de l'évaluation d'une expression via la table de priorités.
+            
+            MS_BASIC=POR
+$2977       Marqueur pour le traitement de `OR`. A n'est pas 0.
+            En $2979 arrive le traitement de `AND` et dans ce cas, l'instruction est `xor a`, donc A = 0.
+
+            (La détection de l'instruction partielle ne fonctionne pas dans ce cas, pourquoi ???)
 $2978       [fp_bcde_and]
             %CODE
+            Opérateur BASIC `AND`.
+            
+            Appelé lors de l'évaluation d'une expression via la table de priorités.
+            
             MS_BASIC=PAND
-$2979       ---
-$297a       ---
-$297d       ---
-$2980       ---
-$2981       ---
-$2982       ---
-$2983       ---
-$2984       ---
-$2985       ---
-$2988       ---
-$2989       ---
-$298c       ---
-$298d       ---
-$298e       ---
-$298f       ---
-$2992       ---
-$2994       ---
-$2995       ---
-$2996       ---
-$2997       ---
-$2998       ---
-$2999       [skip2999]
-$299a       ---
-$299b       ---
-$299c       ---
-$299d       ---
+$2978       %CODE
+            Marqueur pour le traitement de `AND`. A = 0
+$2979       Sauve le marqueur de l'opérateur `OR` ou `AND`.
+$297a       Le type de l'expression calculée doit être numérique, ou bien c'est une erreur.
+$297d       Récupère FAC en tant qu'entier dans DE.
+$2980       Récupère le marqueur de l'opérateur.
+$2981       HL = valeur entière de l'expression, DE = pointeur vers le texte BASIC.
+$2982-$2984 Récupère BCDE depuis la pile, qui contient l'autre argument de l'opérateur. Le premier argument se retrouve en haut de la pile.
+$2985       Monte BCDE dans FAC.
+$2988       Sauve le marqueur de l'opérateur.
+$2989       Récupère FAC en tant qu'entier dans DE. On a donc un argument dans DE et l'autre en seconde position sur la pile.
+$298c       Récupère le marqueur de l'opérateur.
+$298d       Récupère l'autre argument.
+$298e       Monte le LSB de BC dans A.
+$298f       Prépare le branchement à le fin du traitement de l'opérateur.
+$2992       Branche si l'opérateur est `OR`.
+$2994-$2997 AC = BC & DE
+$2998       Monte AC dans FAC et termine l'instruction.
+
+$2999       [oper_or]
+$2999-$299c AC = BC | DE
+$299d       Monte AC dans FAC et termine l'instruction.
 $299e       [relation_op]
 $29a1       ---
 $29a4       ---
@@ -5964,7 +5977,7 @@ $29ec       ---
 $29ed       ---
 $29ee       ---
 $29ef       [ac_to_fp]
-            Met A dans B, pour fallthrough dans ab_to_fp
+            Met C dans B, pour fallthrough dans ab_to_fp
 $29f0       [ab_to_fp]
             Met B dans D (de BADE)
 $29f1       Net E à 0.
