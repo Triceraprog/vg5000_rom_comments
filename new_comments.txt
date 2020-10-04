@@ -4902,7 +4902,7 @@ $2474-$2478 Termine le buffer de travail avec trois caractères nuls.
 $2479       Fin de la routine de tokenisation
 
 $247a       [inst_for]
-            Instruction BASIC `FOR`
+            Instruction BASIC : FOR
 
             La structure d'un bloc `FOR` est la suivante :
             - Marqueur $81 (1 octet)
@@ -5182,7 +5182,7 @@ $25b9       Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO.
 
 $25ba       [inst_goto]
             %CODE
-            Instrution BASIC : GOTO
+            Instruction BASIC : GOTO
 
             Du fait d'ignorer ce qui se trouve après le numéro de ligne, une ligne qui contient "GOTO 20 HOP HOP" est valide.
 
@@ -5804,7 +5804,7 @@ $2910       Vérification de la parenthèse fermante associée.
 $2911       %DATASKIP
 $2912       Fin de l'évaluation de l'expression entre parenthèse. Le résultat est dans FAC.
 
-$2913       [str_to_min]
+$2913       [inst_minus]
             Évaluation de '-' comme opérateur unaire.
 
             Entrée :
@@ -5841,7 +5841,7 @@ $2929       Sauve l'adresse de la variable dans les deux octets les moins signif
 $292c-$2930 Si le type de la variable est numérique, monte la valeur pointée par HL, le contenu de la variable numérique, dans FAC.
 $2933       Restaure le pointeur vers le texte BASIC.
 
-$2935       [str_to_func]
+$2935       [function]
             Exécute le code d'une fonction BASIC prédéfinie.
 
             Entrées :
@@ -5994,55 +5994,70 @@ $29cd-$29cf Si A était à 0 (pas de relation commune), alors le résultat est $
             Si A était différent de 0 (une relation commune au moins), alors le résultat est $FF
 $29d0       A devient le résultat de la fonction en étant transféré dans FAC.
 
-$29d3       [str_to_not]
-            Charge la priorité pour l'opérateur NOT
-$29d5       Lance une évaluation qui sortira en descente de priorité
-$29d8       Vérifie le type numérique de la valeur obtenue
-$29db       FP to Signed Int
-$29de       ---
-$29df       ---
-$29e0       ---
-$29e1       ---
-$29e2       Inverse les valeurs de la mantisse (D et E) et met le résultat dans A et C
-$29e3       Résultat dans FP
-$29e6       ---
-$29e7       Suite de l'évaluation
+$29d3       [inst_not]
+$29d3       Charge la priorité pour l'opérateur NOT.
+$29d5       Lance une évaluation qui sortira reviendra lorsqu'une priorité d'opérateur plus faible sera rencontrée.
+$29d8       Vérifie le type numérique de la valeur obtenue.
+$29db       Récupère FAC dans DE sous forme entière.
+$29de-$29e2 Met dans AC la négation de DE.
+$29e3       Monte AC dans FAC.
+$29e6       Nettoie la pile.
+$29e7       Continue l'évaluation.
+
 $29ea       [inst_fre_2]
-$29eb       ---
-$29ec       ---
-$29ed       ---
-$29ee       ---
-$29ef       [ac_to_fp]
-            Met C dans B, pour fallthrough dans ab_to_fp
-$29f0       [ab_to_fp]
-            Met B dans D (de BADE)
-$29f1       Net E à 0.
-$29f3       ---
-$29f6       Place 0 dans la globale valtyp, ce qui signifie que la valeur est numérique
-$29f7       Exposant $80+$10
-$29f9       ---
+$29ea-$29ee AC = HL - DE, puis met le résultat dans FAC.
+
+$29ef       [ac_to_fac]
+$29ef       Copie C dans B, puis continue vers le transfert de AB vers FAC.
+
+$29f0       [ab_to_fac]
+$29f0       Met B dans D au format flottant BADE.
+$29f1       Met E à 0.
+$29f3-$29f6 Indique une valeur numérique.
+$29f7       Place l'exposant $80+$10 dans le format BADE.
+$29f9       Cela monte au final dans FAC le nombre entier initalement contenu dans la paire AB.
+
 $29fc       [inst_lpos]
             %CODE
-$29ff       ---
+            Fonction BASIC : LPOS()
+
+            La fonction LPOS retourne le numéro de colonne actuelle de l'imprimante.
+            L'argument est ignoré.
+$29fc       Récupère le numéro de colonne actuel de l'imprimante.
+$29ff       Le retourne en tant que résultat de fonction.
+
 $2a01       [inst_pos]
             %CODE
-$2a04       ---
-$2a05       ---
-$2a07       ---
-$2a0a       ---
-$2a0c       [skip2A0C]
+            Fonction BASIC : LPOS()
+
+            La fonction POS retourne le numéro de colonne actuelle à l'écran.
+
+            Si l'argument est 255, alors la fonction retourne plutôt le numéro de ligne actuelle à l'écran.
+$2a01       Récupère l'arguement en tant qu'entier 8 bits dans A.
+$2a04       Incrémente A.
+$2a05       Branche si le résultat est 0 (l'arguement était 255)
+$2a07-$2a0a Sinon, renvoie le numéro de colonne comme résultat.
+
+$2a0c       [inst_posy]
+$2a0c       Charge le numéro de ligne puis continue sur le retour de fonction avec résultat dans A.
 
 $2a0f       [retfun_impl]
-            Function : met en place la valeur de retour d'une fonction
-            Prerequis : valeur dans A
-            Sortie : valeur entière dans FAC
-$2a0f       ---
-$2a10       ---
-$2a11       ---
+            Place A dans FAC.
+
+            Appelé par les fonctions donc le résultat est dans A.
+
+            Entrée :
+            - A contient la valeur de retour de la fonction.
+
+            Note : il existe une autre routine un peu différente qui place A dans FAC (`a_to_fac`)
+$2a0f-$2a10 Construit AB.
+$2a11       Monte AB vers FAC.
 
 $2a13       [inst_def]
             %CODE
-            Instruction: DEF, définition d'une fonction
+            Instruction BASIC : DEF
+            
+            Définition d'une fonction utilisateur.
             
             MS_BASIC=DEF
 $2a13       Vérifie que l'on a affaire à une fonction (et définie l'entrée)
@@ -6076,7 +6091,7 @@ $2a3c       ---
 $2a3d       Le pointeur de fonction reçoit l'adresse du pointeur d'exécution au niveau de la fonction
 $2a3e       DE (nom de la variable) sera mis à la suite, avant un RET
 
-$2a41       [str_to_fn]
+$2a41       [inst_fn]
             Pour traiter la valeur du paramètre, c'est dans la récupération de la variable qu'un test
             est fait entre le nom de la variable en cours en prmnam. Si c'est égal, alors DE est
             placé sur prmval
