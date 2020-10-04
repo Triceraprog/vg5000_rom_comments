@@ -5746,12 +5746,18 @@ $28bd       [eval_comp]
 
             Entrée :
             - A contient l'un de '>', '=', '<'
+
+            Sortie :
+            - D est l'addition des différents signes trouvés. '>' = 1, '=' = 2, '<' = 4.
+
+            Par exemple, '>=' donne 3.
+
 $28bd       Initialise la détection de opérateurs à deux caractères ('<=', '>=' et les autres)
 $28bf       [comp_loop]
 $28bf-$28c1 Branche si A est avant '>' (pas possible au premier passage)
 $28c4-$28c6 Branche si A est après '<' (pas possible au premier passage)
 $28c9       Compare avec '='. Carry sera mis à 1 pour '>', 0 dans les autres cas.
-$28cb       Ce qui donne au final b11 pour '>' b11, b10 pour '=' et b00 pour '<'.
+$28cb       Ce qui donne au final b11 pour '>', b10 pour '=' et b00 pour '<'.
 $28cc       À la première boucle, A n'est pas changé (car D est à $00).
             En seconde boucle, tous les doublons (>>, << et ==) donnent $00, '<=' et '=<' donnent b01, '>=' et '=>' donnent b10
 $28cd       Compare A et D
@@ -5950,10 +5956,9 @@ $299e       [relation_op]
 $299e       Prépare l'adresse de retour si un bloc d'évaluation est poussé sur la pile.
             Comme la construction du bloc prend un pointeur vers une adresse, HL pointe vers une indirection vers la routine elle-même.
 $29a1-$29a4 Récupère le type de l'évaluation. Carry à 0 signifique numérique ; chaîne de caractères sinon.
-$29a5-$29a7 Calcul la priorité comme le résultat du calcul de l'opérateur multiplié par 2 plus Carry (le type).
-            Cela donne une priorité calculée (???).
-$29a8-$29ac Retour si la priorité est plus faible que $64 (???)
-$29ad       Sinon, met un nouveau bloc à évaluer sur la pile.
+$29a5-$29a7 Place dans E l'opérateur décalé d'un bit vers la gauche avec le type de donnée en bit 0.
+$29a8-$29ac Retour si la priorité est plus faible que $64.
+$29ad       Sinon, met un nouveau bloc à évaluer sur la pile pour délayer la comparaison.
 
 $29b0       [comp_addr]
             Attention, le commentaire trop long ci-dessous est tromqué (bug du parser ???)
@@ -5961,9 +5966,9 @@ $29b0       Addresse de la fonction qui suit, afin de pouvoir construire le bloc
 
 $29b2       [compare]
             %CODE
-$29b2-$29b4 Type de la donnée dans Carry (d'où vient-elle ???)
+$29b2-$29b4 L'opérateur et le type de donnée initialement dans C sont décompressés pour ramener le type de donnée dans Carry et l'opérateur tel que calculé initialement.
 $29b5-$29b6 Récupère le premier argument de comparaison dans BCDE.
-$29b7       Sauve le type de donnée.
+$29b7       Sauve l'opérateur et le type de donnée dans la pile.
 $29b8       Vérifie que le type des deux arguments sont les mêmes, ou provoque une erreur.
 $29bb-$29be L'adresse de retour sera la routine de résultat de la comparaison.
 $29bf       Branche vers la comparaison de nombre si le type est numérique.
@@ -5976,14 +5981,18 @@ $29c9       [cmp_result]
 
             Calcul pour la sortie des opérateurs de comparaison.
 
-            Tracer le fonctionnement pour comprendre le calcul (???)
-$29c9       ---
-$29ca       ---
-$29cb       ---
-$29cc       ---
-$29cd       ---
-$29cf       ---
-$29d0       ---
+            Entrée :
+            - A contient un résultat de comparaison.
+
+$29c9-$29ca Transforme le résultat de comparaison on opérateur équivalent.
+            Si la relation était '<', alors A = $FF et Carry 1, au final, A = 1
+            Si la relation était '=', alors A = $00 et Carry 0, au final, A = 2
+            Si la relation était '>', alors A = $01 et Carry 0, au final, A = 4
+$29cb       Dans B, récupère l'opérateur de la comparaison en court.
+$29cc       Vérifie ce que la relation calculée a en commun avec l'opération demandée.
+$29cd-$29cf Si A était à 0 (pas de relation commune), alors le résultat est $00
+            Si A était différent de 0 (une relation commune au moins), alors le résultat est $FF
+$29d0       A devient le résultat de la fonction en étant transféré dans FAC.
 
 $29d3       [str_to_not]
             Charge la priorité pour l'opérateur NOT
