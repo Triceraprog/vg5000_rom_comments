@@ -41,7 +41,7 @@ $0010       [chget]
             Retour:
             - A = code caractère
             - Carry = 1 si c'est un chiffre, 0 sinon
-            - Z = 1 si c'est une fin de ligne (A était égal à 0)
+            - Z = 1 si c'est une fin de ligne (A était égal à 0) ou si le caractère était ':' (fin d'instruction)
 $0010-$0011 A prend la valeur pointée par HL incrémenté de 1
 $0012       %CHAR
             ':' est le premier caractère après '9'
@@ -6061,80 +6061,66 @@ $2a13       [inst_def]
             
             MS_BASIC=DEF
 $2a13       Vérifie que l'on a affaire à une fonction (et définie l'entrée)
-$2a16       Cette instruction ne peut pas être appelé en direct
-$2a19       ---
-$2a1c       Prépare la valeur de retour pour aller à la prochaine instruction
-$2a1d       Sauve l'adresse de la fonction (de son pointeur)
-$2a1e       DE <- 0
-$2a21       ---
-$2a22       Caractère suivant est '(' ?
-$2a24       Saute si non (il n'y a pas de paramètre, légal pour ce BASIC, même si l'appel doit quand même spécifier un argument...)
-$2a26       Saute le caractère '('
-$2a27       Récupère la variable en paramètre. check_fn a mis $80 dans subflg
-$2a2a       Sauvegarde du pointeur d'exécution
-$2a2b       HL <- pointeur sur la variable paramètre
-$2a2c       ---
-$2a2d       ---
-$2a2e       ---
-$2a2f       DE <- nom de la variable paramètre
-$2a30       HL <- pointeur d'exécution
-$2a31       Vérification du type numérique (pas de fonction alphanum)
-$2a34       ---
-$2a35       Le caractère suivant est bien ')' ?
+$2a16       Cette instruction ne peut pas être appelée en direct.
+$2a19-$2a1c Prépare la valeur de retour, qui amènera à la prochaine instruction.
+$2a1d       Sauve l'adresse de l'identifiant de fonction.
+$2a1e       DE = 0
+$2a21-$2a24 Branche si le caractère suivant n'est pas une parenthèse ouvrant.
+            Dans cette version du BASIC, il n'est pas obligatoire de spécifier une variable locale.
+            Dans ce cas, la variable sera prise dans le contexte global.
+$2a26       Lit le caractère et avant d'un octet.
+$2a27       Récupère l'identifiant (un nom de variable) en paramètre de la définition.
+            `(subflg)` contient toujours $80, ce qui interdit l'utilisation d'un nom de tableau.
+$2a2a       Sauve le pointeur vers le texte BASIC.
+$2a2b       HL = pointeur sur la variable paramètre
+$2a2c-$2a2f Lecture du nom du paramètre dans DE.
+$2a30       Restaure le pointeur vers le texte BASIC.
+$2a31       Vérifie que le paramètre est bien numérique.
+$2a34       Le caractère suivant doit être une parenthèse fermante.
+$2a35       %DATASKIP
 $2a36       [no_param]
-$2a37       Le caractère suivant est bien '=' ?
-$2a38       ---
-$2a39       BC <- HL (pointeur d'exec)
-$2a3a       HL <- pointeur de fonction, Stack -> pointeur d'exécution
-$2a3b       ---
-$2a3c       ---
-$2a3d       Le pointeur de fonction reçoit l'adresse du pointeur d'exécution au niveau de la fonction
-$2a3e       DE (nom de la variable) sera mis à la suite, avant un RET
+$2a36       Le caractère suivant doit être le token pour `=`.
+$2a37       %DATASKIP
+$2a38-$2a39 Copie le pointeur de texte BASIC dans BC.
+$2a3a       HL = pointeur vers le descripteur de la fonction, Haut de la pile = pointeur sur le texte BASIC.
+$2a3b-$2a3d Les deux premiers octets du descripteur de fonction pointent vers le texte BASIC décrivant la fonction.
+$2a3e       Les deux octets suivant prendront la valeur de DE, c'est-à-dire le nom du paramètre.
 
 $2a41       [inst_fn]
+            Fonction BASIC : FN
+
+            Exécute une fonction définie par `DEF FN`.
+
+            Note : le contexte local de la fonction est traité dans la récupération de la variable.
+            Un test y est fait pour vérifier si le nom de la variable est égal à celui dans `(prmnam)`.
+            Si c'est le cas, alors DE est placé sur `(prmval)`.
+
             Pour traiter la valeur du paramètre, c'est dans la récupération de la variable qu'un test
-            est fait entre le nom de la variable en cours en prmnam. Si c'est égal, alors DE est
-            placé sur prmval
-$2a41       Vérification que l'on a bien une fonction numérique (DE prend le pointeur vers la variable)
-$2a44       Sauvegarde du pointeur de fonction
-$2a45       Évaluation du paramètre de la fonction
-$2a48       Qui doit être numérique
-$2a4b       HL <- Pointeur sur la fonction (qui contient en premier un pointeur vers le code de la fonction)
-$2a4c       ---
-$2a4d       ---
-$2a4e       ---
-$2a4f       DE <- Pointeur sur la chaîne de code de la fonction
-$2a50       ---
-$2a51       ---
-$2a52       Saute si le pointeur était NUL, et donc la fonction non définie
-$2a55       ---
-$2a56       ---
-$2a57       ---
-$2a58       HL <- Second paramètre de la variable, qui contient l'emplacement de la variable de fonction
-$2a59       Que l'on met sur la pile
-$2a5a       ---
-$2a5d       Sauvegarde du contenu du nom de paramètre sur la pile et échange avec l'actuel (les fonctions peuvent appeler de fonctions ???)
-$2a5e       ---
-$2a61       ---
-$2a64       ---
-$2a65       ---
-$2a68       Sauvegarde du contenu actuel de la valeur du paramètre
-$2a69       ---
-$2a6c       Sauve DE (code de la fonction)
-$2a6d       Copy FP dans ce qui est pointé par HL (valeur paramètre)
-$2a70       Pointeur sur le code de la fonction dans HL
-$2a71       Évaluation de la fonction (qui est une expression numérique)
-$2a74       Recalage du pointeur de parsing
-$2a75       ---
-$2a76       ---
-$2a79       ---
-$2a7a       ---
-$2a7d       ---
-$2a7e       ---
-$2a81       ---
-$2a82       Remise en place de la valeur et du nom du paramètre précédent
-$2a85       ---
-$2a86       ---
+            est fait entre le nom de la variable en cours en prmnam. Si c'est égal, la valeur prise
+            l'est depuis `(prmval)`.
+
+$2a41       Vérifie que ce qui suit est le nom de fonction.
+$2a44       Sauve le pointeur vers le descripteur de fonction.
+$2a45       Évaluation de l'expression argument de la fonction.
+$2a48       Cette expression doit être numérique.
+$2a4b       HL = pointeur sur le descripteur de la fonction, Haut de la pile = pointeur vers le texte BASIC.
+$2a4c-$2a4f DE pointe vers le texte BASIC au niveau de la définition de la fonction (les deux premiers octets du descripteur).
+$2a50-$2a52 Si le pointeur était nul, cela signifie que la fonction n'était pas définie. Branche vers une erreur.
+$2a55-$2a58 HL = nom de la variable paramètre de la fonction.
+$2a59       Le nom de la variable paramètre de la fonction est mise sur la pile.
+$2a5a-$2a5d Sauve le nom actuellement dans `(prmnam)` sur la pile, afin de permettre des sous appels de fonction.
+$2a5e       Place le nom du paramètre de la fonction dans `(prmnam)`.
+$2a61-$2a68 Sauve la valeur actuellement dans `(prmval)`
+$2a69       HL pointe sur `prmval`.
+$2a6c       Sauve DE, le pointeur vers le texte BASIC de la fonction.
+$2a6d       Sauve FAC, qui contient l'évaluation de l'argument de la fonction, dans `(prmval)`.
+$2a70       Restaure le pointeur vers le texte BASIC vers HL.
+$2a71       Lance l'évaluation du texte BASIC au niveau de la définition de la fonction.
+$2a74       Recale le pointeur vers le texte BASIC de la fonction.
+$2a75-$2a76 Branche vers une erreur de syntaxe si le dernier caractère lu n'est pas une fin de ligne ou d'instruction.
+$2a79-$2a7e Replace l'ancienne valeur de paramètre de fonction dans `(prmval)`.
+$2a81-$2a82 Replace l'ancien nom de paramètre de fonction dans `(prmnam)`.
+$2a85       Restaure le pointeur vers le texte BASIC.
 
 $2a87       [ill_direct]
             Vérifie que la ligne courante n'est pas -1.
@@ -6149,15 +6135,17 @@ $2a8e       ---
 $2a8f       ---
 $2a90       ---
 $2a92       Sors avec "Illegal direct"
+
 $2a95       [check_fn]
-            Vérifie que ce qui suite est une fonction (au sens DEFFN)
-$2a96       Token pour FN
-$2a97       Signal à la recherche de variable que les tableaux sont interdits dans ce contexte
-$2a99       ---
+$2a95       Vérifie que l'octet suivant pointé par HL est le token pour `FN`.
+$2a96       %DATASKIP
+$2a97-$2a99 Signale à la recherche d'identifiant que les tableaux sont interdits dans ce contexte.
 $2a9c       A contient le caractère suivant avec le bit 7 à 1
-$2a9d       Qui est mis dans C
-$2a9e       ---
-$2aa1       Vérification du type numérique (qui se chargera du RET)
+$2a9d       Les identifiant de fonctions ont leur premier octet avec le bit de poids fort à 1 en interne.
+            Prépare la lecture de ce nom en lisant le premier caractère et profite que A soit à $80.
+$2a9e       Récupère l'entrée associée.
+$2aa1       Les fonctions ne peuvent être que numériques.
+
 $2aa4       [preget_byte]
 
 $2aa5       [getbyt_impl]
