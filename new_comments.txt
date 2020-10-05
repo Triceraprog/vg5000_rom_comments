@@ -6123,20 +6123,26 @@ $2a81-$2a82 Replace l'ancien nom de paramètre de fonction dans `(prmnam)`.
 $2a85       Restaure le pointeur vers le texte BASIC.
 
 $2a87       [ill_direct]
-            Vérifie que la ligne courante n'est pas -1.
-            Si c'est le cas, lance l'erreur correspondante.
+            Routine appelée pour vérifier qu'une instruction n'a pas été appelée en mode direct.
+
+            Lance une erreur dans le cas contraire.
             MS_BASIC=IDTEST
-$2a87       ---
-$2a88       ---
-$2a8b       ---
-$2a8c       ---
-$2a8d       ---
-$2a8e       ---
-$2a8f       ---
-$2a90       ---
-$2a92       Sors avec "Illegal direct"
+$2a87       Sauve le pointeur vers le texte BASIC.
+$2a88-$2a8b HL = numéro de la ligne courante + 1
+$2a8c-$2a8d A = 0 si le numéro de la ligne courante était $ffff (valeur en mode direct)
+$2a8e       Restaure le pointeur vers le texte BASIC.
+$2a8f       Retour si la ligne courante n'était pas $ffff.
+$2a90-$2a92 Branche sur une erreur "Illegal direct" dans le cas contraire.
 
 $2a95       [check_fn]
+            Vérifie que ce qui est pointé par HL est un identifiant valide de nom de fonction utilisateur.
+
+            Entrée :
+            - HL pointe vers le texte BASIC au niveau du token `FN`
+
+            Sortie :
+            - DE pointe vers le descripteur de fonction. Si la fonction n'existait pas, l'entrée est vide.
+
 $2a95       Vérifie que l'octet suivant pointé par HL est le token pour `FN`.
 $2a96       %DATASKIP
 $2a97-$2a99 Signale à la recherche d'identifiant que les tableaux sont interdits dans ce contexte.
@@ -6147,53 +6153,62 @@ $2a9e       Récupère l'entrée associée.
 $2aa1       Les fonctions ne peuvent être que numériques.
 
 $2aa4       [preget_byte]
+            Appelle la fonction de récupèration d'un entier depuis le pointeur vers le texte BASIC avec une lecture préalable d'un octet.
+
+            Appelé par `SPC(` et `TAB(` dans une instruction `PRINT` afin d'ignorer la parenthèse ouvrante.
 
 $2aa5       [getbyt_impl]
-            Récupère un entier sur un octet depuis le buffer d'entrée.
+            Évalue une expression depuis un buffer texte BASIC et en retourne une valeur entière sur 8 bits.
 
-            Provoque une erreur si l'entrée est trop grand.
+            Provoque une erreur si l'entrée est trop grande.
 
             Entrée :
-            - HL pointe sur la zone de texte
+            - HL pointe sur la zone de texte BASIC
+
             Sortie :
-            - A contient l'entrée
-            - Z est à 1 si le caractère suivant est nul (???)
-$2aa5       ---
+            - A contient l'évaluation de l'expression
+            - Les drapeaux sont placés en fonction de la lecture du caractère suivant l'expression.
+
+            MS_BASIC=GETINT
+
+$2aa5       Évalue l'expression pointée par HL
+
 $2aa8       [to_int]
-$2aab       ---
-$2aac       ---
-$2aad       ---
-$2ab0       ---
-$2ab1       ---
-$2ab2       ---
-$2ab3       ---
+$2aa8       Récupère l'expression en tant qu'entier positif dans DE (a provoqué une erreur si l'expression était négative).
+$2aab-$2aad Si D n'est pas nul, c'est que le nombre est trop grand. Branche vers une erreur.
+$2ab0-$2ab1 Sinon, relis le dernier caractère de l'expression.
+$2ab2       Place le résultat dans A.
 
 $2ab4       [inst_peek]
             %CODE
-            Fonction : Peek
-            Récupère le paramètre entier, déférence l'adresse dans A et en fait la valeur de retour
-$2ab4       ---
-$2ab7       ---
-$2ab8       ---
+            Fonction BASIC : PEEK
+
+$2ab4       Récupère l'expression en argument de PEEK sous forme d'entier sur 16 bits dans DE.
+$2ab7       Lit l'octet à l'adresse correspondante.
+$2ab8       Retourne A comme résultat de la fonction.
 
 $2abb       [inst_poke]
             %CODE
-            Instruction : Poke
-$2abb       ---
-$2abe       Sauve la partie entière du paramètre (assuré d'être entier)
-$2abf       ---
-$2ac0       Vérifie la présence de ','
-$2ac1       Récupère un octet (dans A)
-$2ac4       ---
-$2ac5       Met A à l'adresse DE
-$2ac6       ---
+            Instruction BASIC : POKE
+$2abb       Récupère dans DE le premier argument de POKE, qui est l'adresse.
+$2abe       Sauve l'adresse.
+$2abf       Vérifie que ce qui suit est une virgule.
+$2ac0       %DATASKIP
+$2ac1       Récupère dans A le second argument de POKE, qui est la valeur.
+$2ac4       Restaure l'adresse.
+$2ac5       Place A dans l'adresse spécifiée.
+
 $2ac7       [why]
-            Pourquoi ???
-$2acb       [get_poke_addr]
-$2ace       ---
-$2acf       ---
-$2ad2       ---
-$2ad3       ---
+            Ici, il y a 4 octets nuls qui semblent ne servir à rien.
+
+$2acb       [poke_addr]
+            Routine de récupération du premier argument pour `POKE`.
+            Cette routine est-elle séparée de la routine pour l'instruction pour une raison inconnue.
+
+$2acb       Lit l'expression pointée par HL
+$2ace       Sauve le pointeur vers le texte BASIC.
+$2acf       Récupère la valeur sous forme entière positive dans DE.
+$2ad2       Restaure le pointeur vers le texte BASIC.
 
 $2ad4       [acq_key]
             $SECTION(te)
@@ -6208,6 +6223,7 @@ $2ad4       [acq_key]
             - A est à 0 si aucune touche n'a été appuyée ou si elle a été traitée.
             - Quelques touches spéciales n'ont pas l'air d'être traitées et sont alors renvoyées dans A. Lesquelles ???
 
+            == DEBUT DE SECTION TE (TEXT EDITOR) ==
 
 $2ad4-$2ad6 Sauve BC, DE et HL sur la pile.
 $2ad7-$2adc Branche si la ligne n'est pas entrée depuis le BASIC. (depuis un INPUT ???)
