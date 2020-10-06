@@ -6273,69 +6273,62 @@ $2b2e       [key_acq_end]
 $2b2e-$2b31 Restaure les registres. D'où viennent les branchements directs ici ??? Toujours d'un traitement de touche ?
 
 $2b32       [bufferstart]
-            Fonction : lorsque le bit 1 de $4871 est à 1, arrive ici pour analyse
-            À l'air de se positionner sur le premier caractère interessant à décoder
-$2b32       Coordoonées de la ligne BASIC à décoder
-$2b35       A contient la ligne
-$2b36       Comparaison avec 24 (le nombre de lignes)
-$2b38       ---
-$2b3a       ---
-$2b3b       ---
-$2b3c       ---
-$2b3e       Lecture du caractère en colonne 0 de la ligne suivante
-$2b41       ---
-$2b42       ---
-$2b44       [ifabove24]
-$2b45       Comparaison de la colonne avec 40 (colonne max)
-$2b47       ---
-$2b49       [skip2B49]
-$2b4a       ---
-$2b4b       ---
-$2b4d       Comparaison de la colonne avec 40 (colonne max)
-$2b4f       ---
-$2b50       ---
-$2b52       [ifbelow40]
-$2b53       Stockage des nouvelles coordonnées (ajustées comment?)
-$2b56       ---
-$2b57       ---
-$2b5a       B contient le caractère aux coordonnées
-$2b5b       DE contient les coordoonées
-$2b5c       ---
-$2b5d       A contient le caractère aux coordonnées
-$2b5e       Not carry de quoi ?
-$2b60       ---
-$2b62       Si ce n'est pas un espace
+            Avant l'acquisition d'une touche de clavier, si une ligne a été validée, cette routine est exécutée.
+
+            À l'air de se positionner sur le premier caractère interessant à décoder ???
+$2b32       Coordoonées de la ligne BASIC à décoder. H contient la ligne à l'écran, L est à 0.
+$2b35       Copie du numéro de ligne dans A.
+$2b36-$2b38 Branche si le numéro de ligne est 24 ou plus (la dernière ligne de l'écran)
+$2b3a       Sauve les coordonnées de la ligne.
+$2b3b-$2b3e Lecture du caractère en colonne 0 de la ligne suivante
+$2b41       Restaure les coordonnées de la ligne.
+$2b42       Branche si le caractère lu était $84.
+$2b44       [if_line_24]
+$2b44-$2b47 Branche si la colonne est 40 ou plus (la colonne la plus à droite est 39)
+$2b49       [if_char_84]
+$2b49       Sauve les drapeaux ???
+$2b4a-$2b4d Branche si la colonne est 38 ou moins.
+$2b4f-$2b50 Coordonnées sur la ligne suivante, première colonne.
+
+$2b52       [if_less_39]
+$2b52       Avance d'une colonne (la colonne 0 n'est pas utilisée par l'éditeur)
+$2b53       Enregiste les nouvelles coordonnées.
+$2b56       Et les sauve sur la pile.
+$2b57-$2b5a B contient le caractère aux nouvelles coordonnées.
+$2b5b       DE contient les nouvelles coordoonées.
+$2b5c       Récupère les drapeaux de comparaison (de quoi ???)
+$2b5d       A contient le caractère lu aux coordonnées.
+$2b5e       Branche si quoi ???
+$2b60       %CHAR
+$2b60-$2b62 Branche si ce n'est pas un espace.
 $2b64       [loop2B64]
-$2b65       ---
-$2b66       ---
-$2b68       ---
-$2b6a       ---
-$2b6b       ---
-$2b6c       ---
-$2b6d       ---
-$2b6f       ---
-$2b71       ---
-$2b73       ---
-$2b75       [ifabove40]
-$2b78       ---
-$2b7a       ---
-$2b7d       ---
-$2b80       ---
-$2b82       ---
-$2b84       ---
-$2b86       ---
-$2b88       ---
-$2b8a       ---
+$2b64       Incrémente la colonne.
+$2b65       Place la colonne dans A.
+$2b66-$2b68 Branche si la colonne est 40 ou plus.
+$2b6a-$2b6b Positionne les coordonnées deux octets plus loin, donc sur le prochain caractère.
+$2b6d       %CHAR
+$2b6c-$2b6f Boucle si le caractère est un espace.
+$2b71       %CHAR
+$2b71       Sinon, on pointe sur un caractère qui n'est pas un espace. Place un espace dans A
+$2b73       Et continue vers ???
+
+$2b75       [if_col_40]
+$2b75-$2b7a Remet l'indicateur de ligne entrée en BASIC à 0 .
+$2b7d-$2b82 Branche si le bit 8 de `(entstt)` est à 1.
+$2b84       %CHAR
+$2b84-$2b86 Branche si `(entstt)` est un espace.
+$2b88       %CHAR
+$2b88-$2b8a Branche si le caractère est avant `0`.
+$2b8c       %CHAR
 $2b8c       ---
-$2b8e       ---
-$2b90       [skip2B90]
-$2b93       ---
-$2b95       ---
+$2b8e       Branche si le caractère est au-delà de '9'
+$2b90       [spc_or_dgt]
+$2b90-$2b95 Branche si la colonne du curseur actuelle est 1
 $2b97       [jump2B97]
 $2b9a       ---
 $2b9c       [skip2B9C]
 $2b9f       ---
-$2ba1       [skip2BA1]
+$2ba1       [not_digit]
 $2ba4       ---
 $2ba6       ---
 $2ba7       [acquired_cr]
@@ -6359,13 +6352,17 @@ $2bca       [skip2BCA]
 $2bcc       ---
 $2bce       ---
 $2bd0       [skip2BD0]
-$2bd3       [call2BD3]
-$2bd5       ---
-$2bd6       ---
-$2bd9       ---
-$2bda       ---
-$2bdd       ---
-$2bdf       ---
+
+$2bd3       [ret_to_cnt]
+            Retours chariots jusqu'à trouver $84 dans la première colonne.
+
+$2bd3-$2bd5 Envoie d'un retour à la ligne ($03 à la même effet que $0d ???)
+$2bd6       Charge les coordonnées du curseur dans HL
+$2bd9       Colonne précédente.
+$2bda       Récupère le caractère.
+$2bdd       Branche si le caractère est $84
+$2bdf       Sinon retour.
+
 $2be0       [ifcr]
             Récupération des coordonnées du curseur
 $2be3       [find_start_l]
