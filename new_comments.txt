@@ -6282,10 +6282,10 @@ $2b36-$2b38 Branche si le numéro de ligne est 24 ou plus (la dernière ligne de
 $2b3a       Sauve les coordonnées de la ligne.
 $2b3b-$2b3e Lecture du caractère en colonne 0 de la ligne suivante
 $2b41       Restaure les coordonnées de la ligne.
-$2b42       Branche si le caractère lu était $84.
+$2b42       Branche si le curseur sur une ligne logique continuée.
 $2b44       [if_line_24]
 $2b44-$2b47 Branche si la colonne est 40 ou plus (la colonne la plus à droite est 39)
-$2b49       [if_char_84]
+$2b49       [if_cnt_line]
 $2b49       Sauve les drapeaux ???
 $2b4a-$2b4d Branche si la colonne est 38 ou moins.
 $2b4f-$2b50 Coordonnées sur la ligne suivante, première colonne.
@@ -6314,130 +6314,147 @@ $2b73       Et continue vers ???
 
 $2b75       [if_col_40]
 $2b75-$2b7a Remet l'indicateur de ligne entrée en BASIC à 0 .
-$2b7d-$2b82 Branche si le bit 8 de `(entstt)` est à 1.
+$2b7d-$2b82 Branche si le bit 8 de `(entstt)` est à 1. ???
 $2b84       %CHAR
 $2b84-$2b86 Branche si `(entstt)` est un espace.
 $2b88       %CHAR
 $2b88-$2b8a Branche si le caractère est avant `0`.
 $2b8c       %CHAR
-$2b8c       ---
-$2b8e       Branche si le caractère est au-delà de '9'
+$2b8c-$2b8e Branche si le caractère est au-delà de '9'
+
 $2b90       [spc_or_dgt]
 $2b90-$2b95 Branche si la colonne du curseur actuelle est 1
-$2b97       [jump2B97]
-$2b9a       ---
-$2b9c       [skip2B9C]
-$2b9f       ---
-$2ba1       [not_digit]
-$2ba4       ---
-$2ba6       ---
-$2ba7       [acquired_cr]
-$2ba9       ---
-$2bac       [specialchars]
-$2bae       ---
-$2bb0       ---
-$2bb2       [skip2BB2]
-$2bb4       ---
-$2bb6       ---
-$2bb8       [skip2BB8]
-$2bba       ---
-$2bbc       ---
-$2bbe       [skip2BBE]
-$2bc0       ---
-$2bc2       ---
-$2bc4       [skip2BC4]
-$2bc6       ---
-$2bc8       ---
-$2bca       [skip2BCA]
-$2bcc       ---
-$2bce       ---
-$2bd0       [skip2BD0]
 
-$2bd3       [ret_to_cnt]
-            Retours chariots jusqu'à trouver $84 dans la première colonne.
+$2b97       [skp_logic_l]
+$2b97       Descend jusqu'après le bloc de ligne logique.
+$2b9a       Renvoie avoir acquis un retour chariot
+
+$2b9c       [if_col_1]
+$2b9c       Redirige ves une insertion de ligne puis acquisition d'un retour chariot.
+
+$2b9f       Deux octets inutilisés.
+
+$2ba1       [not_digit]
+$2ba1       Place le curseur après le bloc de ligne logique.
+$2ba4-$2ba6 Émission d'une autorisation de visualisation ???
+
+$2ba7       [acquired_cr]
+$2ba7-$2ba9 Retour en ayant acquis un retour chariot.
+
+$2bac       [special_acq]
+            Traitement des caractères spéciaux lors de la validation d'une ligne. ???
+
+$2bac-$2bae Branche si le caractère n'est pas $ff.
+$2bb0       Sinon, transforme $ff en $10.
+
+$2bb2       [not_ff]
+$2bb2-$2bb4 Branche si le caractère n'est pas $0d.
+$2bb6       Sinon, transforme $0d en $11.
+
+$2bb8       [not_0d]
+$2bb8-$2bba Branche si le caractère n'est pas $08.
+$2bbc       Sinon, transforme $08 en $13.
+
+$2bbe       [not_08]
+$2bbe-$2bc0 Branche si le caractère n'est pas $04.
+$2bc2       Sinon, transforme $04 en $18.
+
+$2bc4       [not_04]
+$2bc4-$2bc6 Branche si le caractère n'est pas $1f.
+$2bc8       Sinon, transforme $1f en $1a.
+
+$2bca       [not_1f]
+$2bca-$2bcc Branche si le caractère n'est pas $03.
+$2bce       Sinon, transforme $03 en $1c.
+
+$2bd0       [not_03]
+$2bd0       Retour de l'acquisition d'une touche.
+
+$2bd3       [skip_block]
+            Descend le curseur jusqu'à la première ligne qui ne contient pas de continuité ($84) dans la colonne 0.
+
+            Est utilisé pour amener le curseur après une ligne logique sur plusieurs lignes physiques, après ce bloc.
 
 $2bd3-$2bd5 Envoie d'un retour à la ligne ($03 à la même effet que $0d ???)
 $2bd6       Charge les coordonnées du curseur dans HL
 $2bd9       Colonne précédente.
 $2bda       Récupère le caractère.
-$2bdd       Branche si le caractère est $84
+$2bdd       Boucle si le caractère est $84
 $2bdf       Sinon retour.
 
 $2be0       [ifcr]
-            Récupération des coordonnées du curseur
+$2be0       Récupération des coordonnées du curseur dans HL.
+
 $2be3       [find_start_l]
-            Décrémentation de X
-$2be4       Sauvegarde des coordonnées modifiées du curseur
-$2be5       ---
-$2be8       Récupération des coordonnées
-$2be9       Comparaison à $80, la caractère de début de ligne
-$2beb       ---
-$2bed       ---
-$2bef       ---
-$2bf1       Recherche du caractère de continuation ? ($B4)
-$2bf3       Boucle sur la recherche
-$2bf5       [linestart]
-$2bf6       ---
-$2bf7       Si on n'était pas sur la colonne 0, c'était une fausse alerte et non un vrai début de ligne, on continue à chercher.
-$2bf9       ---
-$2bfa       ---
-$2bfd       ---
-$2bfe       Si on n'est pas en mode auto, on continue le traitement de la ligne.
-$2c00       ---
-$2c01       Sinon, le mode AUTO est annulé
-$2c04       L'adresse du curseur mis à jour
-$2c07       ---
-$2c09       Le marqueur $84 (re)mis? en place
-$2c0a       Et la touche acquise sera validée comme étant $0D (sans traitement)
+$2be3       Décrémentation le numéro de colonne.
+$2be4       Sauve les coordonnées ainsi modifiées.
+$2be5       Lit le caractère à cet endroit.
+$2be8       Restaure les coordonnées modifiées.
+$2be9-$2beb Branche si le caractère trouvé est $80, le début de ligne logique.
+$2bed-$2bf1 Branche si le caractère n'est pas un chiffre ou ???
+$2bf3       Boucle sur la recherche de début de ligne logique.
+
+$2bf5       [line_start]
+            Le curseur est positionné sur le caractère de continuité de ligne.
+$2bf5-$2bf7 Si on n'était pas sur la colonne 0, c'était une fausse alerte et non un vrai début de ligne.
+            Continue à chercher.
+$2bf9       Sinon, se place sur la colonne 1 de la première ligne de la ligne logique.
+$2bfa-$2bfe Branche si le mode `AUTO` n'est pas en cours.
+$2c00-$2c01 Sinon, le mode `AUTO` est annulé.
+$2c04       L'adresse du curseur mis à jour.
+$2c07-$2c09 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne courante)
+$2c0a       Et la touche acquise sera validée comme étant un retour chariot ($0d).
+
 $2c0d       [find_cont]
-            Traitement lors d'une continuation trouvée au début de la ligne
+            Traitement lors d'une continuation trouvée au début de la ligne ???
+$2c0d       Place les coordonnées modifiées du curseur sur la colonne 1.
 $2c0f       [find_start]
-            Remonte de ligne en ligne jusqu'au premier marqueur de non continuité (et donc à la première ligne).
-$2c12       ---
-$2c13       ---
-$2c14       Peek du caractère en colonne 0
-$2c17       ---
-$2c18       Test sur $84, qui est le marquage de continuité des lignes. Saut lorsqu'on ne le trouve plus. On est en tout début du ligne.
-$2c1a       ---
-$2c1b       Saute si on est arrivé en haut de l'écran (H est passé à $FF)
-$2c1e       Boucle sur la remontée des Y
+$2c0f       Enregistre la coordonnées modifiée comme la coordonnées actuelle de ligne envoyée au BASIC.
+$2c12       Sauve ces coordonnées sur la pile.
+$2c13-$2c14 Lecture du caractère en colonne 0 de la ligne courante.
+$2c17-$2c18 Branche si ce caractère n'est pas le marqueur de continuité de ligne logique ($84).
+$2c1a       Monte les coordonnées d'une ligne.
+$2c1b       Branche si la ligne est au-dessus de la ligne 0.
+$2c1e       Boucle pour trouver le début de la ligne logique, ou bien le début de l'écran.
+
 $2c20       [found_start]
-            Coordonnées placées en début de la première ligne
-$2c23       Test de INPUT activé
-$2c25       Traitement spécifique si le monitor était en train de traiter un INPUT
-$2c27       ---
-$2c28       ---
-$2c29       ---
-$2c2a       ---
-$2c2b       ---
-$2c2c       Recupération des coordonnées de début d'entrée
-$2c2f       ---
-$2c30       ---
-$2c33       DE contient les coordonnées de début d'entrée. HL l'adresse mémoire
-$2c34       [loop2C34]
-$2c35       Comparaison de X avec la colonne 40
-$2c37       ---
-$2c39       ---
-$2c3a       ---
-$2c3b       ---
-$2c3c       ---
-$2c3d       ---
-$2c3f       ---
-$2c41       ---
-$2c45       ---
-$2c47       [skip2C47]
-$2c49       ---
-$2c4b       [ifinput]
-$2c4e       [skip2C4E]
-            Enregistrement du premier caractère de la ligne ($80 en mode direct)
-$2c51       ---
-$2c54       ---
-$2c56       Set du flag pour "ligne entrée en BASIC"
-$2c59       ---
-$2c5c       ---
-$2c5d       Placement des coordonnées sur le caractère en colonne précédente (donc 0?)
+            Les coordonnées du curseur dans `(retadr)` sont sur le début logique d'une ligne.
+
+$2c20-$2c25 Branche si la commande `INPUT` n'est pas en train d'être exécutée.
+$2c27-$2c2b Quelques `NOP`s pour une raison inconnue (patch ???)
+$2c2c       Recupération des coordonnées du début de ligne logique.
+$2c2f       Sauve ces coordonnées sur la pile.
+$2c30       Calcule dans HL la correspondance en buffer écran du BASIC.
+$2c33       DE = coordonnées de début de ligne logique.
+
+$2c34       [search_qm]
+$2c34-$2c37 Branche si la colonne du curseur est 40 ou plus.
+            `(retadr)` contient les coordonnées du point d'interrogation le plus à droite sur la ligne s'il y en a un.
+$2c39       Une colonne vers la droite.
+$2c3a       Lecture du buffer d'écran pointé par HL.
+$2c3b-$2c3c Place HL deux octets plus loin (caractère suivant).
+$2c3d       %CHAR
+$2c3d-$2c3f Boucle si le caractère lu n'est pas un point d'interrogation.
+$2c41       Les coordonnées pointent vers un point d'interrogation.
+$2c45       Continue à chercher les points d'interrogation.
+
+$2c47       [found_qm]
+$2c47       %CHAR
+            Considère que le caractère lu est `0`.
+$2c49       Continue sur le traitement du premier caratère de l'entrée.
+
+$2c4b       [not_input]
+$2c4b       Lecture du caratère aux coordonnées curseur actuelle.
+
+$2c4e       [record_char]
+$2c4e       Enregistre le premier caractère lu de la ligne logique (ou début d'`INPUT`) dans `(entstt)`.
+$2c51-$2c56 Met le drapeau `ligne entrée en BASIC` à 1.
+$2c59-$2c5d Placement des coordonnées sur le caractère en colonne précédente.
+            Donc 0 pour une ligne logique, et avant l'entrée en cas d'`INPUT` (???)
+
 $2c60       [screenstart]
-            La fonction sortira avec pour valeur acquise NUL.
+$2c60       La fonction sortira avec pour valeur acquise `NUL`. Le traitement a été effectué.
+
 $2c63       [iftab]
 $2c66       ---
 $2c67       ---
@@ -9294,13 +9311,13 @@ $3e07       [acq_key_6]
 $3e07       Trampoline qui permet d'utiliser le `JR` conditionnel pour un saut long... Pourquoi ne pas utiliser un `JP` conditionnel ???
 $3e0a       [acq_key_5]
 $3e0a-$3e0c Branche si la touche appuyée n'est pas Effacement de l'écran (touche EFFE, valeur non ASCII)
-$3e0e       ---
-$3e11       [jump3E11]
-$3e14       ---
-$3e16       ---
-$3e19       ---
-$3e1b       ---
-$3e1c       ---
+$3e0e       Sinon, branche sur le traitement de la touche `EFFE`.
+
+$3e11       [insert_n_cr]
+$3e11-$3e16 Branche si on n'est pas dans un `INPUT`
+$3e19-$3e1b Sinon, émet une insertion de ligne.
+$3e1c       Puis valide la ligne.
+
 $3e1f       [jump3E1F]
 $3e22       ---
 $3e25       ---
