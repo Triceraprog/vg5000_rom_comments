@@ -6245,7 +6245,7 @@ $2b04       Il s'agit de code patché par rapport à la ROM 1.0, on branche donc
 $2b07       [acq_key_3]
             Suite du traitement de l'appuie de touche, si la boucle BASIC est active.
 
-$2b07-$2b09 Branche pour traiter la touche Tab.
+$2b07-$2b09 Branche pour traiter la touche Déplacement vers le haut.
 $2b0c-$2b0e Branche pour traiter la touche Saut de ligne.
 $2b11-$2b13 Branche pour traiter la touche Saut de page.
 $2b16       Poursuit le traitement de l'acquisition d'une touche appuyée.
@@ -6455,21 +6455,22 @@ $2c59-$2c5d Placement des coordonnées sur le caractère en colonne précédente
 $2c60       [screenstart]
 $2c60       La fonction sortira avec pour valeur acquise `NUL`. Le traitement a été effectué.
 
-$2c63       [iftab]
-$2c66       ---
-$2c67       ---
-$2c69       ---
-$2c6c       ---
-$2c6e       ---
-$2c71       ---
-$2c75       ---
-$2c78       ---
-$2c7c       ---
-$2c7d       ---
-$2c7e       ---
-$2c81       ---
-$2c84       [skip2C84]
-$2c86       ---
+$2c63       [if_up]
+            Traitement du déplacement vers le haut lors de l'aquisition d'une touche clavier.
+
+            En mode listing dynamique, met à jour le listing vers la ligne précédente si elle existe.
+
+$2c63-$2c67 Branche si le curseur n'est pas sur la ligne 0.
+$2c69-$2c6e Branche si on est dans un traitement de `INPUT`, la touche est ignorée.
+$2c71       Numéro de ligne en haut décrant lors d'une listing interactif.
+$2c75       Recherche de cette ligne.
+$2c78       Ligne précédente dans BC.
+$2c7c-$2c7e Ignore la touche s'il n'y a pas de ligne précédente.
+$2c81       Sinon, revient d'une ligne en arrière dans le listing dynamique.
+
+$2c84       [do_up]
+$2c84-$2c86 Pour la ligne 0, ne traite pas le déplacement vers le haut et délègue à `outdo`.
+
 $2c89       [iflinef]
 $2c8c       ---
 $2c8e       ---
@@ -6489,29 +6490,29 @@ $2cb2       ---
 $2cb4       ---
 $2cb7       ---
 $2cb8       ---
-$2cba       [jump2CBA]
-$2cbb       ---
-$2cbc       ---
-$2cbd       ---
-$2cbe       ---
-$2cbf       ---
-$2cc0       ---
-$2cc1       ---
-$2cc5       ---
-$2cc6       ---
-$2cc9       ---
+
+$2cba       [update_list]
+            Met à jour le listing dynamique à partir de la ligne pointée par BC.
+
+            Entrée :
+            - BC pointe sur une ligne du chaînage de listing BASIC
+$2cba-$2cbb BC pointe vers le numéro de ligne.
+$2cbc-$2cc0 DE = numéro de la ligne.
+$2cc1       Mise à jour du numéro de ligne de la première ligne du listing à l'écran.
+$2cc5       Préparation de drapeaux , pourquoi ???
+$2cc6       HL = coordonnées du curseur.
+$2cc9       Sauve les coordonnées du curseur.
+
 $2cca       [skip2CCA]
-$2ccb       ---
-$2ccd       ---
-$2cd0       ---
-$2cd4       ---
-$2cd8       ---
-$2cdb       ---
-$2cde       ---
-$2ce1       ---
-$2ce5       ---
-$2ce8       ---
-$2ce9       ---
+$2cca       Sauve A et les drapeaux sur la pile.
+$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et caractère de continuation lors d'un passage à la ligne (??? pour la continuation)
+$2cd0       Délai de rafraichissement de l'écran à $40, pour avoir le temps de mettre à jour tout le listing.
+$2cd4       `(attcar)` à 0.
+$2cd8-$2cdb Place le curseur en colonne 0, ligne 1
+$2cde       Efface le buffer d'écran avec les attributs courant.
+$2ce1-$2ce5 Recherche la ligne du listing à afficher en haut de l'écran.
+$2ce8-$2ce9 HL pointe vers la ligne demandée.
+
 $2cea       [loop2CEA]
 $2ced       ---
 $2cef       ---
