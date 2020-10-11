@@ -681,7 +681,7 @@ $020c       Avance le pointeur de l'écran.
 $020d       Met dans le second octet de la paire caractère/attribut les attributs de couleurs.
 $020e       Avance le pointeur de l'écran.
 $020f       Sauve le pointeur de l'écran dans DE.
-$0210-$0213 Désactive la continuation de ligne (expliquer le fonctionnement de la continuation ailleurs ???)
+$0210-$0213 Désactive la continuité de ligne (expliquer le fonctionnement de la continuité ailleurs ???)
 $0215       Récupère les coordonnées du curseur.
 $0216-$0219 Branche si la colonne est inférieure à 39
 $021b       Sinon ramène le curseur à la colonne 0.
@@ -697,9 +697,9 @@ $0239       Restaure les coordonnées.
 $023a       Demande un rafraichissement de l'écran à la prochaine interruption.
 $023e       Charge DE avec l'adresse du premier octet de la dernière ligne de l'écran.
 $0241       [line_ok]
-$0241-$0246 Branche si le caractère de continuation n'est pas requis par le registre.
-$0248-$024a Réactive la continuation.
-$024d-$024f Inscrit le caractère de continuation ($84) au début de la dernière ligne.
+$0241-$0246 Branche si le caractère de continuité n'est pas requis par le registre.
+$0248-$024a Réactive la continuité.
+$024d-$024f Inscrit le caractère de continuité ($84) au début de la dernière ligne.
 $0250       [delim_end]
 $0250       Incrémente le numéro de colonne.
 $0251       Replace les nouvelles coordonnées dans le registre.
@@ -4664,6 +4664,7 @@ $2347       [line_search]
             Sorties :
             - `(prelin)` contient le pointeur vers la ligne précédente à celle recherchée ou 0 s'il n'existe pas de ligne précédente.
             - Carry à 1 si la ligne a été trouvée, 0 dans le cas contraire.
+            - Z à 0 si la fin du listing est atteinte ???
             - BC pointe vers les données de la ligne cherchée. Sur les données de la ligne qui a dépassé sinon.
             - HL pointe vers les données de la ligne suivante si la ligne est trouvée. Contient le numéro de ligne qui a dépassé sinon.
             - DE contient toujours le numéro de la ligne BASIC à chercher.
@@ -4672,7 +4673,7 @@ $2347       [line_search]
             En sortie, si Carry Flag est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
             Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché. HL contient la ligne suivante à celle pointée par BC.
             (prelin) contient toujours le pointeur vers la ligne cherchée précédemment.
-            
+
             MS_BASIC=SRCHLN
 $2347       Initialise BC à 0.
 $234a       HL pointe vers la première adresse du listing BASIC.
@@ -6406,7 +6407,7 @@ $2c07-$2c09 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne couran
 $2c0a       Et la touche acquise sera validée comme étant un retour chariot ($0d).
 
 $2c0d       [find_cont]
-            Traitement lors d'une continuation trouvée au début de la ligne ???
+            Traitement lors d'une continuité trouvée au début de la ligne ???
 $2c0d       Place les coordonnées modifiées du curseur sur la colonne 1.
 $2c0f       [find_start]
 $2c0f       Enregistre la coordonnées modifiée comme la coordonnées actuelle de ligne envoyée au BASIC.
@@ -6462,34 +6463,34 @@ $2c63       [if_up]
 
 $2c63-$2c67 Branche si le curseur n'est pas sur la ligne 0.
 $2c69-$2c6e Branche si on est dans un traitement de `INPUT`, la touche est ignorée.
-$2c71       Numéro de ligne en haut décrant lors d'une listing interactif.
+$2c71       Numéro de ligne en haut de l'écran lors d'une listing interactif.
 $2c75       Recherche de cette ligne.
 $2c78       Ligne précédente dans BC.
 $2c7c-$2c7e Ignore la touche s'il n'y a pas de ligne précédente.
 $2c81       Sinon, revient d'une ligne en arrière dans le listing dynamique.
 
 $2c84       [do_up]
-$2c84-$2c86 Pour la ligne 0, ne traite pas le déplacement vers le haut et délègue à `outdo`.
+$2c84-$2c86 Pour les lignes supérieures à 0, ne traite pas le déplacement vers le haut et délègue à `outdo`.
 
 $2c89       [iflinef]
-$2c8c       ---
-$2c8e       ---
-$2c91       ---
-$2c94       ---
-$2c96       ---
-$2c99       ---
-$2c9d       ---
-$2c9e       ---
-$2ca1       ---
-$2ca4       ---
-$2ca7       [jump2CA7]
-$2caa       [jump2CAA]
-$2cac       ---
+$2c89-$2c8e Branche si la ligne du curseur est inférieure à 24.
+$2c91-$2c96 Branche si on est dans un traitement de `INPUT`, la touche est ignorée.
+$2c99       Numéro de ligne en haut de l'écran lors d'une listing interactif.
+$2c9d       Se positionne sur le numéro suivant (qu'il existe ou non).
+$2c9e       Recherche cette ligne.
+$2ca1       Branche si une ligne avec ce numéro a été trouvée.
+$2ca4       Sinon, il n'y a pas de ligne avec ce numéro, ni plus loin. La touche est ignorée.
+$2ca7       [list_down]
+$2ca7       Une ligne a été trouvée, mise à jour du listing dynamique.
+
+$2caa       [do_down]
+$2caa-$2cac Pour les lignes inférieures à 24, ne traite pas le déplacement vers le bas et délègue le `line feed` à `outdo`.
+
 $2caf       [ifformf]
-$2cb2       ---
-$2cb4       ---
-$2cb7       ---
-$2cb8       ---
+            Saut de page, ou bien plutôt `HOME` ???
+$2caf-$2cb4 Ignore la touche si on est dans un traitement de `INPUT` (laquelle du coup ???).
+$2cb7       Place le Carry à 1 pour la mise à jour de la liste dynamique. (qu'est-ce que cela indique ???)
+$2cb8       Branche vers la mise à jour du listing dynamique.
 
 $2cba       [update_list]
             Met à jour le listing dynamique à partir de la ligne pointée par BC.
@@ -6499,13 +6500,15 @@ $2cba       [update_list]
 $2cba-$2cbb BC pointe vers le numéro de ligne.
 $2cbc-$2cc0 DE = numéro de la ligne.
 $2cc1       Mise à jour du numéro de ligne de la première ligne du listing à l'écran.
-$2cc5       Préparation de drapeaux , pourquoi ???
+$2cc5       Mise à 0 du Carry (pour différentier d'une arrivée en $2cca avec Carry à 1)
 $2cc6       HL = coordonnées du curseur.
 $2cc9       Sauve les coordonnées du curseur.
 
-$2cca       [skip2CCA]
+$2cca       [list_home]
+            Vérifier l'adéquation du nom de ce label. ???
+
 $2cca       Sauve A et les drapeaux sur la pile.
-$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et caractère de continuation lors d'un passage à la ligne (??? pour la continuation)
+$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et caractère de continuité lors d'un passage à la ligne (??? pour la continuité)
 $2cd0       Délai de rafraichissement de l'écran à $40, pour avoir le temps de mettre à jour tout le listing.
 $2cd4       `(attcar)` à 0.
 $2cd8-$2cdb Place le curseur en colonne 0, ligne 1
@@ -6513,84 +6516,88 @@ $2cde       Efface le buffer d'écran avec les attributs courant.
 $2ce1-$2ce5 Recherche la ligne du listing à afficher en haut de l'écran.
 $2ce8-$2ce9 HL pointe vers la ligne demandée.
 
-$2cea       [loop2CEA]
-$2ced       ---
-$2cef       ---
-$2cf2       ---
-$2cf4       ---
-$2cf6       ---
-$2cf9       ---
-$2cfb       [skip2CFB]
-$2cfc       ---
-$2cfe       ---
-$2cff       ---
-$2d01       [skip2D01]
-$2d04       [skip2D04]
-$2d07       ---
-$2d0a       [call2D0A]
-$2d0b       ---
-$2d0c       ---
-$2d0d       ---
-$2d0e       ---
-$2d0f       ---
-$2d10       ---
-$2d13       ---
-$2d14       ---
-$2d15       ---
-$2d16       ---
-$2d17       ---
-$2d18       ---
-$2d19       ---
-$2d1c       ---
-$2d1e       ---
-$2d1f       [jump2D1F]
-$2d20       ---
-$2d23       ---
-$2d25       ---
-$2d28       [loop2D28]
-$2d29       ---
-$2d2a       ---
-$2d2c       ---
-$2d2e       ---
-$2d2f       ---
-$2d30       ---
-$2d31       ---
-$2d32       ---
-$2d33       ---
-$2d34       ---
-$2d35       ---
-$2d36       ---
-$2d37       ---
-$2d3a       ---
-$2d3b       ---
-$2d3d       [skip2D3D]
-$2d3e       ---
-$2d41       ---
-$2d44       ---
-$2d46       ---
-$2d47       ---
-$2d4a       ---
-$2d4c       ---
-$2d4e       ---
-$2d52       [jump2D52]
-$2d53       ---
-$2d54       ---
-$2d55       ---
-$2d58       ---
-$2d59       ---
-$2d5c       [jump2D5C]
-$2d5e       ---
-$2d5f       ---
-$2d62       ---
-$2d64       ---
-$2d67       ---
-$2d68       ---
-$2d69       ---
-$2d6a       ---
-$2d6d       ---
-$2d70       [jump2D70]
-$2d71       [jump2D71]
-$2d75       ---
+$2cea       [list_line]
+$2cea       Écrit la ligne courante à l'écran.
+$2ced       Branche si le listing doit s'arrêter (fin de listing, ou bas de l'écran)
+$2cef-$2cf2 Compare la ligne du curseur avec 24.
+$2cf4       Prépare l'écriture du caractère de continuité.
+$2cf6       Envoie le caractère de continuité si la ligne est inférieure à 24 ??? (du coup, il y a de la continuité sur tout l'écran ???)
+$2cf9       Boucle sur la ligne suivante si le curseur n'a pas atteind la ligne 24.
+
+$2cfb       [list_end]
+$2cfb       Récupère les drapeaux.
+$2cfc       Branche si l'on vient du traitement de `HOME` (???)
+$2cfe       Sinon, récupère les coordonnées du curseur du début de routine.
+
+$2d01       [cur_reset]
+$2d01       Coordonnées en ligne 0, colonne 1.
+$2d04       [cur_restore]
+$2d04       Mise à jour des coordonnées du curseur.
+$2d07       Branche sur la synchronisation avec le VDP lors de l'acquisition d'une touche.
+
+$2d0a       [write_line]
+            Écrit une ligne de listing dynamique.
+
+            Les `REM` sont écrits en rouge.
+
+            Une partie de cette routine est similaire à cette de l'implémentation de la commande `LIST` du BASIC.
+
+            Entrée :
+            - HL pointe vers une ligne de listing BASIC.
+
+            Sortie :
+            - Carry est à 1 si la fin du listing a été atteinte.
+            - Carry est à 0 si la fin de la ligne a été atteinte, mais pas la fin du listing.
+
+$2d0a-$2d0d BC contient l'adresse de la ligne suivante. HL pointe vers le numéro de ligne.
+$2d0e-$2d10 Branche si on est en fin de chaînage (l'adresse suivante est nulle).
+$2d13-$2d16 DE contient le numéro de ligne. HL pointe vers le début des données de la ligne.
+$2d17       Sauve le pointeur vers les données de la ligne.
+$2d18-$2d19 Imprime le numéro de la ligne.
+$2d1c       %CHAR
+            Prépare un espace pour l'impression.
+$2d1e       Restaure le pointeur vers les données de la ligne.
+
+$2d1f       [next_char]
+$2d1f       Imprime le caractère contenu dans A.
+$2d20-$2d25 Branche si le curseur a atteind le bas de l'écran.
+$2d28       [line_nxt]
+$2d28       A contient l'octet suivant de la ligne.
+$2d29       HL pointe sur l'octet suivant de la ligne.
+$2d2a-$2d2c Branche si l'octet n'est pas un marqueur de nombre entier décodé.
+$2d2e-$2d36 Lecture des deux octets suivants pour placer le nombre entier dans HL.
+            Le pointeur courant vers les données de la ligne est poussé sur la pile.
+$2d37       Écriture du nombre décodé.
+$2d3a       Restaure le pointeur vers les données de la ligne.
+$2d3b       Boucle sur le prochain octet de la ligne.
+
+$2d3d       [not_number]
+$2d3d-$2d3e Branche si l'octet est nul. La fin de la ligne a été atteinte.
+            Carry sera à 0 en arrivant au branchement.
+$2d41       Boucle si l'octet n'est pas un token. Cela imprimera l'octet en tant que caractère.
+$2d44-$2d46 C contient le numéro d'index du token.
+$2d47       DE pointe vers la table des mots-clés.
+$2d4a-$2d4c Branche si ce n'est pas le token `REM`
+$2d4e       Sinon, passe la couleur d'écriture en rouge (vérifier la couleur ???).
+$2d52       [keyw_search]
+$2d52-$2d55 Boucle jusqu'à trouver un caractère avec le bit 8 à 1 (marqueur de début de mot clé).
+$2d58       Décrémente le compteur initialement index de token.
+$2d59       Boucle tant que le compteur n'est pas arrivé à 0.
+
+$2d5c       [write_keyw]
+$2d5c-$2d5e Affiche le caractère du mot-clé, sans le bit de poids fort.
+$2d5f-$2d64 Branche si le curseur a atteind le bas de l'écran.
+$2d67       Charge l'octet suivant du nom du mot-clé.
+$2d68       Incrémente le pointeur vers le nom du mot-clé.
+$2d69-$2d6a Boucle tant que l'octet n'est pas un marqueur de début de mot-clé.
+$2d6d       Boucle vers le traitement du prochain octet de la ligne.
+
+$2d70       [list_stop]
+$2d70       Carry à 1 pour indiquer que l'on doit arrêter le listing.
+
+$2d71       [line_end]
+$2d71       La couleur d'écriture revient en noir.
+
 $2d76       [func_keys]
 $2d78       Saute si la valeur est inferieure à $ba
 $2d7b       ---
