@@ -3287,12 +3287,33 @@ $1179       [init_ef_seq]
             ??? mieux détailler la séquence.
 
 $1194       [initvalues]
+            Liste des valeurs qui sont copiées dans les variables système au boot.
 $119a       [div_subr]
             %CODE
 $119a-$11a7 Cette routine fait partie des valeurs montées en RAM au démarrage.
             Elle contient la soustraction du dividende par le diviseur.
             Les valeurs sont injectées à la place des $00 par la routine de
             division.
+
+$11d7       ---
+$11d8       [i_prtstt]
+$11d9       [i_prtcom]
+$11da       [i_prtint]
+$11dc       [i_prtxlt]
+$11de       [i_contbl]
+$11de       Table de redirection des touches de contrôle vers les caractères accentués. (??? la ligne est coupée par l'outil)
+$11e8       [i_autflg]
+$11e9       [i_autlin]
+$11eb       [i_autinc]
+$11ed       [i_allflg]
+$11ee       [i_linlen]
+$11ef       [i_clmlst]
+$11f0       [i_curlin]
+$11f2       [i_txttab]
+$11f4       [i_frgglg]
+$11f5       [i_kbdtbl]
+$11f7       [i_tmpsav]
+$11f8       [i_octsav]
 
 $11f9       [keybfr_0]
             %SECTION(txtfil)
@@ -3369,6 +3390,10 @@ $17d1       [txt_foun_fr]
 $17d9       [txt_skip_fr]
 $1814       [txt_diff_fr]
 $1802       [txt_bad_fr]
+$1845       [prtxlt_tbl]
+            Trable de conversion pour l'imprimante.
+
+            Référencée à travers `(prtxlt)` qui est initialisée à cette adresse au boot.
 
 $1945       [inst_save]
             %CODE,SECTION(bicset)
@@ -6599,51 +6624,62 @@ $2d71       [line_end]
 $2d71       La couleur d'écriture revient en noir.
 
 $2d76       [func_keys]
-$2d78       Saute si la valeur est inferieure à $ba
-$2d7b       ---
-$2d7d       Saute si la valeur est supérieure ou égale à $fb
-$2d80       ---
+$2d76-$2d78 Branche si la touche de fonction a une valeur inferieure à $ba.
+$2d7b-$2d7d Branche si la touche de fonction a une valeur supérieure ou égale à $fb.
+$2d80       HL pointe vers la table des touches accélératrices (les touches "BASIC")
+
 $2d83       [loop_accel]
-            Recherche la valeur de la touche d'accélération dans le tableau
-$2d84       ---
-$2d85       ---
+$2d83       Compare avec la clé trouvée dans la table (chaque chaîne résultat est précédée par sa clé).
+$2d84       Incrémente le pointeur sur la table.
+$2d85       Boucle tant que la clé n'a pas été trouvée.
+
 $2d87       [out_accel]
-            Provoque l'affichage de la chaîne accélérée (raccourci BASIC)
-$2d88       ---
-$2d8a       Lorsque le bit de poids fort est 1, alors la chaîne est terminée, on sort.
-$2d8d       Affichage du caractère de la chaîne en train d'être affichée.
-$2d8e       ---
-$2d8f       ---
+$2d87       Charge l'octet pointé dans la table des chaîne résultat dans A.
+$2d88-$2d8a Lorsque le bit de poids fort est 1, alors la chaîne est terminée.
+            Branche sur la synchronisation avec le VDP lors de l'acquisition d'une touche.
+$2d8d       Sinon, l'octet lu est émis vers le buffer écran.
+$2d8e       Puis le pointeur avancé dans la table.
+$2d8f       Boucle pour traiter l'octet suivant.
 
 $2d91       [ctrl_keys]
             Traitement des touches de contrôle (des touches de contrôle ?)
-$2d91       ---
-$2d93       ---
-$2d94       ---
-$2d96       ---
-$2d99       ---
-$2d9a       A est remplacé par la valeur trouvée dans la table d'indirection à 10 entrée en $487a (comment est-elle remplie ?)
-$2d9b       ---
+$2d91-$2d94 DE contient l'index de la touche de contrôle appuyée.
+$2d96       HL pointe vers la table des touches de contrôles en RAM, initialisée depuis `i_contbl`. Ce sont les touches accentuées.
+$2d99-$2d9a A lit l'équivalence de la touche de contrôle dans la table.
+$2d9b       Cette valeur est renvoyée.
+
 $2d9e       [accel_keys]
 
 $2ead       [mem_move_chk]
             $SECTION(bimisc)
-            Fonction : vérify la mémoire
-            Entrée : DE < BC < HL trois pointeurs de mémoire
-            Copie la zone [DE, BC] vers [DE+(HL-BC), HL] depuis la fin (permet le recouvrement)
-$2ead       ---
+
+            Routine de copie de mémoire.
+
+            La zone source se trouve entre DE et BC (inclus ???).
+            La zone de destination se termine à HL et à la même taille que la zone source.
+
+            La copie se fait en partant de la fin, pour permettre le recouvrement de la zone si HL est supérieur à BC.
+
+            Entrées :
+            - DE est le pointeur de début de la zone source.
+            - BC est le pointeur de fin de la zone source. DE < BC
+            - HL est le pointeur de fin de la zone destination. BC < HL
+
+            MS_BASIC=MOVUP
+
+            == DEBUT DE SECTION BIMISC (BASIC INTERPRETER MISCELLANEOUS) ==
+
+$2ead       Vérifie qu'il reste assez de mémoire.
+
 $2eb0       [mem_move]
-            Mise sur la pile de la taille
-$2eb1       ---
-$2eb2       Échange des valeurs de HL et BC
+$2eb0       Sauve le pointeur de fin de zone source.
+$2eb1-$2eb2 BC = fin de la zone destination, HL = fin de la zone source.
 $2eb3       [cpy_loop]
-            Préparation de la comparaison entre HL et DE
-$2eb4       ---
-$2eb5       Copie de (HL) vers (BC)
-$2eb6       Retour si HL a atteind DE
-$2eb7       ---
-$2eb8       Décrément de HL et BC
-$2eb9       Boucle de la copie
+$2eb3       Compare HL (fin de la zone source en cours) et DE (début de la zone source)
+$2eb4-$2eb5 Copie un octet de la source vers la destination.
+$2eb6       Retour si le pointeur de source en cours était égal au pointeur de début de zone source. La copie est terminée.
+$2eb7-$2eb8 Décrémente les pointeurs de la source et de la destination.
+$2eb9       Boucle vers le prochain octet.
 
 $2ebb       [stk_verify]
             Entrée : BC (B == 0), le nombre de mots de 2 octets (des "niveaux" que l'on voudrait mettre sur la pile
