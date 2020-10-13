@@ -6650,7 +6650,7 @@ $2d9b       Cette valeur est renvoyée.
 
 $2d9e       [accel_keys]
 
-$2ead       [mem_move_chk]
+$2ead       [mem_move_v]
             $SECTION(bimisc)
 
             Routine de copie de mémoire.
@@ -6682,49 +6682,56 @@ $2eb7-$2eb8 Décrémente les pointeurs de la source et de la destination.
 $2eb9       Boucle vers le prochain octet.
 
 $2ebb       [stk_verify]
-            Entrée : BC (B == 0), le nombre de mots de 2 octets (des "niveaux" que l'on voudrait mettre sur la pile
-            S'il n'y a pas la place demandée sur la pile, provoque un message d'erreur.
-            La place vérifiée semble être deux fois la place demandée avec une marge de $60 octets (jamais moins
-            de $60 octets disponibles)
-            Préserve HL.
+            Vérifie qu'il y a assez de place sur la pile pour un nombre donné de niveaux.
+
+            Un niveau a une taille de deux ocets. S'il n'y a pas la place nécessaire, provoque un message d'erreur.
+
+            Garde toujours une marge de 96 octets dans la pile.
+
+            Entrée :
+            - C, le nombre de niveaux à tester.
             
             MS_BASIC=CHKSTK
-$2ebb       Sauve le pointeur d'exécution
-$2ebc       Prend la mémoire la plus basse disponible (après les chaînes?)
-$2ebf       ---
-$2ec1       ---
-$2ec2       Ajoute deux fois l'entrée C à strend
-$2ec3       ---
+$2ebb       Sauve le pointeur HL.
+$2ebc       HL pointe sur la fin de la mémoire utilisée par le BASIC.
+$2ebf-$2ec2 Y ajoute deux fois le nombre de niveaux.
+$2ec3       Saute par dessus le `push hl` qui suit, qui est l'entrée de la routine suivante.
 
 $2ec4       [mem_verify]
-            Identique à stk_verify mais fourni HL pour comparer avec la pile.
+            Vérifie qu'il y a assez de place sur la pile à partir de HL.
+
+            Garde toujours une marge de 96 octets dans la pile.
+
+            (vérifier le fonctionnement du calcul)
+
+            Entrée :
+            - HL, le pointeur à vérifier
             
             MS_BASIC=ENFMEM
-$2ec4       ---
-$2ec5       ---
-$2ec7       ---
-$2ec8       ---
-$2ec9       ---
-$2ecb       ---
-$2ecc       HL <- $FFA0 - HL (HL étant (strend) + 2 * C)
-$2ecd       S'il n'y a pas au moins $60 octets entre la valeur désirée et $FFFF, alors il n'y a plus de mémoire (oui, c'est en dur quelque soit la mémoire présente, c'est louche)
-$2ecf       ---
+$2ec4       Sauve le pointeur HL fourni.
+$2ec5-$2ecc Ajoute 96 en soustrayant $ffa0 à HL.
+$2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL (ajusté avec les niveaux) et le haut de la mémoire ($FFFF).
+            Branche sur une erreur.
+$2ecf       Ajoute HL
 $2ed0       Restore dans HL le pointeur d'exécution
-$2ed1       Si HL + SP provoque une retenue, alors on revient, il y a assez de mémoire. Sinon, c'est qu'il y a moins de $60 octets entre la pile et (strend), il n'y a pas assez de mémoire.
-$2ed2       [out_of_mem]
-$2ed5       "Out of Memory"
-$2ed8       ---
+$2ed1       Retour si HL + SP provoque une retenue, il y a assez d'espace. ???
 
-$2ed9       [reset_prog]
+$2ed2       [out_of_mem]
+$2ed2-$2ed5 Message d'erreur "Out of Memory"
+
+$2ed8       Un octet inutilisé.
+
+$2ed9       [reset_lst]
             Met 0 dans les deux premiers octets de txttab (donc efface l'accès au listing)
             L'effet sur l'utilisateur est d'effacer le programme (mais il est encore là)
             
             MS_BASIC=CLRPTR
 $2ed9       ---
-$2edc       [reset_prog_2]
-            appelé depuis l'instruction NEW
-$2edd       ---
-$2ee0       [reset_prog_4]
+$2edc       [reset_lst_2]
+$2edc       A = 0
+$2edd       Branche vers le code patché de la ROM 1.1
+
+$2ee0       [reset_lst_4]
 $2ee1       txttab+2 dans (vartab)
 $2ee4       [reset_vars]
             Remet à zéro les pointeurs du modèle mémoire
@@ -9268,7 +9275,7 @@ $3d8a       ---
 $3d8c       ---
 $3d8e       ---
 $3d90       ---
-$3d91       [reset_prog_3]
+$3d91       [reset_lst_3]
             0 dans (autflg)
 $3d94       0 dans les deux premiers octets de (txttab). Cela coupe le premier lien du listing BASIC.
 $3d95       ---
