@@ -1173,9 +1173,9 @@ $04cc-$04ce Décalage d'un octet complet de l'accumulateur CDEB.
 $04cf       Voir les commentaires ci-dessus sur l'effet de RET dans cette routine de multiplication.
 
 $04d0       [fp_div_10]
+            %MS_BASIC(DIV10)
             Division de FP par 10
             
-            MS_BASIC=DIV10
 $04d0       Place FAC sur la pile
 $04d3-$04d6 Monte le nombre "10" dans BCDE
 $04d9       Monte BCDE dans FAC
@@ -1298,9 +1298,9 @@ $057d       Si le résultat est positif, le résultat est zéro, on branche vers
 $0580       Sinon, c'est un dépassement de capacité, on branche vers l'erreur.
 
 $0583       [fp_x_10]
+            %MS_BASIC(MLSP10)
             Multiplication de FAC par 10
             
-            MS_BASIC=MLSP10
 $0583       Récupère FAC dans BCDE
 $0586-$0588 Si BCDE est nul, retour immédiat (il suffit de vérifier l'exposant B)
 $0589       En ajoutant 2 à l'exposant, on multiplie le nombre par 4
@@ -1646,7 +1646,7 @@ $06ff       [add_a]
 $06ff       Pousse FAC sur la pile
 $0702       Monte A dans FAC
 $0705       [fp_stk_add]
-            MS_BASIC(PADD)
+            %MS_BASIC(PADD)
             Ajoute le nombre flottant sur la pile à FAC.
 
             Appelé a travers la table des priorités
@@ -4539,9 +4539,9 @@ $2274-$2275 E est décrémenté de 2.
 $2276       Boucle tant que E n'est pas tombé à 0.
 
 $2278       [disp_break]
+            %MS_BASIC(ERRIN)
             Lorsqu'arrive directement ici, c'est pour afficher un arrêt d'exécution en ligne (curlin)
             
-            MS_BASIC=ERRIN
 $2278       Affiche le message d'erreur pointé par HL
 $227b       Charge dans HL le numéro de ligne courante.
 $227e-$2282 Si le numéro de ligne est 65534, cela provoque un reboot.
@@ -4549,19 +4549,20 @@ $2285-$2288 Branche si le numéro de ligne n'était pas $ffff
 $228b       Évite le `pop bc` pour aller directement sur la boucle du moniteur BASIC.
 
 $228c       [nok_loop]
-            MS_BASIC=POPNOK
+            %MS_BASIC(POPNOK)
 $228c       Enlève l'adresse présent dans la pile avant de continuer vers la boucle du moniteur BASIC.
 
 $228d       [ok_loop]
+            %MS_BASIC(PRNTOK)
             Boucle "Ok!" puis entrée dans le moniteur BASIC.
             
-            MS_BASIC=PRNTOK
 $228d       Réinitialise l'imprimante.
 $2290       Met le curseur en début de ligne.
 $2293-$2296 Affiche "Ok!"
 
 $2299       [monitorloop]
-            MS_BASIC=GETCMD
+            %MS_BASIC(GETCMD)
+
 $2299-$229c Met la ligne courante du BASIC à -1 ($ffff), c'est-à-dire, par de ligne courante
 $229f-$22a3 Branche si `(autflg)` est à 0, `AUTO` n'est pas actif.
 $22a5       Ligne courante du mode AUTO dans HL
@@ -4681,6 +4682,7 @@ $2342-$2344 Le pointeur vers la ligne suivante, à présent dans DE, est placé 
 $2345       Poursuite du chaînage.
 
 $2347       [line_search]
+            %MS_BASIC(SRCHLN)
             Cherche une ligne BASIC désignée par DE.
 
             Entrée :
@@ -4699,7 +4701,6 @@ $2347       [line_search]
             Si Carry Flag est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché. HL contient la ligne suivante à celle pointée par BC.
             (prelin) contient toujours le pointeur vers la ligne cherchée précédemment.
 
-            MS_BASIC=SRCHLN
 $2347       Initialise BC à 0.
 $234a       HL pointe vers la première adresse du listing BASIC.
 
@@ -4720,6 +4721,7 @@ $2368       Retour immédiat si HL > DE dans le test de ligne. On a dépassé le
 $2369       Boucle pour étudier la ligne suivante.
 
 $236b       [tokenize]
+            %MS_BASIC(CRUNCH)
             Effectue la tokenisation du buffer pointé par HL.
 
             Le résultat est construit dans la zone de travail `buf`.
@@ -4733,7 +4735,6 @@ $236b       [tokenize]
             - C contient la taille du buffer résultat
             - A est égal à 0
             
-            MS_BASIC=CRUNCH
 $236b-$236c Mise à 0 de (`dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
 $236f       Taille initial du buffer de sortie (pourquoi 5 ???)
 $2371       DE pointe sur le buffer de tokenisation
@@ -5013,11 +5014,10 @@ $24e6       [end_for]
 $24e6-$24e9 Sauve $81 (marqueur du bloc `FOR`) sur la pile.
 
 $24ea       [end_of_inst]
-            %CODE
+            %CODE,%MS_BASIC(RUNCNT)
             Appelée à la fin de chaque instruction lors d'une exécution.
             Recherche l'instruction suivante.
             
-            MS_BASIC=RUNCNT
 $24ea       Vérifie si une interruption de commande a été demandée.
 $24ed       Sinon, sauve le pointeur de texte BASIC.
 $24f1       %CHAR
@@ -5030,9 +5030,9 @@ $2505       Mise à jour du numéro de la ligne courante.
 $2508       DE = le numéro de ligne, HL = pointeur vers les tokens de la ligne. Prêt à exécuter la ligne suivante.
 
 $2509       [exec_token]
+            %MS_BASIC(EXECUTE)
             Exécute le contenu d'une ligne BASIC tokenisée.
             
-            MS_BASIC=EXECUTE
 $2509       Récupère le premier octet de l'instruction à exécuter.
 $250a-$250d Met sur la pile l'adresse de retour vers laquelle aller à la fin de l'instruction.
 
@@ -5091,6 +5091,7 @@ $2547-$2548 Permet de positionner le Z sans toucher à Carry.
 $2549       Retour soit de `chget`, soit exécution de l'instruction donc l'adresse a été poussée sur la pile.
 
 $254a       [read_index]
+            %MS_BASIC(FPSINT)
             Lecture d'un nombre entier depuis une chaine pointée par HL.
 
             En branchant avant `deint_impl`, le nombre doit être positif.
@@ -5102,20 +5103,20 @@ $254a       [read_index]
             Sortie :
             - DE contient le nombre entier sur 16 bits
             
-            MS_BASIC=FPSINT
 $254a       Cette première entrée est utilisée pour un index de tableau, et commence par ignorer le premier caractère.
 
 $254b       [pos_int]
+            %MS_BASIC(POSINT)
 $254b       Évaluation de l'expression numérique pointée par HL. Utilisé par l'instruction `CLEAR`.
-            MS_BASIC=POSINT
 
 $254e       [dep_int]
+            %MS_BASIC(DEPINT)
 $254e       Vérifie le signe de l'expression dans FAC
-            MS_BASIC=DEPINT
 $254f       Lance une erreur si le nombre est négatif.
 
 $2552       [deint_impl]
-$2552       Récupère l'exposant de FAC ; MS_BASIC=DEINT
+            %MS_BASIC(DEINT)
+$2552       Récupère l'exposant de FAC
 $2555       Et le compare à $80+16 (donc 16).
 $2557       Branche si l'exposant est inférieur ou égal à 16 (codé $80+$10). Dans ce cas, la partie entière du nombre peut tenir sur 16 bits.
 $255a-$255d BCDE = -32768, qui est le seul nombre avec un exposant à $90 qui est valide.
@@ -5128,6 +5129,7 @@ $2567       [ill_call]
 $2567-$2569 Erreur "Illegal function call"
 
 $256c       [get_lin_num]
+            %MS_BASIC(ATOH)
             Lecture depuis le buffer pointé par HL d'un nombre entier positif.
             Ce nombre peut soit être exprimé en ASCII, soit déjà décodé avec le marqueur `$0e`.
 
@@ -5141,7 +5143,6 @@ $256c       [get_lin_num]
             - DE contient le nombre entier décodé depuis HL
             - A contient le dernier caractère lu
             
-            MS_BASIC=ATOH
 $256c       Ajuste le pointur vers le texte BASIC.
 
 $256d       [get_lin_nu2]
@@ -5177,13 +5178,12 @@ $2597       Restaure AF, contenant le dernière caractère lu.
 $2598       Restaure le pointeur vers le texte BASIC.
 
 $259a       [inst_run]
-            %CODE
+            %CODE,%MS_BASIC(RUN)
             Instruction BASIC : RUN
 
             L'instruction RUN sans argument branche sur la boucle d'exécution directement. (tracer ???)
             Avec un argument, le contexte BASIC est réinitialisé puis continue vers l'instruction `GOTO`.
 
-            MS_BASIC=RUN
 $259a       Coupe l'affichage du curseur (au prochain rafraichissement)
 $259e       Branche s'il n'y a pas d'argument à la commande. (du coup, comment ça démarre ???)
 $25a1       Réinitialise les variables de contexte BASIC.
@@ -5191,10 +5191,9 @@ $25a4       Prépare le retour dans la boucle d'exécution.
 $25a7       Branche vers l'instruction `GOTO` précédé de la mise sur la pile de BC.
 
 $25a9       [inst_gosub]
-            %CODE
+            %CODE,%MS_BASIC(GOSUB)
             Instrution BASIC : GOSUB
 
-            MS_BASIC=GOSUB
 
 $25a9-$25ab Vérifie qu'il y a 3 niveau dans la pile.
 $25ae       Récupère l'adresse de retour dans BC
@@ -5207,12 +5206,10 @@ $25b9       Remet l'adresse de retour sur la pile, puis enchaîne sur GOTO.
             Instruction partagée avec RUN pour lancer un programme depuis une ligne particulière.
 
 $25ba       [inst_goto]
-            %CODE
+            %CODE,%MS_BASIC(GOTO)
             Instruction BASIC : GOTO
 
             Du fait d'ignorer ce qui se trouve après le numéro de ligne, une ligne qui contient "GOTO 20 HOP HOP" est valide.
-
-            MS_BASIC=GOTO
 
 $25ba       Lit le numéro de ligne dans DE.
 $25bd       Le reste de la liste ne peut pas être atteint, on ignore jusqu'à la fin de la ligne.
@@ -5228,10 +5225,8 @@ $25d1       [udef_line]
 $25d1-$25d3 Sinon, lance une erreur "Undefined line number"
 
 $25d6       [inst_return]
-            %CODE
+            %CODE,%MS_BASIC(RETURN)
             Instruction BASIC : RETURN
-
-            MS_BASIC=RETURN
 
 $25d6       `RETURN` n'a pas de paramètre. S'il y a quelques chose derrère l'instruction, retour immédiat, ce qui provroquera une erreur de syntaxe.
 $25d7-$25d9 DE à $ff évite qu'une variable associée à un bloc `FOR` soit valide par hasard, et permet donc de dépiler tous les blocs `FOR` jusqu'à un bloc non `FOR`.
@@ -5249,28 +5244,25 @@ $25f0       L'adresse de retour est mise sur la pile, HL pointe vers l'instructi
 $25f1       Évite le `pop hl` qui suit pour se caler sur l'instruction qui suit le `GOSUB` actuellement pointé par HL.
 
 $25f2       [next_data]
+            %MS_BASIC(NXTDTA)
             Un appel ici suppose que la chaîne à traiter est sur la pile.
             Enchaîne sur DATA pour faire pointer HL vers l'instruction suivante.
 
-            MS_BASIC=NXTDTA
-
 $25f3       [inst_data]
-            %CODE
+            %CODE,%MS_BASIC(DATA)
             Instruction BASIC : DATA
 
             En arrivant ici, C sera chargé avec $3a (':' == fin d'instruction).
             Ainsi, un marqueur possible sera $00, et l'autre ':'. L'instruction est ignorée jusqu'à la prochaine, qu'elle soit séparée par ':' ou par une fin de ligne.
 
-            MS_BASIC=DATA
 $25f3-$25f4 Charge C avec $3a et continue sur le `NOP` plus bas.
 
 $25f5       [inst_rem]
-            %CODE
+            %CODE,%MS_BASIC(REM)
             Instruction BASIC : REM
             En arrivant ici, C sera chargé avec $00.
             Ainsi, les deux marqueurs possibles seront tous les deux à $00. Le reste de la ligne sera ignoré.
 
-            MS_BASIC=REM
 $25f5       Charge C avec $00 quand on arrive directement ici.
 $25f6       Avec le $0e précédent, forme ld c,$00, et sert d'adresse d'arrivée pour `inst_data`.
 $25f7       Charge B, le second marqueur, avec $00.
@@ -5349,10 +5341,9 @@ $265b       Restaure l'adresse de la variable dans DE (pour quelle raison ???)
 $265c       Restaure le pointeur vers le texte BASIC.
 
 $265e       [inst_on]
-            %CODE
+            %CODE%MS_BASIC(ON)
             Instruction BASIC : ON
 
-            MS_BASIC=ON
 $265e       Evalue l'expression qui suit `ON` sous la forme d'un entier sur un octet.
 $2661       Lit le token qui suit.
 $2662       Sauve le token dans B.
@@ -5372,10 +5363,9 @@ $2673-$2675 Retour s'il n'y a pas de ligne supplémentaire.
 $2676       Essaie le numéro de ligne suivant.
 
 $2679       [inst_if]
-            %CODE
+            %CODE,%MS_BASIC(IF)
             Instruction BASIC : IF
 
-            MS_BASIC=IF
 $2679       Evaluation de l'expression qui suit `IF`.
 $267c-$267f Branche si le token qui suit est `GOTO`
 $2681       Sinon, s'assure que le token qui suit est `THEN` ou provoque une erreur de syntaxe.
@@ -5504,9 +5494,9 @@ $2741       [print_end]
 $2741-$2742 Sélection l'écran comme périphérique de sortie.
 
 $2746       [bad_input]
+            %MS_BASIC(BADINP)
             Lorsque les données sont insuffisantes pour remplir les variables d'une instruction `READ` ou `INPUT`, cette routine est appelée.
             
-            MS_BASIC=BADINP
 $2746-$274a Branche dans le cas d'un `READ`
 $274d       Jette le pointeur de données qui est sur la pile.
 $275a       [redo_fr]
@@ -5514,10 +5504,9 @@ $274e-$275a Affiche "Redo from scratch" en fonction de la langue
 $275d       Relance l'acquisition de données pour `INPUT`.
 
 $2760       [inst_input]
-            %CODE
+            %CODE,%MS_BASIC(INPUT)
             Instruction BASIC : INPUT
             
-            MS_BASIC=INPUT
 $2760       Appeler `INPUT` en direct est illégal, l'instruction doit être dans un programe.
 $2763       Appel du `hook` sur `INPUT`
 $2767       %CHAR
@@ -5555,17 +5544,16 @@ $279f       %CHAR
 $27a1       Continue vers la lecture de `DATA` par `READ`.
 
 $27a3       [inst_read]
-            %CODE
+            %CODE,%MS_BASIC(READ)
             Instruction BASIC : READ
             
-            MS_BASIC=READ
 $27a3       Sauvegarde du pointeur vers le texte BASIC.
 $27a4       HL pointe vers la prochaine zone de `DATA`.
 $27a7       Initialise A avec $af pour signaler l'instruction `READ` à `(flginp)`. Saute par dessus le `xor a`.
 
 $27a8       [read_data]
+            %MS_BASIC(NXTITM)
 $27a8       A = 0, pour signaler l'instruction `INPUT` à `(flginpu)`.
-            MS_BASIC=NXTITM
 $27a9       Si A == 0, on est dans INPUT, sinon, on est dans READ. `(flginp)` porte plutôt mal son nom et devrait plutôt s'appeler `read flag`.
 $27ac       HL = pointeur sur le texte BASIC, haut de la pile = pointeur vers les DATA (pour `READ`) ou le buffer d'acquisition (pour `INPUT`)
 $27ad       Saute par dessus le teste de présence de ','.
@@ -5590,7 +5578,7 @@ $27d1       Fin de ligne lors d'un `INPUT`, ignore le reste de l'instruction et 
 $27d4       Sinon, il y a des données, sauve le pointeur vers la variable.
 
 $27d5       [get_value]
-$27d5       MS_BASIC=ANTVLU
+$27d5       %MS_BASIC(ANTVLU)
 $27d5-$27d9 Branche si la variable est de type numérique.
 $27db       Sinon, lit le prochain caractère
 $27dc-$27dd Copie le caractère dans D et B
@@ -5642,7 +5630,7 @@ $282d       Restauration du pointeur d'exécution
 
 $282f       [go_nxt_data]
 $282f       Avance jusqu'à la prochaine instruction.
-            MS_BASIC=FDTLP
+            %MS_BASIC(FDTLP)
 $2832-$2833 Branche si ce n'est pas la fin de la ligne.
 $2835-$2838 Sinon, vérifie si le chaînage de la ligne suivante est nul.
 $2839-$283b Si oui, sors avec une erreur "Out of DATA".
@@ -5675,6 +5663,7 @@ $2851       [type_eq_str]
 $2851       Place le Carry à 1.
 
 $2852       [type_eq_chk]
+            %MS_BASIC(CHKTYP)
             Vérifie que deux types de variables sont égaux.
 
             Entrée :
@@ -5684,8 +5673,6 @@ $2852       [type_eq_chk]
             Sortie :
             - Si les deux types sont égaux, la routine revient.
             - Si les deux types diffèrent, la routine branche sur une erreur "Opérande mal adaptée"
-
-            MS_BASIC=CHKTYP
 
 $2852       Charge le type de l'expression la plus récemment évaluée.
 $2855       Double sa valeur et ajoute la retenue (Carry).
@@ -5701,6 +5688,7 @@ $285f       S'assure de la présence d'une parenthèse.
 $2860       %DATASKIP
 
 $2861       [read_expr]
+            %MS_BASIC(EVAL)
             Lecture et évaluation d'une expression.
 
             Entrée :
@@ -5718,7 +5706,6 @@ $2861       [read_expr]
             Lorsqu'un opérateur de plus faible priorité est trouvé (ou à la fin ???), le `ret nc` permet de faire un saut vers l'adresse d'exécution de l'opérateur.
             L'opérateur trouvera son paramètre sur la pile, suivi de l'adresse de retour.
             
-            MS_BASIC=EVAL
 $2861       Recalage du pointeur de texte BASIC.
 $2862       La priorité actuelle d'opérateur est dans D.
 
@@ -5796,6 +5783,7 @@ $28d5       Lecture du caractère suivant.
 $28d6       Boucle sur le second caractère de la paire possible.
 
 $28d8       [parse_value]
+            %MS_BASIC(OPRND)
             Analyse une valeur.
 
             Entrée :
@@ -5803,7 +5791,6 @@ $28d8       [parse_value]
 
             Cette valeur peut être numérique, alphanumérique, ou bien une fonction prédéfinie ou utilisateur.
             
-            MS_BASIC=OPRND
 $28d8-$28d9 Par défaut, le type est numérique.
 $28dc       Lecture du prochain caractère significatif.
 $28dd       Émet une erreur d'opérande manquante si le buffer est terminé.
@@ -5868,6 +5855,7 @@ $292c-$2930 Si le type de la variable est numérique, monte la valeur pointée p
 $2933       Restaure le pointeur vers le texte BASIC.
 
 $2935       [function]
+            %MS_BASIC(FNOFST)
             Exécute le code d'une fonction BASIC prédéfinie.
 
             Entrées :
@@ -5878,7 +5866,6 @@ $2935       [function]
             - FAC contient la valeur de sortie de la fonction.
             - HL pointe vers la suite de l'expression.
 
-            MS_BASIC=FNOFST
 $2935       Prépare l'index dans le tableau des fonctions.
 $2937       Double l'index de la fonction.
 $2938       BC = index de la fonction multiplié par 2.
@@ -5913,6 +5900,7 @@ $2962-$2965 HL = adresse de la routine pour la fonction.
 $2966       Branche vers l'exécution de la fonction prédéfinie.
 
 $2967       [exp_sign]
+            %MS_BASIC(SGNEXP)
             Retourne le signe du caractère ou token présent dans A.
 
             Entrées :
@@ -5925,7 +5913,6 @@ $2967       [exp_sign]
             - D = $00 si le signe est positif
             - Z à 1 si un signe était spécifié, à 0 sinon.
             
-            MS_BASIC=SGNEXP
 $2967       D = $ff
 $2968-$296a Retour immédiat si l'octet lu est le token du signe '-'.
 $296b       %CHAR
@@ -5938,23 +5925,21 @@ $2975       Ce n'était pas un signe, recale HL, pointeur sur le texte analysé.
 
 
 $2977       [fp_bcde_or]
-            %CODE
+            %CODE,%MS_BASIC(POR)
             Opérateur BASIC `OR`.
             
             Appelé lors de l'évaluation d'une expression via la table de priorités.
             
-            MS_BASIC=POR
 $2977       Marqueur pour le traitement de `OR`. A n'est pas 0.
             En $2979 arrive le traitement de `AND` et dans ce cas, l'instruction est `xor a`, donc A = 0.
 
             (La détection de l'instruction partielle ne fonctionne pas dans ce cas, pourquoi ???)
 $2978       [fp_bcde_and]
-            %CODE
+            %CODE,%MS_BASIC(PAND)
             Opérateur BASIC `AND`.
             
             Appelé lors de l'évaluation d'une expression via la table de priorités.
             
-            MS_BASIC=PAND
 $2978       %CODE
             Marqueur pour le traitement de `AND`. A = 0
 $2979       Sauve le marqueur de l'opérateur `OR` ou `AND`.
@@ -6080,12 +6065,11 @@ $2a0f-$2a10 Construit AB.
 $2a11       Monte AB vers FAC.
 
 $2a13       [inst_def]
-            %CODE
+            %CODE,%MS_BASIC(DEF)
             Instruction BASIC : DEF
             
             Définition d'une fonction utilisateur.
             
-            MS_BASIC=DEF
 $2a13       Vérifie que l'on a affaire à une fonction (et définie l'entrée)
 $2a16       Cette instruction ne peut pas être appelée en direct.
 $2a19-$2a1c Prépare la valeur de retour, qui amènera à la prochaine instruction.
@@ -6149,10 +6133,10 @@ $2a81-$2a82 Replace l'ancien nom de paramètre de fonction dans `(prmnam)`.
 $2a85       Restaure le pointeur vers le texte BASIC.
 
 $2a87       [ill_direct]
+            %MS_BASIC(IDTEST)
             Routine appelée pour vérifier qu'une instruction n'a pas été appelée en mode direct.
 
             Lance une erreur dans le cas contraire.
-            MS_BASIC=IDTEST
 $2a87       Sauve le pointeur vers le texte BASIC.
 $2a88-$2a8b HL = numéro de la ligne courante + 1
 $2a8c-$2a8d A = 0 si le numéro de la ligne courante était $ffff (valeur en mode direct)
@@ -6184,6 +6168,7 @@ $2aa4       [preget_byte]
             Appelé par `SPC(` et `TAB(` dans une instruction `PRINT` afin d'ignorer la parenthèse ouvrante.
 
 $2aa5       [getbyt_impl]
+            %MS_BASIC(GETINT)
             Évalue une expression depuis un buffer texte BASIC et en retourne une valeur entière sur 8 bits.
 
             Provoque une erreur si l'entrée est trop grande.
@@ -6194,8 +6179,6 @@ $2aa5       [getbyt_impl]
             Sortie :
             - A contient l'évaluation de l'expression
             - Les drapeaux sont placés en fonction de la lecture du caractère suivant l'expression.
-
-            MS_BASIC=GETINT
 
 $2aa5       Évalue l'expression pointée par HL
 
@@ -6651,7 +6634,7 @@ $2d9b       Cette valeur est renvoyée.
 $2d9e       [accel_keys]
 
 $2ead       [mem_move_v]
-            $SECTION(bimisc)
+            $SECTION(bimisc),%MS_BASIC(MOVUP)
 
             Routine de copie de mémoire.
 
@@ -6665,7 +6648,6 @@ $2ead       [mem_move_v]
             - BC est le pointeur de fin de la zone source. DE < BC
             - HL est le pointeur de fin de la zone destination. BC < HL
 
-            MS_BASIC=MOVUP
 
             == DEBUT DE SECTION BIMISC (BASIC INTERPRETER MISCELLANEOUS) ==
 
@@ -6682,6 +6664,7 @@ $2eb7-$2eb8 Décrémente les pointeurs de la source et de la destination.
 $2eb9       Boucle vers le prochain octet.
 
 $2ebb       [stk_verify]
+            %MS_BASIC(CHKSTK)
             Vérifie qu'il y a assez de place sur la pile pour un nombre donné de niveaux.
 
             Un niveau a une taille de deux ocets. S'il n'y a pas la place nécessaire, provoque un message d'erreur.
@@ -6691,13 +6674,13 @@ $2ebb       [stk_verify]
             Entrée :
             - C, le nombre de niveaux à tester.
             
-            MS_BASIC=CHKSTK
 $2ebb       Sauve le pointeur HL.
 $2ebc       HL pointe sur la fin de la mémoire utilisée par le BASIC.
 $2ebf-$2ec2 Y ajoute deux fois le nombre de niveaux.
 $2ec3       Saute par dessus le `push hl` qui suit, qui est l'entrée de la routine suivante.
 
 $2ec4       [mem_verify]
+            %MS_BASIC(ENFMEM)
             Vérifie qu'il y a assez de place sur la pile à partir de HL.
 
             Garde toujours une marge de 96 octets dans la pile.
@@ -6707,7 +6690,6 @@ $2ec4       [mem_verify]
             Entrée :
             - HL, le pointeur à vérifier
             
-            MS_BASIC=ENFMEM
 $2ec4       Sauve le pointeur HL fourni.
 $2ec5-$2ecc Ajoute 96 en soustrayant $ffa0 à HL.
 $2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL (ajusté avec les niveaux) et le haut de la mémoire ($FFFF).
@@ -6722,36 +6704,44 @@ $2ed2-$2ed5 Message d'erreur "Out of Memory"
 $2ed8       Un octet inutilisé.
 
 $2ed9       [reset_lst]
-            Met 0 dans les deux premiers octets de txttab (donc efface l'accès au listing)
-            L'effet sur l'utilisateur est d'effacer le programme (mais il est encore là)
-            
-            MS_BASIC=CLRPTR
-$2ed9       ---
+            %MS_BASIC(CLRPTR)
+            Casse le chaînage du listing en mettant à 0 le premier lien.
+
+$2ed9       HL pointe vers le début du listing BASIC.
+
 $2edc       [reset_lst_2]
 $2edc       A = 0
 $2edd       Branche vers le code patché de la ROM 1.1
 
 $2ee0       [reset_lst_4]
-$2ee1       txttab+2 dans (vartab)
+$2ee0-$2ee1 Ajuste le pointeur de début des variables `(vartab)` à `(txttab)+2`.
+
 $2ee4       [reset_vars]
-            Remet à zéro les pointeurs du modèle mémoire
-$2ee7       HL pointe sur l'octet avant txttab
+$2ee4-$2ee7 HL pointe sur l'octet avant `(txttab)`.
+
 $2ee8       [init_vars]
-            HL est mis de côté ; MS_BASIC=INTVAR
-$2eeb       HL prend la valeur de memsiz
-$2eee       fretop est donc mis à memsiz, cela signifie que toute la mémoire est disponible.
-$2ef1       ---
-$2ef2       ---
-$2ef5       (vartab) est placé dans (arytab) et (strend). Autrement dit, élimine toutes les variables, les tableaux et les chaînes.
-$2ef8       ---
-$2efb       ---
+            %MS_BASIC(INTVAR)
+$2ee8       HL est sauvé dans `(temp)`
+$2eeb       HL prend la valeur de `(memsiz)` adresse la plus haute en mémoire disponible.
+$2eee       `(fretop)` = `(memsiz)`
+$2ef1       Z = 1, ce qui émule avec l'appel qui suit un appel à `RESTORE` sans paramètre.
+$2ef2       Appel à l'instruction `RESTORE`, pour réinitialiser le pointeurs de `DATA` depuis le début du programme.
+$2ef5-$2ef8 `(arytab)` = `(strend)` = `(vartab)`, ce qui invalide les variables, les tableaux et les chaînes.
 
 $2efe       [clear_regs]
-            Fonction : remise à zéro de la pile et effacement de l'interprétation en cours. Réinitialisation de l'imprimante.
-            Retour : HL contient le code de l'instruction en cours ?
+            %MS_BASIC(CLREG)
+            Quelques réinitialisation.
+
+            - Réinitialise les pointeurs de chaînes temporaires,
+            - Réinitialise l'imprimante,
+            - Réinitialise les boucles `FOR`.
+            - Réinitialise le paramètre de fonction utilisateur.
+            - Réinitialise la pile, y place 0 et l'adresse de retour.
+
+            Sortie :
+            - HL prend la valeur contenue dans `(temp)`
             
-            MS_BASIC=CLREG
-$2efe       Récupération de l'adresse de retour
+$2efe       Récupération de l'adresse de retour pour reconstruire la pile en fin de routine.
 $2eff-$2f02 Réinitialisation de la pile (SP) à la dernière adresse RAM valide
 $2f03-$2f06 Le pointeur sur la zone temporaire de descripteur est initialisé vers le buffer de construction de chaînes.
 $2f09       Mise à zéro de l'état de l'imprimante.
@@ -6764,18 +6754,15 @@ $2f19       Remet l'adresse de retour sur la pile avant le RET
 
 $2f1a       [do_again]
             %MS_BASIC(DOAGN)
-            Récupère le pointeur d'exécution de l'instruction en court puis termine l'instruction
-            en court. A priori pour la relancer (appelée depuis INPUT en cas de Redo from Scratch)
             A tracer depuis le reset qui précède et depuis INPUT (???)
             
 $2f1a       HL est chargé avec la valeur de `temp`, qui contient l'adresse d'exécution d'une commande.
             Qu'est-ce qu'il y a au boot ???
 
 $2f1e       [inst_restore]
-            %CODE
+            %CODE,%MS_BASIC(RESTORE)
             Instruction : RESTORE
             
-            MS_BASIC=RESTORE
 $2f1e       ---
 $2f1f       ---
 $2f22       Pas de paramètre, on restore depuis le début du programme
@@ -9276,11 +9263,12 @@ $3d8c       ---
 $3d8e       ---
 $3d90       ---
 $3d91       [reset_lst_3]
-            0 dans (autflg)
-$3d94       0 dans les deux premiers octets de (txttab). Cela coupe le premier lien du listing BASIC.
-$3d95       ---
-$3d96       ---
-$3d97       ---
+            Annule le mode `AUTO` et coupe le premier lien du listing BASIC.
+
+            Partie patchée par rapport à la ROM 1.0
+$3d91       0 dans `(autflg)` pour annuler le mode `AUTO`.
+$3d94-$3d96 Met le premier lien du listing BASIC à 0.
+$3d97       Continue vers le code non patché.
 
 $3d9a       [auto]
             Traitement du mode AUTO actif.
