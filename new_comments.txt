@@ -6966,40 +6966,39 @@ $3028       Sinon, lit cette virgule.
 $3029       Puis appelle l'instructio `NEXT` pour la variable index suivante.
 
 $302c       [str_hex_dec]
-            Transforme un nombre de la forme &"xxxx" en FP.
+            %MS_BASIC(HEXTFP)
+            Transforme un nombre de la forme &"xxxx" en nombre flottant.
+
+            Entrée :
+            - HL pointe vers le texte BASIC au niveau du '&' initial.
             
-            MS_BASIC=HEXTFP
-$302c       ---
+$302c       Pointe vers le caractère suivant.
 $302d       Vérifie que le début du nombre (après le '&'), est un '"'
 $302e       %DATASKIP
-$3030       ---
-$3031       ---
-$3032       Compteur de chiffres maximum (4 chiffres max, la boucle djnz sort lorsque B est décrémenté à 0)
-$3034       Positionnement du pointeur d'execution.
+$302f       Initialise l'accumulateur à 0.
+$3030-$3032 Compteur de chiffres maximum (4 chiffres max, la boucle djnz sort lorsque B est décrémenté à 0).
+$3034       Positionnement du pointeur pour la lecture des chiffres.
+
 $3035       [hex_fetch]
-            Va chercher un chiffre Hexa
-$3038       Saute si ce n'était pas un chiffre Hexa
-$303a       Temporairement sauve HL dans DE, qui contient l'accumulateur des valeurs
-$303b       ---
-$303c       ---
-$303d       ---
-$303e       HL (l'accumulateur) est décalé de 4 vers la gauche.
-$303f       A est ajouté dans les 4 bits de poids faible
-$3040       Remis dans l'accumulateur
-$3041       Remise en place de DE=accumulateur et HL=pointeur
-$3042       Si le compteur de chiffres n'est pas encore à zero, on repart pour un tour.
+$3035       Lecture d'un chiffre hexadécimal.
+$3038       Branche si ce n'était pas un chiffre hexadécimal.
+$303a       DE = pointeur sur le texte BASIC, HL = accumulateur.
+$303b-$303e HL = HL * 16
+$303f-$3040 HL = HL + A (le chiffre tout juste lu)
+$3041       DE = accumulateur, HL = pointeur sur le texte BASIC.
+$3042       Il reste potentiellement des chiffres. Boucle.
+
 $3044       [not_hexa]
-            Vérification que le caractère est '"' (en cas d'arrivée par caractère non hexa, on peut voir que &"" est valide et égal à 0)
-$3046       Si ça n'est pas le cas, c'est une erreur de syntaxe.
-$3049       On lit (puis ignore) le caractère suivant
-$304a       ---
-$304c       Sauvegarde du pointeur d'exécution.
-$304d       B (exp) = $98, A == 0 et DE contient l'entier lu. Le tout est monté dans FP
-            Ici, on ignore le caractère qui vient d'être lu
-$304e       ---
-$3051       Restauration du pointeur d'exécution.
-$3052       ---
-$3053       ---
+$3044       %CHAR
+$3044-$3046 Si le dernier caractère lu n'est pas '"', c'est une erreur de syntaxe.
+$3049       Sinon, il est lu afin d'avancer HL.
+$304a       Préparation de l'exposant pour un nombre entier.
+$304c       Sauve le pointeur vers le texte BASIC.
+$304d-$304e BADE (avec B = $98, A = 0 et DE l'accumulateur) est monté dans FAC.
+$3051       Restaure le pointeur vers le texte BASIC.
+
+$3053       Cinq octets inutilisés.
+
 $3058       [inst_renum]
             %CODE
 $305b       ---
