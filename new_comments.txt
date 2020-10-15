@@ -4443,7 +4443,7 @@ $21fe       [prio_table]
 $2213       [null_str]
 $2214       [ok_str]
 $2219       [back_stack]
-            Appelé par `NEXT`, ???
+            Appelé par `NEXT` et `RETURN`.
 
             Appelé par `RETURN`, dépile tous les blocs `FOR` jusqu'à trouver un bloc différent (probablement `GOSUB`).
 
@@ -4457,14 +4457,13 @@ $221d       [for_lookup]
             Cherche le bon bloc `FOR` dans la pile.
 
             Dans cette version du BASIC, il faut absoluement spécifier une adresse.
-            Le code qui permet à DE d'être nul, trouvable dans d'autres versions de ce BASIC, n'est pas présent.
 
             Entrée :
             - DE contient le pointeur vers la variable d'index que l'on cherche.
-            - HL pointe dans le pile au niveau d'un bloc `FOR` ou `GOSUB` potentiel.
+            - HL pointe dans la pile au niveau d'un bloc `FOR` ou `GOSUB` potentiel.
 
             Sortie :
-            - HL pointe vers le bloc `FOR` correspondant, dans la pile. (??? vers le step ?)
+            - HL pointe vers le bloc `FOR` correspondant, dans la pile au niveau du signe de `STEP`.
             - Drapeau Z à 1 si le bloc a été trouvé, 0 sinon.
             - BC est à $000d si le bloc a été trouvé.
 
@@ -6926,44 +6925,45 @@ $2fdd       [top_string]
 $2fdd-$2fe2 DE = HL - DE
 
 $2fe4       [inst_next]
-            %CODE
-$2fe7       [call2FE7]
-$2fea       ---
-$2fed       ---
-$2ff0       ---
-$2ff3       ---
-$2ff4       ---
-$2ff5       ---
-$2ff6       ---
-$2ff7       ---
-$2ff8       ---
-$2ff9       ---
-$2ffc       ---
-$2ffd       ---
-$2ffe       ---
-$3001       ---
-$3002       ---
-$3005       ---
-$3006       ---
-$3009       ---
-$300a       ---
-$300d       ---
-$300e       ---
-$300f       ---
-$3010       ---
-$3013       ---
-$3015       ---
-$3016       ---
-$3019       ---
-$301a       ---
-$301b       ---
-$301e       [skip301E]
-$301f       ---
-$3022       ---
-$3023       ---
-$3025       ---
-$3028       ---
-$3029       ---
+            %CODE,MS_BASIC(NEXT)
+            Instruction BASIC : NEXT
+$2fe4       Initialise DE pour le cas où la variable d'index pour `NEXT` n'est pas spécifiée.
+
+$2fe7       [inst_nxt_v]
+$2fe7       Lit la variable index qui suit le mot clé `NEXT` s'il y en a une.
+$2fea       Sauve le pointeur vers le texte BASIC dans `(temp)`
+$2fed       Recherche un bloc `FOR` dans la pile.
+$2ff0       Le bloc `FOR` correspondant n'a pas été trouvé. Branche vers une erreur.
+$2ff3       S'il a été trouvé, on ajuste le pointeur de pile vers celui-ci.
+$2ff4       Pousse l'adresse de la variable index trouvée dans le bloc `FOR` sur la pile (celle demandée, ou la première trouvée si non spécifiée).
+$2ff5-$2ff6 Lit et sauve sur la pile le signe de `STEP`
+$2ff7       Pointe vers l'octet suivant, qui est la valeur de `STEP`.
+$2ff8       Pousse l'adresse de la variable index sur la pile.
+$2ff9       Monte la valeur pointée par HL (valeur de `STEP`) dans FAC.
+$2ffc       HL = pointeur vers la variable index, Haut de la pile = pointeur vers le champ `TO` du bloc `FOR`.
+$2ffd       Pousse le pointeur vers la variable index sur la pile.
+$2ffe       Ajoute la valeur du `STEP` et la valeur de la variable index. Le résultat est dans FAC.
+$3001-$3002 Place le résultat dans la variable index.
+$3005-$3006 Place la valeur de `TO` dans BCDE.
+$3009       HL pointe à présent sur le champ de la ligne du bloc `FOR`. Ce pointeur est poussé sur la pile.
+$300a       Comparaison de BCDE (`TO`) et FAC (la variable index)
+$300d       Restaure le pointeur vers la ligne du `FOR` dans HL.
+$300e       Restaure le signe de `STEP` dans B.
+$300f       Compare le signe de `STEP` avec le résultat de la comparaison.
+$3010       Charge les informations de ligne dans BCDE. BC = pointeur vers l'instruction suivant le `FOR`, DE = numéro de la ligne.
+            HL pointe après le bloc `FOR`.
+$3013       Si le signe de la comparaison et le signe de `STEP` étaient égaux, la boucle est terminée.
+$3015-$3016 Sinon, place le numéro de ligne où se trouve `FOR` dans `(curlin)`.
+$3019-$301a Et place le pointeur de texte BASIC sur l'instruction qui suit le `FOR`.
+$301b       L'interprétation BASIC peut continuer.
+
+$301e       [remove_for]
+$301e       Ajuste la pile après le bloc `FOR` qui vient d'être lu.
+$301f       Restaure le pointeur vers le texte BASIC, qui est à la fin du NEXT ou de la variable index qui vient d'être traitée.
+$3023       %CHAR
+$3022-$3025 Termine l'instruction si le caractère suivant n'est pas une virgule.
+$3028       Sinon, lit cette virgule.
+$3029       Puis appelle l'instructio `NEXT` pour la variable index suivante.
 
 $302c       [str_hex_dec]
             Transforme un nombre de la forme &"xxxx" en FP.
