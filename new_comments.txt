@@ -6903,33 +6903,28 @@ $2fbf       [clr_stored]
             
             Si le second paramètre n'était pas spécifié, HL est `(memsiz)`.
             
-$2fbf       Appel qui pourrait être inliné... (!!!)
-$2fc2       Si HL - DE est négatif, alors erreur de mémoire
+$2fbf       DE = HL - DE, c'est-à-dire le pointeur vers la zone des chaînes de caractères.
+            Il est étrange que ce calcul soit dans un sous-routine, elle ne semble pas utilisée ailleurs.
+$2fc2       Si le résultat est négatif, alors branche vers une erreur.
 $2fc5       Sauvegarde de l'adresse mémoire haute (second paramètre)
-            HL prend la valeur de (vartab), l'adresse de fin de programme BASIC stocké.
-$2fc6       ---
-$2fc9       En vrai, LD BC,$28 (== 40) (taille minimale voulue)
-$2fcc       ---
-$2fcd       Comparaison de (vartab) + $28 et de DE, qui contient la plus haute mémoire réduire de la taille pour les chaînes
-$2fce       S'il n'y a pas assez de mémoire, le signaler.
-$2fd1       ---
-$2fd2       Stockage de HL (venant de DE) comme nouveau (stktop)
-$2fd5       ---
-$2fd6       Stockage de HL (venant de la pile) comme neaucou (memsiz)
-$2fd9       On pop quoi ??? L'adresse de retour car on jump ?
-$2fda       Saut à l'initialisation des variables.
+            
+$2fc6       HL pointe vers la première adresse de variables (juste après le listing BASIC)
+$2fc9       %NOT_LABEL
+$2fc9-$2fcc Augmente le pointeur HL de la taille minimale réservable (40 octets)
+$2fcd       Comparaison de cette adresse avec DE, le pointeur vers la zone des chaînes de caractères.
+$2fce       Si HL n'est pas inférieur à DE, c'est une erreur.
+$2fd1       HL = pointeur sur la zone des chaînes de caractères.
+$2fd2       Met à jour l'adresse de haut de pile `(stktop)`.
+$2fd5-$2fd6 Met à jour la plus haute adresse dans `(memsiz)`.
+$2fd9       Restaure le pointeur vers le texte BASIC.
+$2fda       Branche l'initialisation des variables restantes.
 
 $2fdd       [top_string]
-            Soustraction du second paramètre (la mémoire haute) par la taille
-            pour les chaînes demandée.
-            À la fin, HL n'est pas touché, et DE contient HL - (taille demandée)
-$2fdd       ---
-$2fde       ---
-$2fdf       ---
-$2fe0       ---
-$2fe1       ---
-$2fe2       ---
-$2fe3       ---
+            Routine utilisé par l'instruction `CLEAR`
+            DE = HL - DE
+            
+$2fdd-$2fe2 DE = HL - DE
+
 $2fe4       [inst_next]
             %CODE
 $2fe7       [call2FE7]
