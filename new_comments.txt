@@ -6760,29 +6760,32 @@ $2f1a       HL est chargé avec la valeur de `temp`, qui contient l'adresse d'ex
             Qu'est-ce qu'il y a au boot ???
 
 $2f1e       [inst_restore]
-            %CODE,%MS_BASIC(RESTORE)
-            Instruction : RESTORE
+            %CODE,%MS_BASIC(RESTOR)
+            Instruction BASIC : RESTORE
             
-$2f1e       ---
-$2f1f       ---
-$2f22       Pas de paramètre, on restore depuis le début du programme
-$2f24       ---
-$2f25       ---
-$2f28       ---
-$2f29       ---
-$2f2c       ---
-$2f2d       ---
-$2f2e       ---
-$2f2f       Si le numéro de ligne spécifié n'est pas trouvé, erreur
+$2f1e       Sauve le pointeur vers le texte BASIC dans DE
+$2f1f       HL pointe vers le début du listing BASIC.
+$2f22       Pas de paramètre, restaure depuis le début du programme.
+$2f24       Ramène le pointeur vers le texte BASIC dans HL.
+$2f25       Récupère le numéro de ligne en paramètre dans DE.
+$2f28       Sauve le pointeur vers le texte BASIC.
+$2f29       Récupère le pointeur vers la ligne en paramètre de `RESTORE` dans BC.
+$2f2c-$2f2d HL pointe vers la ligne désignée par le paramètre.
+$2f2e       Restaure le pointeur vers le texte BASIC dans DE.
+$2f2f       Si le numéro de ligne spécifié n'est pas trouvé, branche vers une erreur.
+
 $2f32       [restore_all]
-            MS_BASIC=RESTNL
+            %MS_BASIC(RESTNL)
+$2f32       Recule le pointeur vers la ligne de 1 octet.
 $2f33       [set_data]
-            MS_BASIC=UPDATA
-            Sauvegarde de l'octet de la prochaine ligne de DATA
-$2f36       ---
-$2f37       ---
+            %MS_BASIC(UPDATA)
+$2f33       Sauvegarde le pointeur à partir duquel la recherche de `DATA` sera faite.
+$2f36       Restaure le pointeur de texte BASIC dans HL.
+
 $2f38       [inst_stop]
-            %CODE
+            %CODE,MS_BASIC(STOP)
+            Instruction BASIC : STOP
+
 $2f39       ---
 $2f3a       [inst_end]
             %CODE
