@@ -7001,49 +7001,58 @@ $3053       Cinq octets inutilisés.
 
 $3058       [inst_renum]
             %CODE
-$305b       ---
-$305c       ---
-$305d       ---
-$305e       ---
-$3060       ---
-$3062       ---
-$3064       ---
-$3065       ---
-$3068       ---
-$3069       ---
-$306a       ---
-$306b       ---
-$306d       [skip306D]
-$306e       ---
-$306f       ---
-$3072       ---
-$3074       ---
-$3075       ---
-$3076       ---
-$3077       ---
-$3078       ---
-$307b       ---
-$307e       ---
-$307f       ---
-$3080       ---
-$3083       ---
-$3084       ---
-$3085       ---
-$3086       [skip3086]
-$3087       ---
-$308a       ---
-$308b       ---
-$308c       ---
-$308d       ---
-$3090       ---
-$3091       ---
-$3092       ---
-$3093       ---
-$3094       ---
-$3095       ---
-$3098       ---
-$3099       ---
-$309a       ---
+            Instruction BASIC : RENUM
+
+$3058       BC = 10, sers pour le premier numéro des nouveaux numéro de ligne ainsi qu'au `pas`.
+$305b       Pousse BC sur la pile en tant que `pas` de numéroration.
+$305c-$305d DE = 0, ligne de départ par défaut pour le traitement de la numéroration.
+$305e       Effectue l'opération avec les arguments par défaut (0, 10, 10) si aucun n'est précisé.
+$3060       %CHAR
+$3060-$3062 Branche vers le deuxième arguement si le premier paramètre est ignoré.
+$3064       Sauve DE.
+$3065-$3069 BC = premier argument, le numéro de ligne du listing pour le début du traitement.
+$306a       Restaure DE, premier nouveau numéro de ligne.
+$306b       Branche sur l'opération s'il n'y a pas d'argument qui suit.
+
+$306d       [renum_line]
+$306d       Sinon, vérifie la présence d'une virgule.
+$306e       %DATASKIP
+$306f       Lit le deuxième arguement dans DE.
+$3072       Branche sur l'opération si c'était le dernier argument.
+$3074       Retire le `pas` actuel de la pile.
+$3075       Vérifie que le caractère suivant est une virgule.
+$3076       %DATASKIP
+$3077       Pousse le deuxième argument sur la pile.
+$3078       Lecture du troisième argument.
+$307b       Si l'instruction n'est pas terminée, c'est une erreur de syntaxe.
+$307e-$3080 Si le troisième argument (le pas de numérotation) est nul, c'est un appel illégal.
+$3083       Troisième argument dans HL.
+$3084       Troisième argument en haut de la pile. HL = deuxième argument.
+$3085       DE = deuxième argument. HL = pointeur vers le texte BASIC.
+
+$3086       [do_renum]
+            À l'arrivée, on a :
+
+            - HL = pointeur vers le texte BASIC
+            - BC = premier argument
+            - DE = deuxième argument
+            - Haut de la pile = troisième argument
+
+$3086       [do_renum]
+$3086       Sauve le premier argument
+$3087       Cherche une ligne qui correspond au deuxième argument.
+$308a       DE = premier argument.
+$308b       Pousse le premier argument sur la pile.
+$308c       Pousse l'adresse de la ligne cherchée par le deuxième argument sur la pile.
+$308d       Cherche la ligne indiquée par le premier arguement.
+$3090-$3091 HL = adresse de la ligne indiquée par le premier argument.
+$3092       DE = adresse de la ligne indiquée par le deuxième argument.
+$3093       Compare HL et DE
+$3094       HL = adresse de la ligne indiquée par le deuxième argument.
+$3095       Si DE est supérieur à HL, l'appel est illégal. (tracer pour expliquer pourquoi ???)
+$3098       DE = premier argument
+$3099       BC = premier argument
+$309a       AF = ???
 $309b       ---
 $309c       ---
 $309d       ---
