@@ -6746,7 +6746,7 @@ $2eff-$2f02 Réinitialisation de la pile (SP) à la dernière adresse RAM valide
 $2f03-$2f06 Le pointeur sur la zone temporaire de descripteur est initialisé vers le buffer de construction de chaînes.
 $2f09       Mise à zéro de l'état de l'imprimante.
 $2f0c-$2f0e HL et A à 0
-$2f0f       Mise à zéro de registre `oldtxt`, pointeur vers l'ancien text (???)
+$2f0f       Mise à zéro de registre `oldtxt`, pointeur vers le dernier arrêt de programme (utilisé par `CONT`).
 $2f12       Mise à zéro du registre `subflg`, utilisé pour FOR.
 $2f15       Mise à zéro du nom du paramètre pour les fonctions utilisateurs.
 $2f18       Met 0 sur la pile
@@ -6786,88 +6786,123 @@ $2f38       [inst_stop]
             %CODE,MS_BASIC(STOP)
             Instruction BASIC : STOP
 
-$2f39       ---
+$2f38       Pas d'effet s'il y a un argument. Cela provoquera une erreur de syntaxe en cherchant l'instruction suivante.
+$2f39       Prépare le drapeau pour `STOP` ($c0)
 $2f3a       [inst_end]
-            %CODE
-$2f3b       ---
-$2f3e       ---
+            %CODE,MS_BASIC(PEND)
+            Instruction BASIC : END
+
+            ??? Attention, le formateur ne créé par d'entrée ici !
+
+$2f3a       Pas d'effet s'il y a un argument. Cela provoquera une erreur de syntaxe en cherchant l'instruction suivante.
+$2f3b       Sauve l'endroit où l'arrête a eu lieu en cas de `STOP` ou de `END`
+$2f3e       Saute par dessus le `OR` suivant.
+
 $2f3f       [input_brk]
-$2f41       Enlève l'adresse de retour des instructions. Le programme est terminé
+$2f3f       Prépare le drapeau pour `BREAK` ($ff)
+$2f41       Enlève l'adresse de retour des instructions. Le programme est terminé.
 
 $2f42       [end_of_prog]
+            %MS_BASIC(ENDPRG)
             Traite la fin d'un programme
             
-            MS_BASIC=ENDPRG
-$2f42       ---
-$2f45       Sauve le status de l'arrêt. STOP a mis A <- $C0, BREAK a mis A <- $FF, et END ?
-$2f46       ---
-$2f47       ---
-$2f48       ---
-$2f49       Si la dernière ligne était FFFF, alors le A est égal à 0, saut. Nous étions en mode direct.
-$2f4b       Sauve la dernière ligne exécutée si elle avait un numéro
-$2f4e       ---
-$2f51       Sauve le dernier pointeur d'exécution concernant une ligne avec numéro. Utile pour CONT
+$2f42       HL contient le numéro de ligne en cours.
+$2f45       Sauve la raison de l'arrêt. `STOP` et `END` ont mis A <- $c0, `BREAK` a mis A <- $ff.
+$2f46-$2f49 Si la ligne courante est $ffff, le BASIC est en mode direct. Branche plus loin.
+$2f4b       Sauve la dernière ligne exécutée si le BASIC est en mode indirect.
+$2f4e-$2f51 Sauve le point d'arrêt vers le texte BASIC. Utilisé pour `CONT`.
+
 $2f54       [no_line]
-            Nouvelle ligne sur la sortie (et l'imprimante?)
-$2f57       ---
-$2f5a       Récupére AF... sans intérêt, on le push juste après sans rien en faire. A est écrasé par la langue et F par le test. (!!)
-$2f5b       Chargement du texte pour l'arrêt
-$2f5e       Remise dans la pile de AF...
+$2f54       Réinitialisation de l'imprimante.
+$2f57       Réinitialisation du terminal et passage à la ligne.
+$2f5a       Récupére AF... sans intérêt. Il s'agit d'un relicat d'une autre version du BASIC.
+$2f5b       HL pointe vers le message d'arrêt.
+$2f5e       Remise dans la pile de AF... où il aurait pu y rester.
 $2f5f       Chargement de la langue du système.
-$2f62       ---
-$2f63       ---
-$2f65       ---
+$2f62-$2f63 Branche si le système est en français.
+$2f65       Sinon, HL pointe vers le même message en anglais.
+
 $2f68       [break_fr]
-$2f69       Si A était à zéro, il s'agissait d'un arrêt de programme normal, sinon, au saute à l'affichage de message d'arrêt.
-$2f6c       Boucle sur l'affichage "Ok!"
+$2f68       Récupère la raison de l'arrêt.
+$2f69       Branche si la raison de l'arrêt nécessite un message.
+$2f6c       Sinon, c'est un arrêt normal. Boucle sur l'affichage "Ok!".
+
 $2f6f       [inst_cont]
+            %CODE,MS_BASIC(CONT)
+            Instruction BASIC : CONT
+$2f6f       Récupère dans HL le dernier point d'arrêt.
+$2f74       %NOT_LABEL
+$2f72-$2f77 Branche sur l'erreur "Cannot continue" si le dernier point d'arrêt est 0.
+$2f7a-$2f7e Sinon, place le numéro de la ligne d'arrêt dans `(curlin)`. Avec le pointeur HL sur le texte BASIC interrompu, le système est prêt à repartir.
+
+$2f83       [myst_inst]
             %CODE
-$2f72       ---
-$2f73       ---
-$2f74       ---
-$2f77       Sors avec l'erreur "Cannot continue"
-$2f7a       ---
-$2f7e       ---
-$2f82       ---
-$2f83       ---
+
+            Est-ce une instruction illégale ??? D'où est-ce appelé ?
+
+$2f86       [mystere]
+            %CODE
+
+            Est-ce vraiment une instruction appelée ???
+            La routine n'a pas vraiment de sens, mais n'est pas non plus complètement absurde.
+
+$2f86-$2f88 Prépare la demande d'un tableau.
+$2f8b       Récupère un tableau tel que pointé par HL sur du texte BASIC.
+$2f8e       Sauve le pointeur de texte BASIC.
+$2f8f       Que prend `(subflg)` ???
+$2f92-$2f93 HL = BC
+$2f94-$2f97 Recule le pointeur BC de 4 octets.
 
 $2f98       [a_to_z]
-            Vérification que le caractère pointé par HL est entre A et Z inclus.
-            Dans le cas contraire, lève le drapeau de retenu.
-$2f98       ---
+            Vérifie que le caractère pointé par HL est entre A et Z inclus.
+
+            Entrée :
+            - HL pointe vers un caractère.
+
+            Sortie :
+            - Carry à 1 si ce n'est pas le cas.
+            - Carry à 0 si c'est le cas.
+
+            Préserve :
+            - Tous les registres sauf AF.
+
+$2f98       Lit le caractère pointé par HL dans A.
+
 $2f99       [a_to_z_2]
-            Appelé ici lorsque A contient déjà la caractère à vérifier
-$2f9b       ---
-$2f9c       ---
-$2f9e       ---
-$2f9f       ---
+            Même routine mais avec le caractère à vérifier déjà dans A.
+
+$2f99       %CHAR
+$2f99-$2f9b Retour si le caractère est avant `A`.
+$2f9c       %CHAR
+$2f9c       Si le caractère est `[` ou après, le Carry est à 0.
+$2f9e       Complément le Carry.
 
 $2fa0       [inst_clear]
-            %CODE
-            Instruction : CLEAR
-$2fa0       Si pas d'argument, initialise les variables avec les valeurs courantes
-$2fa3       Récupère un premier paramètre entre 0 et 32768
-$2fa6       ---
-$2fa7       Prend le caractère suivant
-$2fa8       Sauve le pointeur d'exécution
-$2fa9       HL prend la dernière adresse mémoire disponible.
-$2fac       Si pas de deuxième paramètre (le chget a renvoyé 0), alors on continue plus loin
-$2fae       ---
-$2faf       Vérifie que le caractère lu est bien une virgule
-$2fb0       data -> ','
-$2fb1       Sauve le premier paramètre
-$2fb2       Décode le second paramètre (de -32768 à 32767)
-$2fb5       ---
-$2fb8       ---
-$2fb9       Lit le caractère suivant.
-$2fba       S'il n'est pas nul, c'est une erreur de syntaxe
-$2fbd       Le pointeur d'exécution va sur la pile et on récupère le premier paramètre dans HL
+            %CODE,MS_BASIC(CLEAR)
+            Instruction BASIC : CLEAR
+
+$2fa0       S'il n'y a pas d'argument, initialise les variables avec les valeurs courantes.
+$2fa3       Récupère un premier paramètre entre 0 et 32768 dans DE.
+$2fa6-$2fa7 Lit le caractère suivant.
+$2fa8       Sauve le pointeur vers le texte BASIC.
+$2fa9       HL contient la dernière adresse mémoire disponible.
+$2fac       S'il n'y a pas de second paramètre, continue plus loin.
+$2fae       Récupère le pointeur vers le texte BASIC.
+$2faf       Vérifie que le caractère suivant est une virgule, ou génère une erreur de syntaxe.
+$2fb0       %DATASKIP
+$2fb1       Sauve le premier paramètre sur la pile.
+$2fb2-$2fb5 Lit le second paramètre (de -32768 à 32767) dans DE.
+$2fb8-$2fb9 Lit le caractère suivant.
+$2fba       S'il n'est pas nul, c'est une erreur de syntaxe.
+$2fbd       HL = première paramètre, Haut de la pile = pointeur vers le texte BASIC.
 $2fbe       Le premier paramètre est dans DE, le second dans HL.
 
 $2fbf       [clr_stored]
-            Le premier paramètre est dans DE, le second dans HL, qui est (memsiz) si on est venu sans second paramètre spécifié.
+            %MS_BASIC(STORED)
+            Arrivé ici, le premier paramètre est dans DE, le second dans HL.
             
-            MS_BASIC=STORED
+            Si le second paramètre n'était pas spécifié, HL est `(memsiz)`.
+            
 $2fbf       Appel qui pourrait être inliné... (!!!)
 $2fc2       Si HL - DE est négatif, alors erreur de mémoire
 $2fc5       Sauvegarde de l'adresse mémoire haute (second paramètre)
