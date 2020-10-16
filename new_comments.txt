@@ -7003,15 +7003,20 @@ $3058       [inst_renum]
             %CODE
             Instruction BASIC : RENUM
 
+            Les arguments pour RENUM sont, dans l'ordre :
+            - La ligne de nouveau départ pour la renumérotation
+            - La ligne du listing actuel à partir de laquelle commence la renumérotation
+            - Le 'pas' de renumérotation.
+
 $3058       BC = 10, sers pour le premier numéro des nouveaux numéro de ligne ainsi qu'au `pas`.
-$305b       Pousse BC sur la pile en tant que `pas` de numéroration.
-$305c-$305d DE = 0, ligne de départ par défaut pour le traitement de la numéroration.
+$305b       Pousse BC sur la pile en tant que `pas` de numérotation.
+$305c-$305d DE = 0, ligne de départ par défaut pour le traitement de la numérotation.
 $305e       Effectue l'opération avec les arguments par défaut (0, 10, 10) si aucun n'est précisé.
 $3060       %CHAR
 $3060-$3062 Branche vers le deuxième arguement si le premier paramètre est ignoré.
 $3064       Sauve DE.
-$3065-$3069 BC = premier argument, le numéro de ligne du listing pour le début du traitement.
-$306a       Restaure DE, premier nouveau numéro de ligne.
+$3065-$3069 BC = premier argument, nouveau numéro de ligne de départ.
+$306a       Restaure DE, ligne de démarrage dans le listing actuel.
 $306b       Branche sur l'opération s'il n'y a pas d'argument qui suit.
 
 $306d       [renum_line]
@@ -7034,8 +7039,8 @@ $3086       [do_renum]
             À l'arrivée, on a :
 
             - HL = pointeur vers le texte BASIC
-            - BC = premier argument
-            - DE = deuxième argument
+            - BC = premier argument, nouveau numéro de ligne pour la numérotation.
+            - DE = deuxième argument, numéro de ligne du listing actuel pour le début du traitement.
             - Haut de la pile = troisième argument
 
 $3086       [do_renum]
@@ -7047,39 +7052,40 @@ $308c       Pousse l'adresse de la ligne cherchée par le deuxième argument sur
 $308d       Cherche la ligne indiquée par le premier arguement.
 $3090-$3091 HL = adresse de la ligne indiquée par le premier argument.
 $3092       DE = adresse de la ligne indiquée par le deuxième argument.
-$3093       Compare HL et DE
+$3093       Compare HL (ligne destination voulue) et DE (ligne de démarrage dans le listing)
 $3094       HL = adresse de la ligne indiquée par le deuxième argument.
-$3095       Si DE est supérieur à HL, l'appel est illégal. (tracer pour expliquer pourquoi ???)
+$3095       Si DE est supérieur à HL, l'appel est illégal.
+            Cela signifie que la ligne cible de numérotation existe et que l'on veut y amener un morceau de listing plus loin.
+            Si la place est libre, on aura DE et HL égaux.
+            Et si HL est supérieur à DE, cela signifie que la renumérotation 'pousse' le listing vers des numéros plus grands.
 $3098       DE = premier argument
-$3099       BC = premier argument
-$309a       AF = ???
-$309b       ---
-$309c       ---
-$309d       ---
-$309f       [loop309F]
-$30a0       ---
-$30a3       ---
-$30a4       ---
-$30a5       ---
-$30a8       ---
-$30a9       ---
-$30aa       ---
-$30ad       [skip30AD]
-$30ae       ---
-$30af       ---
-$30b0       ---
-$30b1       ---
-$30b2       ---
-$30b3       ---
-$30b4       ---
-$30b5       ---
-$30b7       ---
-$30b8       ---
-$30b9       ---
-$30ba       ---
-$30bb       ---
-$30bc       ---
-$30be       [skip30BE]
+$3099       BC = pas de numérotation.
+$309a       AF = adresse de retour de l'instruction.
+$309b       Pousse l'adresse de la ligne indiquée par le second argument sur la pile.
+$309c       Pousse le premier argument sur la pile.
+$309d       Démarre la vérification de renumérotation valide.
+
+$309f       [r_check_lp]
+$309f       Ajoute le 'pas' au numéro de ligne.
+$30a0       Si la somme dépasse 65535, la renumérotation n'est pas valide, branche sur une erreur.
+$30a3       DE = prochain nouveau numéro de ligne, HL = pointe vers la ligne.
+$30a4       Sauve HL.
+$30a5-$30a8 Compare DE et $fff9, plus haut numéro de ligne valide.
+$30a9       Restaure HL.
+$30aa       Si le numéro de ligne calculé pour la numérotation est trop haut, branche sur une erreur.
+
+$30ad       [renum_check]
+$30ad       Pousse le prochain nouveau numéro de ligne
+$30ae-$30b1 DE = adresse de chaînage de la ligne à renuméroter.
+$30b2       Prépare la vérification de fin de chaînage.
+$30b3       HL = adresse de chaînage de la ligne à renuméroter
+$30b4       Restaure le prochain nouveau numéro de ligne dans DE.
+$30b5       Si le chaînage est nul, on est sur la dernière ligne du listing. Branche plus loin.
+$30b7-$30ba Vérifie le chaînage pointé par HL, sans bouger HL.
+$30bb       HL = nouveau numéro de ligne, DE = pointe vers la ligne.
+$30bc       Si le chaînage existe, boucle.
+
+$30be       [r_check_end]
 $30bf       ---
 $30c2       ---
 $30c3       ---
