@@ -3372,6 +3372,10 @@ $153f       [errors_eng]
 $159e       [out_mem_eng]
 $16c6       [txt_fre_fr]
 $16db       [txt_fre_en]
+$16e8       [txt_line_fr]
+$16ef       [txt_line_en]
+$16f5       [txt_undeffr]
+$1702       [txt_undefen]
 $170f       [txt_igno_fr]
 $172d       [txt_igno_en]
 $173c       [txt_redo_fr]
@@ -7008,6 +7012,8 @@ $3058       [inst_renum]
             - La ligne du listing actuel à partir de laquelle commence la renumérotation
             - Le 'pas' de renumérotation.
 
+            [ArticleAlgorithmeRenum]
+
 $3058       BC = 10, sers pour le premier numéro des nouveaux numéro de ligne ainsi qu'au `pas`.
 $305b       Pousse BC sur la pile en tant que `pas` de numérotation.
 $305c-$305d DE = 0, ligne de départ par défaut pour le traitement de la numérotation.
@@ -7086,126 +7092,99 @@ $30bb       HL = nouveau numéro de ligne, DE = pointe vers la ligne.
 $30bc       Si le chaînage existe, boucle.
 
 $30be       [r_check_end]
-$30bf       ---
-$30c2       ---
-$30c3       ---
-$30c4       ---
-$30c5       [loop30C5]
-$30c6       ---
-$30c7       ---
-$30c8       ---
-$30c9       ---
-$30ca       ---
-$30cb       ---
-$30cd       ---
-$30ce       ---
-$30cf       ---
-$30d0       ---
-$30d1       ---
-$30d2       ---
-$30d3       ---
-$30d4       ---
-$30d5       ---
-$30d6       ---
-$30d7       ---
-$30d8       ---
-$30da       [skip30DA]
-$30dd       ---
-$30de       ---
-$30df       [call30DF]
-$30e0       ---
-$30e1       ---
-$30e4       ---
-$30e7       ---
-$30e8       [loop30E8]
-$30e9       ---
-$30ea       ---
-$30eb       ---
-$30ec       ---
-$30ed       ---
-$30ee       ---
-$30ef       ---
-$30f0       ---
-$30f1       [loop30F1]
-$30f2       ---
-$30f3       ---
-$30f5       ---
-$30f6       ---
-$30f9       ---
-$30fa       ---
-$30fb       ---
-$30fd       ---
-$30ff       ---
-$3101       ---
-$3102       ---
-$3103       ---
-$3104       ---
-$3105       ---
-$3106       ---
-$3107       ---
-$3108       ---
-$310b       ---
-$310c       ---
-$310e       ---
-$3110       ---
-$3113       ---
-$3116       ---
-$3119       ---
-$311a       ---
-$311c       ---
-$311f       [skip311F]
-$3120       ---
-$3123       ---
-$3124       ---
-$3127       ---
-$312a       ---
-$312d       ---
-$312e       ---
-$3130       ---
-$3133       [skip3133]
-$3136       ---
-$3137       ---
-$3138       ---
-$3139       ---
-$313a       ---
-$313d       ---
-$313e       ---
-$313f       ---
-$3140       [loop3140]
-$3142       [skip3142]
-$3144       ---
-$3146       ---
-$3147       ---
-$3148       ---
-$314a       [skip314A]
-$314c       ---
-$314e       ---
-$314f       ---
-$3150       ---
-$3151       ---
-$3152       ---
-$3153       ---
-$3154       ---
-$3155       ---
-$3156       ---
-$3157       ---
-$3158       ---
-$3159       ---
-$315a       ---
-$315b       ---
-$315c       ---
-$315e       [skip315E]
-$3161       ---
-$3162       ---
-$3165       ---
-$3166       ---
-$3167       ---
-$3168       ---
-$3169       ---
-$316a       ---
-$316b       ---
-$316c       ---
-$316d       ---
+$30be       Sauve le pas de renumérotation.
+$30bf       Vérifie que toutes les références à des numéros de ligne dans le listing sont valides.
+$30c2       Restaure le pas de renumérotation.
+$30c3       Restaure le premier argument dans DE.
+$30c4       Restaure HL qui pointe sur `(txttab)`.
+
+$30c5       [ren_lines]
+$30c5       Sauve le numéro de ligne destination (initialement le premier argument).
+$30c6-$30cb Branche si le chaînage est nul, pour mettre à jour les références de lignes.
+            DE contient l'adresse de chaînage.
+$30cd       HL = adresse de chaînage, DE = pointeur sur le numéro de la ligne
+$30ce       HL = numéro de ligne de destination, Haut de la pile = adresse de chaînage.
+$30cf       DE = numéro de ligne de destination, HL = pointeur sur le numéro de la ligne.
+$30d0-$30d3 Met dans le numéro de la ligne de la ligne pointée le numéro de ligne de destination.
+            Autrement dit, met à jour le numéro de la ligne traitée.
+$30d4-$30d6 DE = DE + BC, le numéro de ligne de destination est augmenté du pas de renumérotation.
+$30d7       Restaure l'adresse de chaînage dans HL, qui pointe donc sur la ligne suivante.
+$30d8       Boucle sur la renumérotation de la ligne suivante.
+
+$30da       [renum_00]
+$30da-$30dd Prépare une adresse de retour vers la boucle "Ok" précédée d'un `pop`.
+$30de       Saute par dessus la suite pour arriver sur le `xor a` qui va entraîner 0 dans `(ptrfrg)`.
+
+$30df       [renum_af]
+$30df       En arrivant ici, `(ptrfrg)` sera mis à $af, pour vérifier que toutes les références à des numéros de lignes sont valides.
+$30e0       A = 0
+$30e1       Met `(ptrfrg)` à $af ou $00 suivant le chemin d'arrivée.
+$30e4-$30e7 HL pointe un octet avant le début de listing BASIC.
+
+$30e8       [ren_line]
+$30e8       Avec HL de un octet.
+$30e9-$30ec Retour si le chaînage de ligne est nul.
+$30ed-$30f0 DE = numéro de la ligne
+$30f1       [ren_byte]
+$30f1       Lecture d'un octet du contenu de la ligne.
+$30f2-$30f3 Boucle si la fin de ligne est atteinte.
+$30f5       Sauve l'octet lu dans C
+$30f6-$30f9 Prépare la comparaison de `(ptrfrg)` avec 0.
+$30fa       Restaure l'octet lu dans A
+$30fb       Branche si `(ptrfrg)` est à 0 pour remettre les références de lignes de type pointeur en numéro de ligne de type entier.
+$30fd-$30ff Sinon, si l'octet n'est pas un marqueur de numéro de ligne, boucle sur le traitement l'octet suivant de la ligne.
+$3101       Sinon, c'est un numéro de ligne. Sauve le numéro de la ligne courante sur la pile.
+$3102-$3106 DE = numéro de ligne référencé dans les données de la ligne.
+$3107       Sauve HL pointeur vers le texte BASIC.
+$3108       Recherche la ligne référencée.
+$310b       Pointe un octet avant les données de la ligne référencée.
+$310c       A = $0d afin de mettre un marqueur de 'pointeur de ligne' dans les données de la ligne.
+$310e       Branche si la ligne a été trouvée afin de remplacer le numéro de ligne par le pointeur vers la ligne.
+$3110       Curseur à la ligne.
+$3113-$311c HL pointe vers le texte "Ligne" en fonction de la langue du système.
+
+$311f       [line_fr]
+$311f       Sauve DE, le numéro de ligne référencée.
+$3120       Émet le message "Ligne" sur la sortie actuelle.
+$3123       Restaure le numéro de ligne référencée dans HL.
+$3124       Émet le numéro de cette ligne à la suite.
+$3127-$3130 HL pointe sur le message "non définie" en fonction de la langue du système.
+$3133       [undef_fr]
+$3133       Émet le message "non définie" sur la sortie actuelle.
+$3136-$3139 Restaure le pointeur de texte BASIC (dans BC) et le numéro de ligne (dans HL) en les laissant sur la pile.
+$313a       Émet "en ligne " + le numéro de ligne dans HL.
+$313d       [ren_byt_lp]
+$313d       Restaure le pointeur sur le texte BASIC dans HL.
+$313e       Restaure le numéro de ligne courante dans DE.
+$313f       Recule le pointur vers le texte BASIC d'un octet.
+$3140       [ren_byte_2]
+$3140       Boucle sur le traitement de l'octet suivant dans la ligne.
+
+$3142       [ref_to_line]
+            On arrive ici sur `(ptrfrg)` est à 0 lors de la renumérotation.
+            C'est-à-dire que les numéros de lignes ont déjà été mises à jour.
+            Il s'agit à présent de mettre à jour leurs références.
+$3142-$3144 Branche si l'octet n'est pas un marqueur de numéro de ligne.
+$3146-$3147 Sinon, saute par dessus les deux octets suivants.
+            C'est un numéro de ligne invalide, il n'est pas modifié.
+$3148       Et traite l'octet suivant du contenu de la ligne.
+
+$314a       [valid_ref]
+$314a-$314c Si l'octet n'est pas un marqueur de référence de ligne valide, branche vers le prochain octet de la ligne.
+$314e       Sinon, sauve DE
+$314f-$3152 DE = pointeur vers la ligne référencée.
+$3153-$3154 Sauve le pointeur vers les données de la ligne en cours.
+$3155-$3158 Positionne HL sur le numéro de ligne de la ligne référencée.
+$3159-$315b Lit le numéro de ligne de la ligne référencée dans BC.
+$315c       A = $0e afin de remettre un marqueur de référence de ligne.
+
+$315e       [update_ref]
+$315e-$3161 Prépare l'adresse de retour pour traiter l'octet suivant.
+$3162       Récupération de l'adresse après lecture de la dernière référence à un numéro de ligne.
+$3165       Sauve ce pointeur pour préparer le contexte pour la prochaine boucle.
+$3166-$316c Place dans les données de la ligne soit un numéro de ligne (si A = $0e), soit un pointeur vers une ligne dans le listing (si A = $0d).
+$316d       Revient vers l'adresse placée au dessus.
+
 $316e       [inst_auto]
             %CODE
 $3171       ---
