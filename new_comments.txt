@@ -7187,33 +7187,36 @@ $316d       Revient vers l'adresse placée au dessus.
 
 $316e       [inst_auto]
             %CODE
-$3171       ---
-$3172       ---
-$3174       ---
-$3177       ---
-$3178       ---
-$3179       ---
-$317a       ---
-$317d       ---
-$317e       ---
-$317f       ---
-$3180       ---
-$3182       ---
-$3183       ---
-$3184       ---
-$3187       ---
-$3188       ---
-$3189       ---
-$318a       ---
-$318d       ---
-$318e       ---
-$3191       ---
-$3195       [skip3195]
-$3196       ---
-$319a       ---
-$319c       ---
+            Instruction BASIC : AUTO
+$316e       Arguments par défaut à 10.
+$3171       Pousse la ligne de départ par défaut (10) dans la pile.
+$3172       Branche si aucun argument n'est spécifié.
+$3174       Sinon, lit le premier argument comme un numéro de ligne.
+$3177       Échange AF avec son registre secondaires.
+$3178-$317a Si le premier argument est 0, c'est une erreur de syntaxe.
+$317d       Récupère et jette le numéro de ligne de départ par défaut actuellement sur la pile.
+$317e       Pousse le premier argument (numéro de ligne de départ) sur la pile.
+$317f       Restaure le registre initial AF.
+$3180       Branche si la fin de l'instruction a été atteinte.
+$3182       Sinon, on doit trouver une virgule.
+$3183       %DATASKIP
+$3184       Lit le second argument.
+$3187       Echange AF avec son registre secondaires.
+$3188-$318a Si le second argument est 0, c'est une erreur de syntaxe.
+$318d       Restaure le registre initial AF.
+$318e       Si l'instruction n'est pas terminée, c'est une erreur de syntaxe.
+$3191       Sinon, place le pas de numérotation dans la variable `(autinc)`.
+            Comme cette assignation se fait avant le branchement en cas de paramètre par défaut, cela signifie que le pas par défaut n'est pas 10, mais est la dernière valeur spécifiée par `AUTO`.
+            La variable `(autinc)` est initialisée à 10 au démarrage. Cf. `(i_autinc)`.
+$3195       [auto_end]
+$3195       Récupère le numéro de ligne de départ du mode `AUTO`. 
+$3196       Met à jour la variable `(autlin)` avec cette valeur.
+$319a-$319c Active le mode `AUTO` de l'éditeur BASIC.
+
 $319f       [bcode_start]
-$31a0       ---
+$319f       Jette l'adresse de retour.
+$31a0       Branche sur la boucle de l'éditeur BASIC.
+
 $31a3       [inst_llist]
             %CODE
 $31a5       ---
@@ -9497,7 +9500,7 @@ $4884       [autflg]
             Etat courant de la commande AUTO
 $4885       [autlin]
             Ligne courante de la commande AUTO
-$4887       [autostep]
+$4887       [autinc]
             Incrément du mode AUTO
 $4889       [allflg]
             Execution de la boucle BASIC (0 to execute BASIC control loop)
