@@ -7219,90 +7219,93 @@ $31a0       Branche sur la boucle de l'éditeur BASIC.
 
 $31a3       [inst_llist]
             %CODE
-$31a5       ---
+            Instruction BASIC : LLIST
+$31a3-$31a5 Sélection l'imprimante comme périphérique de sortie.
+
 $31a8       [inst_list]
             %CODE
-$31ab       ---
-$31ae       ---
+            Instruction BASIC : LIST
+$31a8       Lit les deux arguments de l'instruction `LIST` (ou `LLIST`).
+$31ab       Émet le listing sur le périphérique selectionné.
+$31ae       Revient à la boucle de l'éditeur BASIC en ignorant l'adresse de retour actuelle.
 
 $31b1       [line_pair]
-            Récupère deux arguments de type numéro de ligne et les sauve dans (temp) et (sonsav_hi).
-            Le premier numéro de ligne (trouvé) est retourné dans DE.
-$31b1       ---
-$31b4       ---
-$31b5       Lit le premier caractères du pointeur de ligne
-$31b6       Et saute s'il n'y a rien (avec DE à $0000)
-$31b8       Compare avec ','
-$31ba       Si ce n'était pas une ',', alors va lire un numéro de ligne (récupéré dans DE)
-$31bd       [no_pair_1]
-            Sauvegarde du premier numéro de ligne dans 'temp'. $0000 s'il n'y avait pas de premier paramètre.
-$31c1       ---
-$31c2       Cherche le premier numéro de ligne valide à partir de DE.
-$31c5       ---
-$31c6       Pousse dans la pile le premier numéro de ligne valide après celui demandé.
-$31c7       ---
-$31c8       ---
-$31c9       Saute s'il n'y a pas de second numéro de ligne.
-$31cb       ---
-$31cd       Si le caractère suivant n'était pas une ',', alors c'est une erreur de syntaxe.
-$31d0       ---
-$31d1       Sinon, récupération du deuxième argument comme un numéro de ligne.
-$31d4       Si ce n'était pas un numéro de ligne valide, c'est une erreur de syntaxe.
-$31d7       ---
-$31d8       ---
-$31d9       Si ce numéro n'était pas nul, on saute à la fin de la routine pour enregistrement.
-$31db       [no_pair_2]
-            Par défaut, le dernier numéro de ligne est $ffff
-$31de       [save_pair_2]
-            Sauvegarde du dernier numéro de ligne dans 'sonsav_hi'
-$31e2       Le premier numéro de ligne (valide) est récupéré dans DE.
-$31e3       ---
+            Lit deux arguments de type numéro de ligne depuis le pointeur HL sur du texte BASIC.
+            
+            Entrée :
+            - HL pointe sur le texte BASIC.
 
-$31e4       [prt_list]
-            Routine d'affichage d'un LISTING
-$31e4       ---
-$31e6       ---
-$31e9       ---
-$31ea       [jump31EA]
-$31eb       ---
-$31ec       ---
-$31ed       ---
-$31ee       ---
-$31ef       ---
-$31f0       ---
-$31f1       ---
-$31f4       ---
-$31f6       ---
-$31f8       ---
-$31f9       [loop31F9]
-$31fc       ---
-$31fd       ---
-$31ff       [loop31FF]
-$3202       ---
-$3205       ---
-$3206       ---
-$3208       ---
-$3209       [skip3209]
-$320a       ---
-$320b       ---
-$320c       ---
-$320d       ---
-$3210       ---
-$3211       ---
-$3212       ---
-$3213       ---
-$3214       ---
-$3218       ---
-$3219       ---
-$321a       ---
-$321b       ---
-$321e       ---
-$3220       ---
-$3221       ---
-$3224       ---
-$3225       ---
-$3228       ---
-$322c       ---
+            Sorties :
+            - `(temp)` contient le premier numéro de ligne trouvé.
+            - `(sonsav_hi)` contient le second numéro de ligne trouvé.
+            - DE pointe vers la première ligne valide dont le numéro est égal ou supérieur au premier argument (ou la première par défaut).
+
+            Le premier numéro de ligne (trouvé) est retourné dans DE.
+$31b1       Le premier argument a pour défaut 0.
+$31b4-$31b5 Lit le premier caractère du texte BASIC.
+$31b6       Branche si la fin d'instruction est atteinte, pas de premier argument.
+$31b8       %CHAR
+$31b8-$31ba Lit un numéro de ligne si le caractère suivant n'était pas une virgule. C'est le premier argument, lu dans DE.
+$31bd       [no_pair_1]
+$31bd       Le premier argument, qu'il soit lu ou par défaut, est placé dans '(temp)'.
+$31c1       Sauve le pointeur vers le texte BASIC.
+$31c2       Cherche le premier numéro de ligne valide à partir de DE.
+$31c5       Restaure le pointeur vers le texte BASIC.
+$31c6       Le pointeur vers le numéro de ligne trouvé est poussé sur la pile.
+$31c7-$31c8 Lecture du caractère suivant.
+$31c9       Branche si on a atteint la fin de l'instruction, il n'y a pas de second argument.
+$31cb       %CHAR
+$31cb-$31cd Si le caractère suivant n'était pas une virgule, c'est une erreur de syntaxe.
+$31d0-$31d1 Sinon, récupère le deuxième argument comme un numéro de ligne.
+$31d4       Si la fin de l'instruction n'a pas été atteinte, c'est une erreur de syntaxe.
+$31d7-$31d9 Branche si le second argument n'est pas nul.
+
+$31db       [no_pair_2]
+$31db       Par défaut, le dernier numéro de ligne est $ffff.
+
+$31de       [save_pair_2]
+$31de       Le second argument, qu'il soit lu ou par défaut, est placé dans `(sonsav_hi)`.
+$31e2       Le pointeur vers la première ligne spécifiée par les arguments est récupérée dans DE.
+
+$31e4       [print_list]
+            Routine d'affichage du listing. Appelée par `LIST`, `LLIST` ainsi que par `SAVE`.
+$31e4-$31e6 Indique que le caractère de continuation a été lu (??? pourquoi)
+$31e9       DE = pointeur vers le texte BASIC, HL = pointeur vers la ligne à émettre.
+
+$31ea       [listing_lp]
+            %MS_BASIC(LISTLP)
+$31ea-$31ed BC = pointeur sur la ligne suivante.
+$31ee-$31f0 La fin du listing a été atteinte (la ligne suivante est nulle), retour.
+$31f1       Vérifie l'interruption de commande par l'utilisateur.
+$31f4-$31f6 Branche si la touche SHIFT+RUN/STOP n'a pas été appuyée.
+$31f8       Sinon, sauve le pointeur vers les données de la ligne.
+$31f9       [list_bounce]
+$31f9       Scan le clavier.
+$31fc-$31fd Boucle tant qu'il y a de l'activité.
+$31ff       [list_wait]
+$32ff-$3206 Boucle tant qu'aucune touche n'a été appuyée.
+$3208       Restaure le pointeur vers les données de la ligne.
+
+$3209       [list_dec]
+$3209-$320b DE = numéro de la ligne.
+$320c       Sauve le pointeur vers les données de la ligne.
+$320d-$3210 Comparaison avec la borne supérieur pour les numéros de lignes du listing demandé.
+$3211       Resteur le pointeur vers les données de la ligne.
+$3212       Inverse le résultat de comparaison.
+$3213       Retour si le numéro de la ligne lue est supérieur à la borne supérieure du listing demandé.
+$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `HOME` (???)
+$3219       Sauve le pointeur vers les données de la ligne.
+$321a-$321b Émet le numéro de la ligne lue sur le périphérique sélectionné.
+$321e       %CHAR
+            Prépare l'émission d'un caractère d'espacement.
+$3220       Restaure le pointeur vers les données de la ligne.
+$3221       Sauve le pointeur vers les données de la ligne dans `(retadr)` temporairement.
+$3224       Émet l'espace vers le périphérique sélectionné.
+$3225       Restaure le pointeur vers les données de la ligne.
+            Note : vu que `(retadr)` est écrasé juste après, pourquoi n'avoir pas laissé la valeur sur la pile ?
+$3228       Sauve le pointeur vers la ligne suivante dans `(retadr)` (pourquoi ???)
+$322c       Évite l'émission de caractère qui suit.
+
 $322d       [jump322D]
 $322e       [loop322E]
 $322f       ---
