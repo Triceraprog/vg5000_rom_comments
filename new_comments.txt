@@ -7346,37 +7346,55 @@ $3275       Boucle sur la suite de l'émission du listing.
 
 $3278       [initscreen]
             %SECTION(co)
-            Réinitialisation du curseur, d'attributs
-            Redéfinition de deux caractères: $20 et $7F
-            Efface l'écran, remise en colonne 1
+            Réinitialisation du curseur et d'attributs d'affichage.
+
+            Redéfinition de deux caractères: $20 et $7F.
+
+            Efface l'écran, remise en colonne 1.
 
             == DEBUT DE SECTION CO (SCREEN COMMUNICATIONS) ==
 
-$3278       Deux accès à $47FD pour set les bits 4 et 6
-$327c       Test du bit zéro sur $47FE (majuscules\minuscules)
-$3280       ---
-$3284       ---
-$3286       Changement de l'aspect du curseur si minuscules
-$328a       [skip328A]
-$328d       ---
-$328f       ---
+$3278       Le bit 6 de `(cursor)` (MAT du VDP) indique l'activation du curseur.
+$327c       Test du bit 0 de `(fklock)` (variable majuscules = 1 / minuscules = 0).
+$3280       Le bit 4 de `(cursor)` indique que le curseur est un 'soulignement' (tiret bas).
+$3284       Branche si `(fklock)` indique que l'on est en minuscules.
+$3286       Changement de l'aspect du curseur pour les majuscules : curseur plein.
+
+$328a       [lower_cur]
+$328a       Réinitialisation des variables qui concernent l'écran.
+$328d       Charge A avec 127 pour préparer la redéfinition de ce caractère.
+$328f       Branchement sur la patch de la ROM 1.1
+
 $3292       [initscreen2]
-$3295       ---
+$3292       Redéfinition du caractère $20 étendu.
+$3295       Prépare la couleur de fond pour l'enchainement vers la routine suivante.
+
 $3297       [init_cls]
             Efface l'écran avec la couleur de fond passée dans A.
+            Fixe la couleur d'écriture pour les caractères suivants.
 
             Entrée :
-            - A contient la valeur pour le registre `attbak`.
+            - A contient la valeur pour la variable `(attbak)`.
 
-$3297       Met la valeur de A dans le registre `attbak` (couleur de fond texte et graphique)
-$329a       Efface l'écran BASIC.
+$3297       Met la valeur de A dans le registre `(attbak)`.
+$329a       Efface le buffer d'écran BASIC.
+
 $329d       [cur_home]
-$329d       HL contient les coordonnées du curseur.
-$32a0       Place les coordonnées du curseur en haut à droite de l'écran
+            Place le curseur en haut de l'écran et force un rafraichissement d'affichage.
+
+$329d       HL contient les coordonnées du curseur : ligne 0, colonne 1.
+$32a0       Met à jour la variable position des coordonnées du curseur.
 $32a3-$32a7 Force le rafraichissement écran à l'interruption suivante.
 $32ab       Et attend le prochain rafraichissement.
 
-$32ad       ---
+$32ad       [keyb_lost]
+            %CODE
+            Cette routine ne semble pas être appelée.
+
+            Elle effectue un scan du clavier avec préservation des registres (sauf F).
+
+            Sorties :
+            - Z est à 1 si le scan a renvoyé 0.
 
 $32b7       [dec_keybrd]
             Décode le clavier et modifie la forme du curseur en fonction de la touche de vérouillage majuscules.
@@ -7432,9 +7450,9 @@ $3317       Place les drapeaux en fonction de A.
 $3318       Revient sur les registres initiaux.
 
 $331a       [sendchar_t2]
-$331b       ---
-$331c       ---
-$331f       La pile contient, en haut, $33c5, puis AF (qui contient le caractère)
+$331a       Passe sur les registres généreux annexes.
+$331b       Sauve AF sur la pile.
+$331c-$331f Place l'adresse de retour sur la pile.
 $3320       ---
 $3322       ---
 $3324       ---
@@ -7511,6 +7529,8 @@ $33b9       %CODE
 $33bc       %CODE
             Fin de la table d'indirection. Caractère 31.
 $33bf       ---
+$33c5       [send_back]
+            %CODE
 
 $33cd       %CODE
             Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
@@ -9328,10 +9348,15 @@ $3dbd       [auto_patch2]
 $3dbd       Retour à la suite de la routine. Fin du patch pour `AUTO`.
 
 $3dc0       [initscreen1]
-$3dc3       ---
-$3dc6       ---
-$3dc8       ---
-$3dcb       ---
+            Patch de la routine d'initalisation de l'écran pour la ROM 1.1.
+
+            Ce patch ajoute la redéfinition du caractère $20.
+            Seul le caractère $7f est redéfini dans la ROM 1.0.
+
+$3dc0       Pointe vers les données de redéfinition du caractère $7f étendu.
+$3dc3       Redéfini le caractère.
+$3dc6-$3dc8 Prépare la redéfiniction du caractère $20 étendu.
+$3dcb       Branche sur la suite de la routine après le patch.
 
 $3dce       [inst_new]
             %CODE
