@@ -7306,56 +7306,52 @@ $3225       Restaure le pointeur vers les données de la ligne.
 $3228       Sauve le pointeur vers la ligne suivante dans `(retadr)` (pourquoi ???)
 $322c       Évite l'émission de caractère qui suit.
 
-$322d       [jump322D]
-$322e       [loop322E]
-$322f       ---
-$3230       ---
-$3232       ---
-$3234       ---
-$3236       ---
-$3237       ---
-$3238       ---
-$3239       ---
-$323a       ---
-$323b       ---
-$323c       ---
-$323d       ---
-$323e       ---
-$323f       ---
-$3240       ---
-$3243       ---
-$3244       ---
-$3246       [skip3246]
-$3247       ---
-$3249       ---
-$324c       ---
-$324e       ---
-$324f       ---
-$3252       ---
-$3254       ---
-$3256       ---
-$325a       [loop325A]
-$325b       ---
-$325c       ---
-$325d       ---
-$3260       ---
-$3261       ---
-$3263       [jump3263]
-$3265       ---
-$3266       ---
-$3267       ---
-$3268       ---
-$3269       ---
-$326c       ---
-$326e       [skip326E]
-$3272       ---
-$3275       ---
+$322d       [emit_char]
+$322d       Émet le caractère présent dans A.
+$322e       [emit_line]
+$322e       Lit la donnée de la ligne en cours.
+$322f       Incrémente le pointeur vers les données de la ligne.
+$3230-$3232 Branche si ce n'est pas un marqueur de numéro de ligne.
+$3234       %CHAR
+$3234-$3236 Sinon, émet un caractère d'espacement.
+$3237-$323f Charge dans HL le numéro de ligne référencé tout en préservant le pointeur vers les données sur la pile.
+$3240       Émet le numéro de ligne contenu dans HL.
+$3243       Restaure le pointeur vers les données de ligne.
+$3244       Boucle vers l'octet suivant de la ligne.
+
+$3246       [not_linenum]
+$3246-$3247 Branche si la fin de ligne a été atteinte.
+$3249       Boucle sur l'émission de caractère si celui si est strictement inférieur à 128.
+$324c-$324e Sinon, calcul dans C l'index du token.
+$324f       Pointe vers la table de mot clés.
+$3252-$3254 Branche si ce n'est pas l'index de l'instruction `REM`.
+$3256       Sinon, écrit en rouge (si l'émission se fait vers l'écran)
+
+$325a       [find_keyw]
+$325a-$325d Boucle jusqu'à trouver un octet avec le bit de poids faible à 1, marqueur de début de mot clé.
+$3260       Décrémente l'index.
+$3261       Boucle tant que l'index n'est pas nul, afin d'arriver sur le bon mot clé.
+
+$3263       [emit_keyw]
+$3263-$3265 Émet le caractère du mot clé, ramené à ces 7 bits de poids faible.
+$3266       Lit le caractère suivant du mot clé.
+$3267       Et avant le pointeur vers le mot clé.
+$3268-$3269 Boucle tant que l'on reste sur le même mot clé (pas de marque de début de mot clé).
+$326c       Boucle sur la suite de l'émission de la ligne.
+
+$326e       [end_of_line]
+$326e       La couleur d'écriture est remise au noir.
+$3272       Émission d'un passage à la ligne suivante.
+$3275       Boucle sur la suite de l'émission du listing.
 
 $3278       [initscreen]
-            $SECTION(co)
+            %SECTION(co)
             Réinitialisation du curseur, d'attributs
             Redéfinition de deux caractères: $20 et $7F
             Efface l'écran, remise en colonne 1
+
+            == DEBUT DE SECTION CO (SCREEN COMMUNICATIONS) ==
+
 $3278       Deux accès à $47FD pour set les bits 4 et 6
 $327c       Test du bit zéro sur $47FE (majuscules\minuscules)
 $3280       ---
