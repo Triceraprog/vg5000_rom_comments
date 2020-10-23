@@ -7450,15 +7450,14 @@ $3317       Place les drapeaux en fonction de A.
 $3318       Revient sur les registres initiaux.
 
 $331a       [sendchar_t2]
-$331a       Passe sur les registres généreux annexes.
+$331a       Passe sur les registres généraux annexes.
 $331b       Sauve AF sur la pile.
 $331c-$331f Place l'adresse de retour sur la pile.
-$3320       ---
-$3322       ---
-$3324       ---
-$3326       ---
-$3328       A est compris entre 128 et 160. La mise à 0 du bit 7 revient à soustraire 128
-$332a       ---
+$3320-$3322 Branche si le caractère dans A est inférieur strictement à 128.
+$3324-$3326 Branche si le caractère dans A est égal ou supérieur à 160.
+$3328       A est compris entre 128 et 159. La mise à 0 du bit 7 revient à soustraire 128, ce qui amène A entre 0 et 31.
+$332a       Branche plus loin.
+
 $332c       [sdchar_bl80]
             A est inférieur ou égal à 128.
 $332e       On vérifie s'il est supérieur à 32
@@ -7532,7 +7531,8 @@ $33bf       ---
 $33c5       [send_back]
             %CODE
 
-$33cd       %CODE
+$33cd       [after_send]
+            %CODE
             Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
             Le rafraichissement de l'écran est demandé et la pile et les registres remis en ordre.
 $33cd       ---
