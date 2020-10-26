@@ -7591,41 +7591,34 @@ $33d1       Restaure AF
 $33d2       Bascule sur les registres initiaux.
 
 $33d4       [carreturn]
-            Fonction: traitement Carriage Return
-            Traitement de l'affichage du caractère 13 (et 3)
-$33d4       ---
-$33d7       ---
-$33d9       ---
-$33da       Saut si 'x' est différent de 1
-$33dc       ---
-$33df       ---
-$33e1       Saut si 'continuation permitted' est à 0
-$33e3       Si le curseur est sur la colonne 1 et 'continuation permitted' est à 1, alors la colonne 0 est mise à $80 (attributs par défaut pour l'EF9345)
-            Et c'est fini.
-$33e6       ---
-$33e7       ---
-$33e8       ---
-$33ea       ---
-$33eb       [skip33EB]
-$33ed       Le curseur est mis sur la colonne 1 et on enchaîne sur `line_down`
+            Traitement du retour chariot (RET 13 ou RET 03)
+
+            Commence par traiter le retour chariot, puis enchainement sur le saut de ligne.
+$33d4       Charge les coordonnées du curseur dans HL
+$33d7-$33da Branche si la colonne est différente de 1.
+$33dc-$33e1 Branche si la continuité n'est pas permise.
+$33e3-$33e8 Si le curseur est sur la colonne 1 et que la continuité est permise, alors la colonne 0 est mise à $80 pour indiquer une fin de continuité.
+            Cela se produit lorsqu'une ligne logique se termine avec le curseur en colonne 1 de la dernière ligne physique.
+$33ea       Et la routine s'arrête là (pas besoin de sauter de bouger le curseur).
+
+$33eb       [not_col_1]
+$33ed       Le curseur est mis sur la colonne 1 et on enchaîne sur le saut de ligne.
 
 $33f0       [line_down]
-            Fonction: amène le curseur une ligne plus bas
-            Traitement de l'affichage du caractere 10
-$33f0       ---
-$33f3       ---
-$33f4       ---
-$33f6       ---
-$33f8       ---
-$33fb       ---
-$33fd       Si le scrolling est désactivé, on saute
-$33ff       ---
-$3402       ---
-$3404       ---
-$3407       ---
-$3409       [skip3409]
-$340a       ---
-$340d       [skip340D]
+            Traitement de saut de ligne (après RT, par le caractère 10 pour par un déplacement droite en fin de ligne physique)
+
+$33f0       Charge les coordonnées du curseur dans HL.
+$33f3-$33f6 Branche si le curseur se situe sur une ligne strictement avant la 24ième.
+$33f8-$33fd Branche si le scrolling de l'écran est désactivé.
+$33ff       Fait défiler l'écran d'une ligne vers le haut.
+$3402-$3404 Efface la ligne 24.
+$3407       Termine la routine.
+
+$3409       [line_feed]
+$3409       Le numéro de ligne est incrémenté.
+$340a       Les coordonnées du curseur sont mises à jour.
+
+$340d       [dont_scroll]
 
 $340e       [line_up]
             Fonction: amène le curseur une ligne plus haut
