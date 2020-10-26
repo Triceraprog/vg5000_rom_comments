@@ -669,6 +669,9 @@ $01fc       [delim_wrt]
 
             Peut provoquer un défilement de l'écran.
 
+            Entrée :
+            - le caractère à afficher
+
 $01fc       Récupère la valeur de `extenf`, qui indique l'utilisation des caractères ROM ou RAM.
 $01ff       Récupère les coordonnées actuelles du curseur.
 $0202       Sauve les coordonnées du curseur.
@@ -7450,6 +7453,8 @@ $3317       Place les drapeaux en fonction de A.
 $3318       Revient sur les registres initiaux.
 
 $331a       [sendchar_t2]
+            Routine à tracer pour mieux la comprendre ???
+
 $331a       Passe sur les registres généraux annexes.
 $331b       Sauve AF sur la pile.
 $331c-$331f Place l'adresse de retour sur la pile.
@@ -7459,86 +7464,131 @@ $3328       A est compris entre 128 et 159. La mise à 0 du bit 7 revient à sou
 $332a       Branche plus loin.
 
 $332c       [sdchar_bl80]
-            A est inférieur ou égal à 128.
-$332e       On vérifie s'il est supérieur à 32
-$3330       ---
-$3334       Saut si on est en train d'utiliser les caractères utilisateurs
-$3336       ---
-$333a       Saut si c'est un caractère graphique
-$333c       [skip333C]
-            Arrivé ici si le caractère était dans [128,160[ (ajusté en [0, 32[ ou un caractère redéfini de numéro inférieur strictement à 32.
-$333e       ---
-$333f       ---
-$3340       ---
-$3341       ---
-$3342       E = A * 3 (A contient le caractère)
-$3343       ---
-$3346       ---
-$3347       ---
-$3348       Branchement sur la table de redirection qui commence en $3362
+            A est inférieur strictement à 128.
+$332c-$332e Branche si A est égale à 32 ou supérieur (donc entre 32 et 127 inclus)
+$3330-$3334 Branche si les caractères utilisateurs (modifiables en RAM du VDP) son actifs.
+$3336-$333a Sinon, branche si c'est un caractère graphique (et ROM).
+
+$333c       [sdchar_spec]
+            Arrivée ici si le caractère était
+            - dans l'intervalle [128,160[ (ajusté en [0, 32[)
+            - un caractère utilisateur de numéro inférieur strictement à 32.
+            - un caractère texte ROM inférieur strictement à 32.
+
+            Dans tous les cas, A est compris dans l'intervalle [0, 32[.
+$333c       Prépare le registre DE.
+$333e       Sauve AF sur la pile.
+$333f-$3342 DE = A * 3 (A contient le caractère)
+$3343       Pointe vers la table d'indirection.
+$3346       Ajout de l'index au pointeur sur la table.
+$3347       Restaure AF.
+$3348       Branche sur la table de redirection pour traiter les caractères spéciaux.
 
 $3349       [sd_a_ff]
-            Partial instruction trick en cascade.
-            Les 6 labels suivants chargent A avec une certaine valeur.
-            Puis exécutent une série de LD HL avec des valeurs inutiles
+            Re-mapping de caractères.
+
+            Instructions partielles en cascade.
+
+            Les 6 labels suivants chargent A avec une certaine valeur puis exécutent une série de `ld hl,xxxx` avec des valeurs inutiles.
+
             Pour finalement arriver sur 'sdchar_pass'
-            
-            Cela agit comme un remapping des caractères qui étaient normalement non affichables.
-$3349       ---
+$3349       A = $ff (???)
 $334c       [sd_a_0d]
+$334c       A = $0d (RET)
 $334f       [sd_a_08]
+$334f       A = $08 (Déplacement à gauche)
 $3352       [sd_a_04]
+$3352       A = $04 (EFFL)
 $3355       [sd_a_1f]
+$3355       A = $1f (EFFE)
 $3358       [sd_a_03]
+$3358       A = $03 (RET) (quelle différence entre $03 et $0d ???)
+
 $335a       [sdchar_pass]
-$335b       $33cd est mis sur la pile pour servir de branchement lors du prochain RET, à la fin de l'émission du caractère.
-$335e       ---
-$335f       ---
+$335a       Jette la valeur en haut de la pile.
+$335b-$335e Adresse de retour pour le prochain `ret` qui termine la routine avec une demande de rafraichissement du buffer écran et nettoyage de lapile.
+$335f       Provoque l'affichage dans le buffer écran du caractère avec ses attributs (???).
+
 $3362       [sdchar_ind]
-            %CODE
+            Suite de saut pour traitement des 31 premiers caractères.
+$3362       %CODE
+            CHR$(0) -> aucune action
 $3365       %CODE
+            CHR$(1) -> aucune action
 $3368       %CODE
+            CHR$(2) -> EFFC
 $336b       %CODE
+            CHR$(3) -> RET
 $336e       %CODE
+            CHR$(4) -> EFFL
 $3371       %CODE
+            CHR$(5) -> INSC
 $3374       %CODE
+            CHR$(6) -> INSL
 $3377       %CODE
+            CHR$(7) -> Déplacement du curseur vers la droite
 $337a       %CODE
+            CHR$(8) -> Déplacement du curseur vers la gauche
 $337d       %CODE
+            CHR$(9) -> Déplacement du curseur vers le haut
 $3380       %CODE
+            CHR$(10) -> Déplacement du curseur vers le bas
 $3383       %CODE
+            CHR$(11) -> aucune action
 $3386       %CODE
+            CHR$(12) -> HOME
 $3389       %CODE
+            CHR$(13) -> RET
 $338c       %CODE
+            CHR$(14) -> BIP
 $338f       %CODE
+            CHR$(15) -> Réinitialise le terminal.
 $3392       %CODE
+            CHR$(16) -> Transforme en $ff (???)
 $3395       %CODE
+            CHR$(17) -> Transforme en $0d (???)
 $3398       %CODE
+            CHR$(18) -> Envoie le caractère tel quel (???)
 $339b       %CODE
+            CHR$(19) -> Transforme en $08 (???)
 $339e       %CODE
+            CHR$(20) -> Envoie le caractère tel quel (???)
 $33a1       %CODE
+            CHR$(21) -> Envoie le caractère tel quel (???)
 $33a4       %CODE
+            CHR$(22) -> Envoie le caractère tel quel (???)
 $33a7       %CODE
+            CHR$(23) -> Envoie le caractère tel quel (???)
 $33aa       %CODE
+            CHR$(24) -> Transforme en $04 (???)
 $33ad       %CODE
+            CHR$(25) -> Envoie le caractère tel quel (???)
 $33b0       %CODE
+            CHR$(26) -> Transforme en $1f (???)
 $33b3       %CODE
+            CHR$(27) -> Envoie le caractère tel quel (???)
 $33b6       %CODE
+            CHR$(28) -> Transforme en $03 (???)
 $33b9       %CODE
+            CHR$(29) -> Envoie le caractère tel quel (???)
 $33bc       %CODE
-            Fin de la table d'indirection. Caractère 31.
-$33bf       ---
+            CHR$(30) -> Efface l'écran du curseur jusqu'en bas.
+$33bf       %CODE
+$33bf       Charge les attributs de fond utilisés par `INIT`.
+$33c2       Efface l'écran.
+            CHR$(31) -> Efface l'écran + HOME
+
 $33c5       [send_back]
             %CODE
+$33c5-$33ca Réactive la possiblité de continuité.
 
 $33cd       [after_send]
             %CODE
             Cette adresse est forcée dans la pile pour que le RET de l'affichage de caractère passe par là.
             Le rafraichissement de l'écran est demandé et la pile et les registres remis en ordre.
-$33cd       ---
-$33d1       ---
-$33d2       ---
-$33d3       ---
+$33cd       Demande un rafraichissement du buffer de l'écran.
+$33d1       Restaure AF
+$33d2       Bascule sur les registres initiaux.
 
 $33d4       [carreturn]
             Fonction: traitement Carriage Return
@@ -7628,7 +7678,7 @@ $3452       On ne fait rien si le curseur est en bas à droite de l'écran.
 $3453       ---
 $3456       ---
 $3458       ---
-$345a       [jump345A]
+$345a       [sd_effc]
 $345d       ---
 $345f       ---
 $3460       ---
@@ -7688,7 +7738,7 @@ $34ad       ---
 $34ae       [skip34AE]
 $34af       ---
 $34b2       ---
-$34b3       [jump34B3]
+$34b3       [sd_effl]
 $34b6       ---
 $34b7       ---
 $34b9       ---
@@ -7717,7 +7767,7 @@ $34db       ---
 $34dc       ---
 $34df       ---
 $34e1       [skip34E1]
-$34e2       [jump34E2]
+$34e2       [sd_insc]
 $34e5       ---
 $34e7       [jump34E7]
 $34e8       ---
@@ -7811,7 +7861,7 @@ $3578       ---
 $357b       ---
 $357c       ---
 $357e       ---
-$357f       [jump357F]
+$357f       [sd_insl]
 $3582       ---
 $3583       ---
 $3584       ---
