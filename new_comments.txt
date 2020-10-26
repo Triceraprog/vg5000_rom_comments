@@ -7614,29 +7614,26 @@ $33ff       Fait défiler l'écran d'une ligne vers le haut.
 $3402-$3404 Efface la ligne 24.
 $3407       Termine la routine.
 
-$3409       [line_feed]
+$3409       [do_line_dwn]
 $3409       Le numéro de ligne est incrémenté.
 $340a       Les coordonnées du curseur sont mises à jour.
 
-$340d       [dont_scroll]
+$340d       [dont_do_dwn]
 
 $340e       [line_up]
-            Fonction: amène le curseur une ligne plus haut
-            Traitement de l'affichage du caractere 9
-$340e       ---
-$3411       ---
-$3412       ---
-$3413       ---
-$3415       ---
-$3418       ---
-$341a       Si le scrolling est désactivé, on saute
-$341c       ---
-$341f       ---
-$3421       ---
-$3424       ---
-$3426       [skip3426]
-$3427       ---
-$342a       [skip342A]
+            Traitement du déplacement du curseur d'une ligne vers le haut (par le caractère 9 ou par un déplacement gauche en haut de l'écran)
+
+$340e       Charge les coordonnées du curseur dans HL.
+$3411-$3413 Branche si le curseur n'est pas sur la ligne 0.
+$3415-$341a Branche si le scrolling de l'écran est désactivé.
+$341c       Fait défiler l'écran d'une ligne vers le bas.
+$341f-$3421 Efface la ligne 0.
+$3424       Termine la routine.
+
+$3426       [do_line_up]
+$3426       Le numéro de ligne est décrémenté.
+$3427       Les coordonnées du curseur sont mises à jour.
+$342a       [dont_do_up]
 
 $342b       [col_left]
             Fonction : La position du curseur est avancée de 1 vers la gauche
