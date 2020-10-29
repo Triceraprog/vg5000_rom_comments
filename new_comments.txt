@@ -2437,14 +2437,14 @@ $0ca9       Et récupère. Semble être là pour le timing, HL étant écrasé e
 $0caa       Met A à 0
 $0cac       Récupère la valeur des deux périodes.
 $0caf       [snd_low]
-$0caf       Attente de 69 états
+$0caf       Attente de 74 états
 $0cb2       Décrémente le nombre de première période.
 $0cb3       Boucle tant qu'il est différent de zéro.
 $0cb6-$0cb8 Mise à état haut de la sortie son (bit 3 de $af à 1)
 $0cba       Décrémente la durée totale du son
-$0cbb-$0cbe Attente totale de 58 états.
+$0cbb-$0cbe Attente totale de 63 états.
 $0cc1       [snd_high]
-$0cc1       Attente de 69 états.
+$0cc1       Attente de 74 états.
 $0cc4       Décrémente la valeur de la seconde période.
 $0cc5       Boucle tant que le nombre est différent de zéro.
 $0cc8-$0cca Mise à état bas de la sortie son (bit 3 de $af à 1)
@@ -2479,14 +2479,14 @@ $0cde-$0ce0 Multiplication de DE par 2 (décalage de DE de 1 vers la gauche)
 $0ce2       Traite le bit suivant.
 $0ce4       Récupère le résultat dans DE
 
-$0ce6       [wait_69s]
-            Attente de 69 states (états T), incluant le `call`.
-$0ce6       19 states
-$0ce7       19 states
-$0ce8       [wait_31s]
-$0ce8       4 states
-$0ce9       [wait_27s]
-$0ce9       10 states (+ `call` 17 states)
+$0ce6       [wait_74s]
+            Attente de 74 states (états T), incluant le `call`.
+$0ce6       20 states
+$0ce7       20 states
+$0ce8       [wait_34s]
+$0ce8       5 states
+$0ce9       [wait_29s]
+$0ce9       11 states (+ `call` 18 states)
 $0cea       [some_data]
 $0cea       ??? (en code, `dec b`, `reti`)
 
@@ -8789,7 +8789,7 @@ $3a5e       [loop3A5E]
 $3a5e       Sauve le compteur B.
 $3a5f       BC = 0
 $3a62       [loop3A62]
-$3a62-$3a64 Attente de 19 + 19 + 4 états.
+$3a62-$3a64 Attente de 20 + 20 + 5 états.
 $3a65       Décrémente la partie C de BC.
 $3a66       Boucle 256 fois (sur C)
 $3a68       Boucle 256 fois (sur B), pour un total de 65536.
@@ -8827,7 +8827,7 @@ $3a97       La valeur est ensuite stockée dans B
 $3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à la valeur de handler * 1024 ou handler * 256 (suivant le drapeau Z)
 $3a9a       Désactivation des interruptions.
 $3a9b       [send_one_lp]
-$3a9e       Attente de 27 états T
+$3a9e       Attente de 29 états T
 $3aa1-$3aa4 Boucle tabt que BC n'atteint pas 0.
 $3aa6       Pour terminer, branche sur la vérification de BREAK, d'anti copie et de reset des touches. Profitera du `ret` de la routine.
 
@@ -8850,13 +8850,13 @@ $3ac9       [s0_to_k7]
             Envoie sur la k7 un cycle décrivant un '0'
 $3ac9       Charge les périodes longues pour décrire un '0'.
 $3acc       Envoie sur la k7
-$3acf       [wait_27]
-$3acf       L'entrée ici sert de petite attente (17 T du `call` + 10 T du `ret`, donnent 27 états T)
+$3acf       [wait_29]
+$3acf       L'entrée ici sert de petite attente (18 T du `call` + 11 T du `ret`, donnent 29 états T)
 
 $3ad0       [s1_to_k7]
             Envoie sur la k7 un double cycle décrivant un '1'.
 $3ad0       Envoie un premier cycle court pour un '1'
-$3ad3-$3ad8 Attente de 10 * 2 (ex) + 4 * 4 (nop) états T.
+$3ad3-$3ad8 Attente de 11 * 2 (ex) + 5 * 4 (nop) états T.
 $3ad9       Envoie un second cycle court pour terminer le '1'
 
 $3add       [k7_send_h1]
@@ -9169,7 +9169,7 @@ $3c7d       [break_delay]
 
             Si oui, le Carry est positionné à 1 au retour.
 
-$3c7d-$3c7e Perd un peu de temps (2 fois 19 états T)
+$3c7d-$3c7e Perd un peu de temps (2 fois 20 états T)
 
 $3c7f       [break_impl]
             Vérifie si SHIFT + RUN-STOP est appuyée (interruption de commande).
