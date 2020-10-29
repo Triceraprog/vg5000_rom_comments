@@ -7710,45 +7710,54 @@ $349b       Branche sur le traitement du reste de la ligne.
 $349d       [if_input]
 $349d       Branche si le drapeau de commande INPUT était actif.
 $34a0       Sinon, on remet la valeur $06 (Insertion de ligne) pour la valeur de touche appuyée.
-$34a2       ---
+$34a2       Puis branche vers l'émission de la touche.
 
 $34a5       [effc_end]
-$34a7       ---
-$34ab       ---
-$34ad       ---
-$34ae       [skip34AE]
-$34af       ---
-$34b2       ---
+$34a5       %CHAR
+            Prépare un caractère espace.
+$34a7-$34ab Branche si on est en mode de caractères `texte`.
+$34ad       Sinon, prépare un caractère nul.
+$34ae       [effc_txt]
+$34ae       Place le caractère à la fin de la partie effacée.
+$34af       Déplace le curseur d'une colonne vers la gauche.
+
 $34b3       [sd_effl]
-$34b6       ---
-$34b7       ---
-$34b9       ---
-$34ba       ---
-$34bb       ---
-$34be       ---
-$34bf       ---
-$34c2       ---
-$34c4       ---
-$34c6       ---
-$34c8       ---
-$34c9       [loop34C9]
-$34ca       ---
-$34cb       ---
-$34cc       ---
-$34cd       ---
-$34cf       [loop34CF]
-$34d0       ---
-$34d2       ---
-$34d3       ---
-$34d4       ---
-$34d7       ---
-$34d8       ---
-$34da       ---
-$34db       ---
-$34dc       ---
-$34df       ---
-$34e1       [skip34E1]
+            Traitement de `EFFL` (par le caractère 4)
+
+$34b3       Charge les coordonnées du curseur dans HL.
+$34b6       Sauve les coordonnées sur la pile.
+$34b7-$34b9 A = 40 - colonne (le nombre de caractère du curseur jusqu'à la colonne de droite à l'écran)
+$34ba       Sauve cette valeur sur la pile
+$34bb       Calcul l'adresse correspondante dans le buffer d'écran BASIC.
+$34be       B = 40 - colonne
+$34bf       E = `(attcar)`
+$34c2       %CHAR
+            Prépare un caractère espace.
+$34c4-$34c6 Branche si on est en mode de caractères `texte`.
+$34c8       Sinon, prépare un caractère nul.
+$34c9       [effl_txt]
+$34c9-$34cc Place le caractère ainsi que la valeur de `(attcar)` dans le buffer de l'écran BASIC.
+$34cd       Autant de fois qu'il faut pour effacer la ligne jusqu'à la colonne de droite.
+
+$34cf       [effl_lp]
+$34cf       Récupère les coordonnées du curseur dans HL.
+$34d0       Coordonnée de colonne en 0.
+$34d2       Incrémente le numéro de ligne.
+$34d3       Sauve ces nouvelles coordonnées sur la pile.
+$34d4       Lit le caractère à l'écran.
+$34d7       Restaure les coordonnées.
+$34d8       Branche si le caractère en début de ligne n'est pas le caractère de continuité.
+$34da       Sinon, place le numéro de ligne dans A
+$34db       Sauve les coordonnées.
+$34dc       Efface la ligne numéro A avec les attributs courants.
+$34df       Boucle sur la ligne suivante.
+
+$34e1       [effl_end]
+$34e1       Fin de la continuité de la ligne, l'effacement est terminé.
+
 $34e2       [sd_insc]
+            Traitement de `INSC` (par le caractère 5)
+$34e2       ---
 $34e5       ---
 $34e7       [jump34E7]
 $34e8       ---
