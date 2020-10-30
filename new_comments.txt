@@ -7757,42 +7757,46 @@ $34e1       Fin de la continuité de la ligne, l'effacement est terminé.
 
 $34e2       [sd_insc]
             Traitement de `INSC` (par le caractère 5)
-$34e2       ---
-$34e5       ---
-$34e7       [jump34E7]
-$34e8       ---
-$34e9       ---
-$34ec       ---
-$34ed       ---
-$34ee       ---
-$34f1       ---
-$34f2       ---
-$34f3       ---
-$34f4       ---
-$34f5       ---
-$34f6       ---
-$34f7       ---
-$34fb       ---
-$34fd       ---
-$34fe       ---
-$3501       ---
-$3503       [skip3503]
-$3505       ---
-$3508       [skip3508]
-$350b       ---
-$350c       ---
-$350f       [jump350F]
-$3510       ---
-$3514       ---
-$3516       ---
-$3519       ---
-$351c       ---
-$351e       ---
-$3521       ---
-$3523       ---
-$3524       ---
-$3525       ---
-$3528       [jump3528]
+$34e2       Charge les coordonnées du curseur dans HL.
+$34e5       Colonne 0.
+
+$34e7       [insc_cont]
+$34e7       Ligne suivante.
+$34e8       Sauve les coordonnées modifiées.
+$34e9       Lecture du caractère en colonne 0. En retour, HL contient le pointeur vers le buffer d'écran BASIC.
+$34ec       Ce pointeur est passé dans DE.
+$34ed       Et HL récupère les coordonnées modifiées.
+$34ee       La colonne 0 contenait le marqueur de continuité. Boucle.
+$34f1       Récupération dans HL du pointeur vers le buffer d'écran BASIC.
+            C'est la première ligne ne contenant pas de marqueur de continuité après la position du curseur.
+            DE contient les coordonnées de ce même emplacement.
+$34f2-$34f3 Pointe deux positions en arrière, donc sur la colonne de droite de la ligne précédente.
+$34f4       Lit le caractère à cette position.
+$34f5       Coordonnées du curseur sur la colonne 0 de la dernière ligne formant la ligne logique.
+$34f6       Sauve ces coordonnées sur la pile.
+$34f7-$34fb Branche si le mode de caractères texte est activé.
+$34fd-$34fe Sinon, branche si le caractère lu est nul.
+$3501       Branche si le mode activé est celui des caractères graphiques et que le caractère n'est pas nul.
+
+$3503       [insc_txt]
+$3503       %CHAR
+$3503-$3505 Branche si le caractère texte est l'espace.
+
+$3508       [insc_gr]
+$3508-$350b Charge les coordonnées du curseur dans HL et décrémente le numéro de ligne.
+$350c       Branche sur la suite du traitement.
+
+$350f       [insc_2]
+            Retour après le patch de la ROM 1.1
+$350f       Sauve les coordonnées modifiées du curseur (ligne précédente)
+$3510-$3516 Place le curseur sur la ligne après la dernière ligne logique et émet `INSL`, afin de faire de la place pour la ligne logique.
+$3519       Où est le curseur maintenant ???
+$351c       Colonne 0.
+$351e       HL pointe sur l'adresse du buffer d'écran BASIC à ces coordonnées.
+$3521-$3523 Y place un marqueur de continuité.
+$3524       Récupère les coordonnées du curseur de la ligne précédente (???)
+$3525       Rétablie les coordonnées du curseur (???)
+$3528       [insc_blank]
 $352b       ---
 $352c       ---
 $352d       ---
@@ -9450,11 +9454,13 @@ $3e11-$3e16 Branche si on n'est pas dans un `INPUT`
 $3e19-$3e1b Sinon, émet une insertion de ligne.
 $3e1c       Puis valide la ligne.
 
-$3e1f       [jump3E1F]
-$3e22       ---
-$3e25       ---
-$3e27       ---
-$3e2a       ---
+$3e1f       [insc_path]
+            Traitement de la touche `INSC` patché.
+
+            Il s'agit ici de code patché pour la ROM 1.1 (??? à vérifier)
+$3e1f       Branche si le numéro de ligne du curseur est négatif. Le curseur était sur la ligne 0.
+$3e22-$3e27 Branche si on est dans une commande `INPUT`.
+$3e2a       Sinon, continue avec la routine de traitement `INSC`.
 
 $3e2d       [acq_key_2]
             Suite du traitement de l'entrée de caractère.
