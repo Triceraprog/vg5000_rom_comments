@@ -7900,78 +7900,74 @@ $35bf       BC est la taille de l'écran en octet, moins une ligne.
 $35c2       Copie.
 
 $35c5       [reset_term]
-            La fonction réinitialise les bits 2 et 7 de $4871.
-            Remet le scrolling (et ligne non entrée sous BASIC (?))
-            
-            Réinitialise quelques valeurs d'affichage
-$35c5       ---
-$35c8       ---
-$35ca       ---
-$35cd       $4804 à 0 : pas de redéfinition de caractères
-$35d1       $4002 à 0 : couleur d'encre et fond graphique à zero, texte
-$35d5       $47FB à 1 : force un affichage
-$35d9       $47FC à 0 : équivalent de DISPLAY 10
-$35dd       ---
-$35e1       ---
-$35e5       ---
+            Réinitialise les attributs d'affichage à l'écran.
+
+$35c5-$35ca La ligne n'est pas une ligne BASIC, et le défilement de l'écran est permis.
+$35cd       Selection des caractères en ROM.
+$35d1       Couleur d'encre et fond graphique à zero, mode texte sélectionné.
+$35d5-$35d9 Équivalent de `DISPLAY 10`.
+$35dd       Simple hauteur de caractère (bit 7 de MAT)
+$35e1       Curseur visible (bit 6 de MAT)
+
 $35e6       [honk]
-$35e9       ---
-$35ec       ---
-$35ef       ---
-$35f2       ---
+            Émet un 'bip' sonore (caractère 7).
+$35e6-$35ec Paramètres du son à émettre.
+$35ef       Émission du son.
+
 $35f3       [jump_ret]
-            Cette adresse est utilisée pour sauter à un RET depuis une table d'indirection.
+            Cette adresse est utilisée par la table de traitement des caractères pour ceux qui n'ont pas d'effet.
+
 $35f4       [char20]
+$35f4       Données pour la redéfinition du caractère $20.
 $35fe       [char7f]
+$35fe       Données pour la redéfinition du caractère $7f.
+$3608       [zero]
+$3608       Un octet inutilisé.
+
 $3609       [str_cmp]
-            %CODE,SECTION(bistrs)
+            %CODE,SECTION(bistrs),MS_BASIC(CMPSTR)
             Comparaison entre deux chaînes de caractères.
 
-            MS_BASIC=CMPSTR
-
             == DEBUT DE SECTION BISTRS (BASIC string handler) ==
-$3609       ---
-$360a       ---
-$360d       ---
-$360e       ---
-$3610       ---
-$3611       ---
-$3612       ---
-$3613       ---
-$3614       ---
-$3615       ---
-$3616       ---
-$3619       ---
-$361c       ---
-$361d       ---
-$361e       ---
-$361f       ---
-$3620       ---
-$3621       ---
-$3622       ---
-$3623       ---
-$3625       ---
-$3626       ---
-$3627       ---
-$3628       ---
-$3629       ---
-$362a       ---
-$362b       ---
-$362c       ---
-$362d       ---
-$362e       ---
-$362f       ---
-$3630       ---
-$3632       ---
-$3633       ---
+$3609       Sauve le nom de la chaîne sur la pile.
+$360a       Récupère la chaîne. (d'où ???)
+$360d       A = longueur de la chaîne.
+$360e-$3610 Se place sur l'adresse de la chaîne.
+$3611-$3612 BC = adresse de la chaîne.
+$3613       Restaure le nom de la chaîne (???).
+$3614       Sauve l'adresse de la chaîne sur la pile.
+$3615       De même que sa longueur.
+$3616       Récupère la seconde chaîne (à partir d'où ???)
+$3619       Récupère l'adresse de la seconde chaîne.
+$361c-$361d Met la longueur de la première chaine dans D.
+$361e       HL pointe sur la première chaine.
+
+$361f       [cmp_str_lp]
+$361f-$3621 Retour (avec Z à 1) si D et E sont égaux à 0.
+            Les deux chaines ont été comparées entièrement avec succès.
+$3622-$3623 Réduit la longueur restante de 1.
+$3625       Retour (avec Z à 0 et Carry à 1) si la longueur est devenu négative.
+            La première chaine est terminée, mais pas la seconde.
+$3626-$3627 Compare E avec 0.
+$3628       ???
+$3629       Retour sur la taille de la seconde chaine a été consommée ???
+$362a       Diminue le compteur de taille restante de la première chaine.
+$362b       Diminue le compteur de taille restante de la seconde chaine.
+$362c-$3630 Boucle si les deux octets deux deux chaines sont identiques.
+            Les pointeurs sur les deux chaines ont été placés sur le caractère suivante.
+$3632       Complète le Carry pour signaler la bonne différence par rapport à la dernière comparaison de caractère.
+$3633       Branche vers le retour signalant une différence dans la comparaison.
 
 $3636       [inst_str]
-            %CODE
-$3639       ---
-$363c       ---
-$363f       ---
-$3642       ---
-$3645       ---
+            %CODE,MS_BASIC(STR)
+
+            Fonction BASIC : `STR`
+$3636       Le paramètre doit être de type numérique.
+$3639       Transforme le nombre en chaine de caractère.
+$363c       Créé une entrée de chaine avec le résultat.
+$363f       Récupère la chaine (depuis où ???)
+$3642-$3645 Place l'adresse de retour pour aller vers (???)
+
 $3646       [save_str]
             A <- longueur de la chaine
 $3647       ---
@@ -8282,7 +8278,7 @@ $37d1       [GSTRCU]
             MS_BASIC=GSTRCU (Current string to pool)
 $37d1       ---
 $37d4       [call37D4]
-$37d5       [call37D5]
+$37d5       [get_str_2]
 $37d8       ---
 $37d9       ---
 $37da       ---
@@ -8352,6 +8348,7 @@ $381b       [inst_chr]
 $381e       ---
 $3821       ---
 $3824       ---
+$3825       [to_pool]
 $3825       ---
 $3826       ---
 $3829       [inst_left]
