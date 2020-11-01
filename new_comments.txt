@@ -7880,22 +7880,24 @@ $35a7       Incrémente A (c'est-à-dire passe à la ligne suivante).
 $35a8-$35aa Boucle tant que la ligne n'est pas 25.
 
 $35ad       [scroll_up]
-            Fonction: monte le contenu de l'écran d'une ligne par recopie de la mémoire
-            La nouvelle ligne a toujours l'ancien contenu
-$35ad       ---
-$35b0       ---
-$35b3       ---
-$35b6       ---
-$35b8       ---
+            Remonte le contenu du buffer écran BASIC d'une ligne par recopie de la mémoire.
+
+            La dernière ligne n'est pas touchée.
+
+$35ad       HL pointe sur la ligne 1.
+$35b0       DE pointe sur la ligne 0.
+$35b3       BC est la taille de l'écran en octet, moins une ligne.
+$35b6       Copie.
 
 $35b9       [scroll_down]
-            Fonction: descend le contenu de l'écran d'une ligne par recopie de la mémoire
-            La nouvelle ligne a toujours l'ancien contenu
-$35b9       ---
-$35bc       ---
-$35bf       ---
-$35c2       ---
-$35c4       ---
+            Descend le contenu du buffer écran BASIC d'une ligne par recopie de la mémoire.
+
+            La première ligne n'est pas touchée.
+$35b9       HL pointe sur la ligne 24
+$35bc       %NOT_LABEL
+            DE pointe sur la ligne 25 (c'est-à-dire juste après la fin du buffer)
+$35bf       BC est la taille de l'écran en octet, moins une ligne.
+$35c2       Copie.
 
 $35c5       [reset_term]
             La fonction réinitialise les bits 2 et 7 de $4871.
