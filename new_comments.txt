@@ -7797,64 +7797,57 @@ $3521-$3523 Y place un marqueur de continuité.
 $3524       Récupère les coordonnées du curseur de la ligne précédente (???)
 $3525       Rétablie les coordonnées du curseur (???)
 $3528       [insc_blank]
-$352b       ---
-$352c       ---
-$352d       ---
-$352e       ---
-$3531       ---
-$3532       ---
-$3533       ---
-$3534       ---
-$3535       ---
-$3538       ---
-$353b       ---
-$353c       ---
-$353d       ---
-$353e       ---
-$353f       ---
-$3540       ---
-$3541       ---
-$3543       ---
-$3544       ---
-$3545       ---
-$3546       ---
-$3547       ---
-$3548       ---
-$3549       ---
-$354a       ---
-$354b       ---
-$354c       ---
-$354f       [jump354F]
-$3552       ---
-$3553       ---
-$3555       ---
-$3558       ---
-$3559       ---
-$355a       ---
-$355b       ---
-$355c       ---
-$355d       ---
-$355f       ---
-$3560       ---
-$3562       ---
-$3563       ---
-$3564       ---
-$3566       ---
-$3568       [skip3568]
-$356a       ---
-$356e       ---
-$3570       ---
-$3571       [skip3571]
-$3574       ---
-$3577       ---
+$3528       Charge les coordonnées du curseur dans HL.
+$352b       Récupère les coordonnées (lesquelles ???)
+$352c-$352e Branche si les deux coordonnées ont les mêmes lignes.
+$3531-$3532 Copie de DE vers HL.
+$3533       Décrémente la ligne des coordonnées DE.
+$3534       Sauve ces nouvelles coordonnées dans la pile.
+$3535       HL pointe vers le buffer écran du BASIC aux coordonnées HL.
+$3538-$353c Pointe 77 octets plus loin. (??? bien dérouler tout ce passage)
+$353d-$353e Copie HL dans DE.
+$353f-$3540 DE pointe 79 octets plus loin que les coordonnées précédentes dans HL.
+$3541       Copie 76 octets de `(de)` vers `(hl)`
+$3543-$3545 Recule HL de trois octets.
+$3546       Prend l'octet pointé.
+$3547-$354a Avance HL de 4 octets
+$354b       Y place l'octet.
+$354c       Boucle sur l'insertion d'un espace sur le reste de la ligne logique.
+
+$354f       [insc_same]
+$354f       Charge les coordonnées du curseur dans HL.
+$3552       Sauve les coordonnées sur la pile.
+$3553       Colonne 38
+$3555       HL pointe vers le buffer écran du BASIC aux coordonnées HL (en colonne 39)
+$3558       Récupère les coordonnées dans BC
+$3559-$355c DE pointe 2 octets plus loin que HL (donc sur la colonne 39 de la même ligne).
+$355d-$3560 Branche si le curseur est en colonne 39.
+$3562-$3564 Sinon, BC est le nombre d'octets entre la position du curseur et la dernière colonne (2 octets par caractère).
+$3566       Copie ce nombre d'octet de `(hl)` vers `(de)` (autrement dit, créé un espace)
+$3568       [insc_39]
+$3568       %CHAR
+            Prépare un caractère d'espacement
+$356a-$356e Branche si le mode texte est activé.
+$3570       Sinon, prépare un caractère nul.
+$3571       [insc_txt2]
+$3571       Écrit le caractère dans A avec les paramètres courant.
+$3574       L'écriture a provoqué l'avancement du curseur. Il est replacé d'une colonne vers la gauche (sur une ligne logique).
 
 $3578       [peekchar]
-            Fonction : récupère le caractère à l'écran aux coordonnées HL dans A
-            HL est modifié. A contient le caractère. A est comparé à $84.
-$3578       ---
-$357b       ---
-$357c       ---
-$357e       ---
+            Lit le caractère dans le buffer écran du BASIC aux coordonnées HL dans A.
+
+            Entrée :
+            - HL contient les coordonnées du curseur (H = ligne, L = colonne)
+
+            Sortie :
+            - A contient le caractère aux coordonnées indiquées.
+            - Z est à 0 si ce caractère est le marqueur de continuité de ligne logique.
+            - HL pointe vers l'adresse correspondante dans le buffer écran du BASIC.
+
+$3578       HL pointe vers le buffer écran BASIC aux coordonnées précédemment dans HL.
+$357b       Lit le caractère à cet endroit.
+$357c       Le compare au caractère de continuité de ligne logique.
+
 $357f       [sd_insl]
 $3582       ---
 $3583       ---
