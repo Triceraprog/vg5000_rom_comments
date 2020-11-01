@@ -7849,31 +7849,35 @@ $357b       Lit le caractère à cet endroit.
 $357c       Le compare au caractère de continuité de ligne logique.
 
 $357f       [sd_insl]
-$3582       ---
-$3583       ---
-$3584       ---
-$3586       ---
-$3588       ---
-$358b       ---
-$358e       ---
-$358f       ---
-$3591       ---
-$3592       ---
-$3593       ---
-$3596       ---
-$3598       [skip3598]
-$359b       ---
-$359e       ---
-$359f       [clr_scr_btm]
-            Fonction : Efface toutes les lignes à partir de la ligne courante jusqu'en bas de l'écran
-            Traitement de l'affichage du caractère 31
-$35a2       [loop35A2]
-$35a3       ---
-$35a6       ---
-$35a7       ---
-$35a8       ---
-$35aa       ---
-$35ac       ---
+            Traitement de `INSL` (par le caractère 6)
+
+            La ligne insérée est au-dessus du curseur ???
+$357f       Charge les coordonnées du curseur dans HL.
+$3582-$3584 Branche si la ligne est 0.
+$3586       Sinon, coordonnées en colonne 0.
+$3588       HL pointe vers le buffer écran BASIC aux coordonnées précédemment dans HL.
+$358b       DE pointe sur le début de l'écran.
+$358e       Carry à 0.
+$358f-$3592 BC contient la différence entre le début de l'écran et le début de la ligne sur laquelle est le curseur.
+$3593       HL pointe sur la ligne 1.
+$3596       Copie la ligne 1 vers le début de l'écran pendant la longueur indiquée, ce qui provoque un espace au dessus du curseur.
+
+$3598       [iinsl_0]
+$3598-$359b Efface le contenu de la ligne du curseur.
+
+$359f       [sd_effe]
+            Traitement de `EFFE` (par le caractère 31)
+            
+            Efface toutes les lignes à partir de la ligne courante du curseur jusqu'en bas de l'écran.
+
+$359f       A contient la ligne des coordonnées du curseur.
+
+$35a2       [effe_lp]
+$35a2       Sauve A
+$35a3       Efface la ligne indiquée par A.
+$35a6       Restaure A
+$35a7       Incrémente A (c'est-à-dire passe à la ligne suivante).
+$35a8-$35aa Boucle tant que la ligne n'est pas 25.
 
 $35ad       [scroll_up]
             Fonction: monte le contenu de l'écran d'une ligne par recopie de la mémoire
