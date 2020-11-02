@@ -8116,150 +8116,150 @@ $36b7       Émet le caractère.
 $36b8       Avance le pointeur sur l'octet suivant.
 $36b9       Boucle sur l'émission de caractères.
 
-$36bb       [alloc_str_mem]
-            Vérifie la place restante pour les chaines, alloue la chaine, lance le GC si nécessaire.
-            La place demandée est dans A. À la fin de la routine, DE pointe sur un espace allouée de A
-            caractères dans la mémoire dédiée, et (fretop) est ajusté en conséquence. Ainsi, ce n'est
-            pas seulement un test mais un test et une allocation.
-            Dans ces implémentations, Z est d'abord reset, mais plus tard Set avec un bouclage après GC.
+$36bb       [alloc_stmem]
+            %MS_BASIC(TESTR)
+            Alloue l'espace nécessaire au stockage d'une chaîne de caractères.
+
+            Lance le GC (Garbage Collector / Ramasse Miettes) si nécessaire.
+
+            Entrée :
+            - A contient la longueur de la chaîne demandée.
+
+            Sortie :
+            - DE pointe vers l'espace alloué.
+            - `(fretop)` est ajusté en conséquence.
+
+            Dans ces implémentations, Z (ou Carry???) est d'abord reset, mais plus tard Set avec un bouclage après GC.
             Si au deuxième passage il n'y a toujours pas assez de mémoire, alors l'erreur est lancée.
             
-            MS_BASIC=TESTR
-$36bb       Ajuste un flag pour signaler no-GC
-$36bc       Annule $f1 qui est pop af
+$36bb       Met Z à 0 pour indiquer qu'il faudra lancer le GC.
+            En effet, la longueur de la chaîne n'est pas nul.
+$36bc       Passe par dessus le `pop af` qui suit.
+
 $36bd       [retry_alloc]
             %CODE
-$36be       ---
+$36bd       Sauve `AF` sur la pile lors de la seconde tentative, pour garder la symétrie avec le `push af` qui suit.
+$36be       Sauve l'état de Carry pour contrôler le GC.
 $36bf       Charge le pointeur sur le haut de la stack (et donc juste sous la mémoire réservée pour les chaines)
-$36c2       ... dans DE
-$36c3       Charge le pointeur sur la plus haute mémoire libre disponible
-$36c6       A contient la longueur cherchée.
-$36c7       ---
-$36c8       Met son inverse dans BC
-$36ca       L'ajoute à la plus haute mémoire
-$36cb       Ajustement pour le complèment à 2 de la soustraction
-$36cc       Compare avec l'adresse DE (adresse minimale possible)
-$36cd       Pas assez de mémoire, on lance l'erreur (ou le GC en première tentative)
-$36cf       Remise en place de la plus haute mémoire après un GC.
-$36d2       HL est positionné sur la première adresse après fretop (la première adresse des chaines avec une allocation de A caractères)
-$36d3       ... dans DE (qui est utilisé par save_str par exemple)
-$36d4       Restauration de AF
-$36d5       ---
+$36c2       DE contient `(stktop)`, le haut de la pile.
+            La pile est située sous l'espace réservé pour les chaines de caractères.
+$36c3       HL contient `(fretop)`, la plus haute adresse mémoire disponible pour les chaines.
+$36c6-$36c8 BC est le complément à 1 de  A, la taille de la chaine à allouer.
+$36ca       Ajoute cette valeur à HL.
+$36cb       Ajuste HL pour un complément à 2 de A.
+            Au final, HL = `(fretop)` - A.
+$36cc       Compare cette adresse avec `DE`, qui est l'adresse la plus basse possible pour le chaine (puisque c'est le haut de la pile).
+$36cd       Branche si HL est inférieur à DE, il n'y a pas assez de mémoire pour cette chaine.
+$36cf       Met à jour `(fretop)` avec le nouveau pointeur.
+$36d2       HL est positionné sur la première adresse après `(fretop)`.
+            C'est l'adresse allouée pour la chaine.
+$36d3       Cette adresse est placée dans DE.
+$36d4       Jette le drapeau de traitement du GC.
+
 $36d6       [out_str_mem]
-$36d7       ---
-$36da       Sors avec l'erreur "Out of string space"
-$36dd       ---
-$36de       ---
-$36df       ---
-$36e2       ---
+$36d6       Récupère le drapeau de traitement de Garbage Collection.
+$36d7-$36da Branche sur l'erreur "Out of string space" si le drapeau de traitement du GC est à 0.
+            Cela signifie que la passe GC a déjà été faite et que la seconde tentative a elle aussi échouée.
+$36dd       Place le drapeau Z à 1, pour indiquer qu'une première tentative d'allocation a échoué.
+$36de       Sauve les drapeaux sur la pile.
+$36df-$36e2 L'adresse de retour ira vers une nouvelle tentative d'allocation.
+
 $36e3       [gc_start]
-$36e6       [jump36E6]
-$36e9       ---
-$36ec       ---
-$36ed       ---
-$36f0       ---
-$36f1       ---
-$36f4       ---
-$36f8       ---
-$36f9       ---
-$36fc       ---
-$36ff       ---
-$3702       [loop3702]
-$3706       ---
-$3707       ---
-$3709       ---
-$370a       ---
-$370b       ---
-$370c       ---
-$370d       ---
-$3710       ---
-$3712       [jump3712]
-$3713       [skip3713]
-$3717       ---
-$3718       ---
-$371b       ---
-$371e       ---
-$371f       ---
-$3720       ---
-$3721       ---
-$3722       ---
-$3725       ---
-$3728       ---
-$3729       ---
-$372a       ---
-$372c       ---
-$372d       ---
-$372e       ---
-$372f       ---
-$3730       ---
-$3733       ---
-$3734       ---
-$3735       ---
-$3737       ---
-$373a       [jump373A]
-$373b       ---
-$373d       [call373D]
-$373e       ---
-$373f       ---
-$3740       ---
-$3741       ---
-$3742       ---
-$3743       ---
-$3744       ---
-$3745       ---
-$3746       ---
-$3747       ---
-$3748       ---
-$3749       ---
-$374c       ---
-$374d       ---
-$374e       ---
-$374f       ---
-$3750       ---
-$3751       ---
-$3752       ---
-$3753       ---
-$3754       ---
-$3755       ---
-$3756       ---
-$3757       ---
-$3758       ---
-$3759       ---
-$375a       ---
-$375b       ---
-$375c       ---
-$375d       ---
-$375e       ---
-$375f       [jump375F]
-$3760       ---
-$3761       ---
-$3762       ---
-$3763       ---
-$3764       ---
-$3765       ---
-$3766       ---
-$3767       ---
-$3768       ---
-$3769       ---
-$376a       ---
-$376b       ---
-$376c       ---
-$376e       ---
-$376f       ---
-$3770       ---
-$3771       ---
-$3772       ---
-$3773       ---
-$3774       ---
-$3777       ---
-$377a       ---
-$377b       ---
-$377c       ---
-$377d       ---
-$377e       ---
-$377f       ---
-$3780       ---
-$3781       ---
+            Débute l'opération de ramasse miettes (Garbage Collection / GC).
+
+            Le principe est de nettoyer toute donnée de chaine non référencée par un descripteur de chaine.
+
+$36e3       Le traitement débute à la plus haute adresse en RAM, qui est aussi la plus haute adresse pour l'espace de chaines de caractères.
+
+$36e6       [str_srch]
+$36e6       Mise à jour du pointeur vers la prochaine adresse disponible pour les chaines de caractères.
+$36e9-$36ec Place $0000 sur la pile.
+$36ed-$36f0 Place la plus haute adresse utilisée par les variables et tableaux sur la pile.
+$36f1       HL pointe vers le buffer des descripteurs de chaines temporaires.
+$36f4       [srch_temp]
+$36f4       DE pointe vers le descripteur temporaire courant.
+$36f8       Compare le pointeur de descripteur temporaire avec l'adresse du début du buffer des descripteurs temporaire.
+$36f9       Prépare l'adresse de retour pour boucler sur la recherche dans les descripteurs temporaires.
+$36fc       Le descripteur étudié n'était pas le dernier.
+$36ff       Sinon, la recherche dans les descripteurs temporaire est terminée, la recherche se fait à présent dans les variables.
+            HL pointe vers le début de la zone des variables.
+$3702       [srch_var]
+$3702       DE pointe vers... ???
+$3706       Compare le pointeur de variables avec le début de la zone des variables.
+$3707       Branche si les deux pointeurs sont égaux : la recherche est terminée pour la zone des variables.
+$3709-$370c Si le nom de la variable désigne une chaine de caractères, le drapeau P sera à 0.
+$370d       Vérifie si cette variable référence une chaine de caractères.
+$3710       Boucle sur la variable précédente.
+
+$3712       [next_ary]
+$3712       Jette 
+$3713       [srch_ary]
+            Recherche les références de chaines dans les tableaux.
+
+$3713       `DE` pointe sur la derniere adresse allouée pour les tableaux.
+$3717       Compare avec HL qui pointe sur... toujours `(vartab)` ??? (HL devrait pointer sur `(arytab)`.
+$3718       La zone des tableaux est terminée (et on reparse les variables du coup ???)
+$371b       Récupère le ??? du tableau dans BCDE.
+$371e       Récupère le type du tableau.
+$371f       Sauve ??? sur la pile.
+$3720       HL pointe sur le tableau suivant.
+$3721-$3722 Branche si le type du tableau est numérique.
+$3725       Sauve l'adresse du tableau suivant.
+$3728       Récupère ???.
+$3729-$372a BC est le nombre de dimensions du tableau.
+$372c-$372e Pointe au delà des dimensions (2 octets par dimensions).
+$372f       [ary_lp]
+$372f       Place le pointeur sur DE.
+$3730       Récupère l'adresse du tableau suivant.
+$3733-$3734 Compare l'adresse actuelle dans le tableau avec celle du tableau suivant.
+$3735       Ce tableau est terminé, branche sur le suivant.
+$3737       Prépare l'adresse de retour vers la boucle de recherche dans les tableaux.
+
+$373a       [st_pool]
+$373a       Place l'adresse de retour.
+$373b       Prépare le type chaine pour la routine suivante.
+
+$373d       [str_in_pool]
+            Vérifie si ... ???
+$373d       A = longueur de la chaine de caractères.
+$373e-$3743 DE pointe sur les données de la chaine de caractères.
+$3744       Retour si la variable n'est pas de type chaine.
+            Les tableaux sont forcés au bon type car vérifiés au préalable.
+            Le retour est en fait un branchement vers la boucle actuelle.
+$3745-$3746 Retour si la longueur de la chaine est 0.
+$3747-$3748 Sauve HL dans BC
+$3749-$374c Compare ... avec ...
+$374d-$374e Restaure HL depuis BC. Qui est ???
+$374f       Du coup, retour lorsque ???
+$3750-$3751 Récupère l'adresse sous l'adresse de retour
+$3752       Compare avec ???
+$3753-$3754 Remet la pile en ordre.
+$3755-$3756 Récupère ???
+$3757       Retour, on est hors de la zone des chaines de caractères.
+$3758       Préserve l'adresse de retour dans BC
+$3759-$375a Jette les deux valeurs suivantes.
+$375b       Place le pointeur de la variable ???
+$375c       Place ???
+$375d       Replace l'adresse de retour sur la pile.
+
+$375f       [gc_end]
+$375f       Récupère...
+$3760       ... des addresses ???
+$3761-$3763 Retour si l'adresse (de quoi ???) est nulle.
+$3764-$3767 Récupère une adresse ??? dans BC
+$3768       Sauve HL sur la pile ???
+$3769-$376a Revient en arrière de deux octets.
+$376b-$376c HL = longueur de la chaine.
+$376e       HL pointe vers le début de la chaine suivante.
+$376f-$3770 DE pointe sur le début de la chaine.
+$3771-$3773 BC pointe sur le dernier octet de la chaine.
+$3774       HL pointe vers la première adresse disponible dans l'espace de chaine.
+$3777       Déplace la chaine pour compacter l'espace des chaine de caractères.
+$377a       Récupère l'adresse du descripteur de la chaine.
+$377b-$377d Met à jour le descripteur avec la nouvelle adresse des données de chaine.
+$377e-$3780 HL pointe vers... ???
+$3781       Boucle vers la prochaine chaine.
+
 $3784       [str_concat]
 $3785       ---
 $3786       ---
