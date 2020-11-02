@@ -8000,7 +8000,7 @@ $365d       [ctr_ver_str]
             - HL pointe vers un descripteur temporaire de chaine situé en `dsctmp`.
 
 $3660       [crt_str_dsc]
-            %MS_BASIC=CRTMST
+            %MS_BASIC(CRTMST)
             Création d'un descripteur temporaire de chaine de caractères.
 
             Entrées :
@@ -8021,72 +8021,100 @@ $3666-$3669 Place DE dans les deux octets pointés par HL et HL + 1.
 $366a       Restaure HL.
 
 $366c       [out_str_prc]
-            Création d'une chaine de caractère depuis la source pointée par HL (dans le pool de string ???)
+            %MS_BASIC(CRTST)
+            Création d'une chaine de caractères depuis la source pointée par HL (dans le pool de string ???)
+
+            Une chaine se termine lorsqu'elle atteint le caractère nul.
+            Une chaine a une taille de 255 caractères maximum.
+
+            Entrée :
+            - HL pointe vers les données de la chaine de caractères, se terminant par 0.
+
+            Sortie :
+            - FAC contient l'adresse du descripteur de la chaine.
+            - HL pointe après les données de chaine pointée par HL initialement.
+            - A contient le caractère lu après les données de la chaine.
+            - `(valtype)` est à 1.
             
-            MS_BASIC=CRTST (Create String?)
-$366c       Positionne hl un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
+$366c       Positionne HL un caractère avant le début de la chaine (à cause du inc hl de la boucle qui suit)
 $366d       [str_to_str]
-            MS_BASIC=QTSTR
-$366f       '"' est dans B puis D
+            %MS_BASIC(QTSTR)
+$366d       %CHAR
+$366d-$366f '"' dans B puis D
+
 $3670       [direct_str]
-            Sauve la valeur courante de HL, la mémoire à parser entre guillemets. Un appel direct ici devra placer ses propres terminateurs dans B et D ; MS_BASIC=DTSTR
-$3671       Compteur C de la taille de la chaine à -1
+            %MS_BASIC(DTSTR)
+            Un appel direct ici devra placer ses propres terminateurs dans B et D.
+$3670       Sauve le pointeur actuel vers les données de la chaine.
+$3671       C est la taille de la chaine de caractères et est initialisé à -1.
+
 $3673       [loop_str]
-$3674       Récupération du caractère dans a
-$3675       Incrémentation du compteur de caractères parsés (longueur totale de la chaîne)
-$3676       ---
-$3677       Si le caractère est 0 (fin de chaîne)
-$3679       ---
-$367a       Si le caractère est $22 (=34, guillemets) (ou autre terminateur mis dans D)
-$367c       Traitement du deuxième terminateur possible
-$367d       Tant que l'on traite des caractères normaux
+$3673       Avance le pointeur vers les données de la chaine de caractères.
+$3674       A contient le caractère pointé.
+$3675       Augmente la longueur totale de la chaine.
+$3676-$3677 Branche si le caractère nul a été trouvé.
+$3679-$367a Branche si le caractère est le terminateur contenu dans D (guillemets par exemple).
+$367c-$367d Boucle si le caractère n'est pas le terminateur contenu dans B.
+
 $367f       [create_str]
-$3681       Si la lecture s'est terminée par des guillements, on les consomme ("BLA est une chaine valide si en fin de ligne)
-$3684       Récupération du pointeur du début de la chaîne dans HL
-$3685       ---
-$3686       DE contient le début de la chaîne +1 (dont après les guillemets)
-$3687       A <- longueur de la chaîne
-$3688       Création du pointeur de chaine sur l'espace temporaire
+$367f       %CHAR
+$367f-$3681 Si la lecture s'est terminée par des guillements, on les consomme.
+$3684-$3685 Récupération du pointeur du début des données de la chaîne dans HL.
+            Le haut de la pile contient l'adresse de fin des données de la chaîne.
+$3686       DE pointe sur le début des données de la chaîne de caractères.
+$3687       A est la longueur de la chaîne de caractères.
+$3688       Créé un descripteur temporaire sur cette chaîne de caractères.
+
 $368b       [cpy_to_pool]
-            DE <- espace temporaire
-$368e       HL <- espace actuel de traitement de chaine
-            Sauve l'adresse de la chaine dans FP
-$3691       ---
-$3694       ---
-$3696       La valeur courante est une chaîne de caractères
-$3699       Copie les 4 premiers octets de dsctmp vers HL, qui pointe vers (temppt). Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
-$369c       Comparaison avec DE, qui est dsctmp et agit donc comme gardien de fin de buffer (après tempst) (où est initialisé temppt à part au reset de stack ???)
-$369d       Mise à jour du pointeur vers le buffer tempst
-$36a0       Récupération du pointeur de parsing
-$36a1       Lecture du prochain caractère
-$36a2       Retour s'il reste de la place dans le buffer tempst
-$36a3       ---
-$36a6       Lancement de l'erreur "String formula too complex"
+$368b       DE pointe sur l'espace temporaire utilisé pour le descripteur.
+$368e       HL pointe vers l'espace temporaire pour le traitement de chaine de caractères.
+$3691       Cette adresse est sauvée dans FAC.
+$3694-$3696 La valeur courante est une chaîne de caractères.
+$3699       Copie les 4 premiers octets de `dsctmp` vers `(hl)`.
+            Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
+$369c       Comme `dsctmp` est situé après le buffer `tempst`, comparer `de` et `hl` permet de savoir si le buffer temporaire a été entièrement rempli.
+$369d       Mise à jour du pointeur vers le buffer temporaire `tempst`.
+$36a0       Récupère le pointeur vers la fin des données de la chaine de caractères.
+$36a1       Lecture du prochain caractère à destination de l'appelant.
+$36a2       Retour s'il reste de la place dans le buffer `tempst`.
+$36a3-$36a6 Sinon, c'est une erreur "String formula too complex".
 
 $36a9       [sharp_char]
-            %CODE
-            Afficher une chaîne sans le premier caractère
+            %CODE,MS_BASIC(PRNUMS)
+            Émet une chaîne de caractères sur le périphérique courant, sans le premier caractère pointé par HL.
+
+            Entrée :
+            - HL pointe un octet avant la chaîne à émettre. La chaîne se termine par un 0.
             
-            MS_BASIC=PRNUMS
-$36a9       ---
+$36a9       Avance le pointeur HL de 1 octet.
 
 $36aa       [out_str]
-            Fonction: Affichage d'une chaîne à l'écran
-            Entrée: HL pointe sur la chaîne de caractère terminée par un 0
-            
-            MS_BASIC=PRS (Print String)
-$36aa       ---
+            %MS_BASIC(PRS)
+            Émet une chaîne de caractères sur le périphérique courant.
+
+            Entrée :
+            - HL pointe un octet avant la chaîne à émettre. La chaîne se termine par un 0.
+
+$36aa       Créé un descripteur temporaire pour la chaîne pointée par HL.
+
 $36ad       [out_str1]
-            MS_BASIC=PRS1
-$36b0       ---
-$36b3       ---
-$36b4       [prsloop]
-            MS_BASIC=PRSLP ; Compte les caractères
-$36b5       ---
-$36b6       ---
-$36b7       ---
-$36b8       ---
-$36b9       ---
+            %MS_BASIC(PRS1)
+            Émet une chaîne de caractères sur le périphérique courant.
+
+            Entrée :
+            - FAC pointe vers un descripteur de chaîne de caractères.
+$36ad       Lit le descripteur de chaîne. HL pointe sur le descripteur. ???
+$36b0       Copie le descripteur dans BCDE.
+$36b3       Prépare la boucle suivante, E étant la longeur de la chaîne de caractères.
+
+$36b4       [prs_lp]
+            %MS_BASIC(PRSLP)
+$36b4       Décompte le nombre de caractères restant à émettre.
+$36b5       Retour s'il n'y en a plus à émettre.
+$36b6       Lit le caractères à émettre.
+$36b7       Émet le caractère.
+$36b8       Avance le pointeur sur l'octet suivant.
+$36b9       Boucle sur l'émission de caractères.
 
 $36bb       [alloc_str_mem]
             Vérifie la place restante pour les chaines, alloue la chaine, lance le GC si nécessaire.
