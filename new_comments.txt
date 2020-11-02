@@ -7969,43 +7969,56 @@ $363f       Récupère la chaine (depuis où ???)
 $3642-$3645 Place l'adresse de retour pour aller vers (???)
 
 $3646       [save_str]
-            A <- longueur de la chaine
-$3647       ---
-$3648       ---
-$3649       HL positionné sur l'adresse du contenu poussée dans la pile
-$364a       Vérification qu'il y a assez de place dans la mémoire de chaines
-$364d       Si oui, on lit l'adresse du contenu dans BC
-$364e       ---
-$364f       ---
-$3650       ---
-$3651       Création d'un descripteur temporaire
-$3654       ---
-$3655       ---
-$3656       Copie L octets de BC (source) vers DE (destination)
-$3659       Pointeur de descripteur de chaine dans DE
-$365a       ---
+$3646       A = longueur de la chaine source
+$3647-$3649 Sauve l'adresse du contenu de la chaine sur la pile.
+$364a       Allocation de l'espace nécessaire dans l'espace des chaines de caractères.
+$364d-$3650 BC = adresse du contenu de la chaine source.
+$3651       Création d'un descripteur temporaire de chaine.
+$3654       Sauve l'adresse de ce descripteur temporaire. sur la pile
+$3655-$3656 Copie L octets de BC (source) vers DE (destination), ce qui copie la chaine dans l'espace des chaines de caractères.
+$3659       DE pointe sur le decripteur de chaine temporaire.
+$365a       En venant de la fonction `STR()`, branche vers `to_pool`.
+            Sinon, retourne vers l'allocation d'une chaine de caractères.
+
 $365b       [str_len_1]
-            Construction après vérification d'une chaine de taille 1.
+            Création d'une chaine de longueur 1.
+$365b       A est la taille de chaine de caractères demandée (1)
+
 $365d       [ctr_ver_str]
-            Construction d'une chaine après vérification de la mémoire disponible
+            Allocation d'une chaine de caractères après vérification de la mémoire disponible.
+
+            Un descripteur de chaine fait 4 octets de long :
+            - longueur de la chaine sur un octet
+            - un octet inutilisé
+            - ponteur vers les données de la chaine, sur deux octets.
+
+            Entrées :
+            - A contient la longueur de la chaine de caractères en octets.
+            - DE pointe sur le contenu de la chaine de caractères.
+
+            Sortie :
+            - HL pointe vers un descripteur temporaire de chaine situé en `dsctmp`.
 
 $3660       [crt_str_dsc]
-            Fonction: met la longueur de chaîne (A) puis rien (0, pour être sur 16 bits) puis DE (pointeur de chaîne) dans dsctmp
-            Entrée: A contient un nombre de caractères (longueur de chaîne), DE le pointeur sur la chaine (sans séparateur de début)
-            Sortie: HL pointe sur le buffer temporaire de chaîne, dsctmp
+            %MS_BASIC=CRTMST
+            Création d'un descripteur temporaire de chaine de caractères.
+
+            Entrées :
+            - A contient la longueur de la chaine de caractères en octets.
+            - DE pointe sur le contenu de la chaine de caractères.
+
+            Sortie :
+            - HL pointe vers un descripteur temporaire de chaine situé en `dsctmp`.
             
-            MS_BASIC=CRTMST
-$3660       ---
-$3663       ---
-$3664       ---
-$3665       ---
+$3660       HL pointe vers le buffer temporaire de construction des chaines.
+$3663       Sauve cette adresse sur la pile.
+$3664-$3665 Place la longueur de la chaine de caractères dans le descripteur.
+
 $3666       [de_in_hl]
-            Puts DE where HL points to
-$3667       ---
-$3668       ---
-$3669       ---
-$366a       ---
-$366b       ---
+            Place le contenu de DE vers ce que pointe HL.
+$3666-$3669 Place DE dans les deux octets pointés par HL et HL + 1.
+            Dans le cas d'une chaine de caractères, c'est le pointeur vers son contenu.
+$366a       Restaure HL.
 
 $366c       [out_str_prc]
             Création d'une chaine de caractère depuis la source pointée par HL (dans le pool de string ???)
