@@ -5719,6 +5719,7 @@ $2864       [eval_1]
 $2864       Sauve la priorité actuelle.
 $2865-$2867 Vérification qu'il est possible d'ajouter 1 niveau (C) sur la pile
 $286a       Lecture de la prochaine valeur.
+$286d       [eval_1b]
 $286d       Sauve le pointeur de texte BASIC.
 $2870       [eval_2]
 $2870       Récupère le pointeur de texte BASIC.
@@ -8261,34 +8262,34 @@ $377e-$3780 HL pointe vers... ???
 $3781       Boucle vers la prochaine chaine.
 
 $3784       [str_concat]
-$3785       ---
-$3786       ---
-$3789       ---
-$378a       ---
-$378d       ---
-$378e       ---
-$3791       ---
-$3792       ---
-$3793       ---
-$3796       ---
-$3797       ---
-$3798       ---
-$379b       Sors avec "String too long"
-$379e       ---
-$37a1       ---
-$37a2       ---
-$37a5       ---
-$37a6       ---
-$37a9       ---
-$37aa       ---
-$37ad       ---
-$37ae       ---
-$37b1       ---
-$37b4       ---
-$37b7       ---
-$37b8       ---
-$37b9       ---
-$37bc       [call37BC]
+            %MS_BASIC(CONCAT)
+            Concatène deux chaines de caractères.
+
+$3784       Sauve BC sur la pile.
+$3785       Sauve HL sur la pile.
+$3786       Récupère le pointeur vers la chaine actuelle.
+$3789       Sauve le pointeur sur la pile et récupère le pointeur vers le texte BASIC.
+$378a       Évalue la chaine de caractères suivante.
+$378d       Récupère le pointeur vers la première chaine et place sur la pile le pointeur vers le texte BASIC.
+$378e       Vérifie que la valeur évaluée est de type chaine ou lance une erreur.
+$3791       A = longueur de la première chaine de caractères.
+$3792       Sauve l'adresse de la première chaine de caractères.
+$3793-$3796 Sauve l'adresse de la seconde chaine de caractères.
+$3797       Ajoute la longueur de la seconde chaine à la longueur de la première.
+$3798-$379b Sors avec "String too long" si la somme de deux longueurs est supérieur à 255.
+$379e       Alloue une chaine de caractères de la longueur de la future chaîne de caractères.
+$37a1       DE pointe vers la seconde chaîne.
+$37a2       Récupère la chaîne pointée par DE (où ???).
+$37a5       HL pointe sur la première chaîne.
+$37a6       Récupère la chaîne pointée par HL (où ???).
+$37a9       Sauve la première chaîne (???)
+$37aa-$37ad DE pointe sur ???
+$37ae       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères.
+$37b1       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères.
+$37b4-$37b8 Place l'adresse de retour vers `eval_1b` sous l'adresse de retour actuelle.
+$37b9       Copie la chaine vers ???
+
+$37bc       [to_str_area]
 $37bd       ---
 $37be       ---
 $37bf       ---
@@ -8318,7 +8319,7 @@ $37ce       ---
 $37d1       [GSTRCU]
             MS_BASIC=GSTRCU (Current string to pool)
 $37d1       ---
-$37d4       [call37D4]
+$37d4       [get_str_1]
 $37d5       [get_str_2]
 $37d8       ---
 $37d9       ---
@@ -9645,6 +9646,7 @@ $491f       [memsiz]
 $4921       [temppt]
 $4923       [tempst]
 $499b       [dsctmp]
+$499d       [dsctmp2]
 $49c3       [fretop]
 $49c5       [temp3]
 $49c7       [temp8]
