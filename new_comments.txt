@@ -8290,25 +8290,23 @@ $37b4-$37b8 Place l'adresse de retour vers `eval_1b` sous l'adresse de retour ac
 $37b9       Copie la chaine vers ???
 
 $37bc       [to_str_area]
-$37bd       ---
-$37be       ---
-$37bf       ---
-$37c0       ---
-$37c1       ---
-$37c2       ---
-$37c3       ---
-$37c4       ---
+            Copie la chaine désignée par le pointeur de descripteur en deuxième place dans la pile vers l'adresse pointée par DE.
+
+$37bc-$37bd HL = pointeur sur un descripteur de chaine extrait de la pile en deuxième position, en préservant l'adresse de retour.
+$37be       A prend la longueur de la chaine.
+$37bf-$37c3 BC pointe sur les données de la chaine.
+$37c4       L prend la longueur de la chaine.
 
 $37c5       [copy_str]
             Copie le contenu mémoire d'une taille de L de BC vers DE.
-$37c5       ---
-$37c6       [move_loop]
-$37c7       ---
-$37c8       ---
-$37c9       ---
-$37ca       ---
-$37cb       ---
-$37cc       ---
+$37c5       Prépare la boucle qui suit.
+
+$37c6       [copy_loop]
+$37c6       Décrémente le compteur du nombre d'octets restant à copier.
+$37c7       Retour si la copie est terminée.
+$37c8-$37c9 Copie `(de)` vers `(bc)`.
+$37ca-$37cb Avance les deux pointeurs d'un octet chacun.
+$37cc       Boucle sur la copie.
 
 $37ce       [get_string]
             Vérifie le type courant comme étant un chaine, puis fallthrough dans la récupération de la chaine
