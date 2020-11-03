@@ -8309,31 +8309,32 @@ $37ca-$37cb Avance les deux pointeurs d'un octet chacun.
 $37cc       Boucle sur la copie.
 
 $37ce       [get_string]
-            Vérifie le type courant comme étant un chaine, puis fallthrough dans la récupération de la chaine
+            %MS_BASIC(GETSTR)
+            Vérifie le type courant comme étant un chaine, puis enchaîne sur la récupération de la chaine de caractères courante.
             
-            MS_BASIC=GETSTR
-$37ce       ---
+$37ce       Vérifie que le type de donnée évaluée est de type chaine.
 
-$37d1       [GSTRCU]
-            MS_BASIC=GSTRCU (Current string to pool)
-$37d1       ---
+$37d1       [get_cur_str]
+            %MS_BASIC(GSTRCU)
+$37d1       Récupère le pointeur vers le descripteur de la dernière chaine évaluée.
+
 $37d4       [get_str_1]
+$37d4       Sauve HL dans DE.
+
 $37d5       [get_str_2]
-$37d8       ---
-$37d9       ---
-$37da       ---
-$37db       ---
-$37dc       DE <- BC, l'adresse de la chaine de caractères
-$37dd       ---
+$37d5       Que fait ça ???
+$37d8       Récupère HL depuis DE.
+$37d9       Sort en fonction du résultat du call précédent ???
+$37da       Sauve DE qui contient ???
+$37db-$37dc DE prend l'adresse BC, l'adresse de la chaine de caractères (le descripteur ou les données ???)
+$37dd       Pointe sur l'octet qui précède.
 $37de       C contient la taille de la chaine de caractères
-$37df       ---
-$37e2       ---
-$37e3       ---
-$37e5       ---
-$37e6       ---
-$37e7       ---
-$37ea       [skip37EA]
-$37eb       ---
+$37df       Compare DE (l'adresse de la chaine) avec HL (l'adresse la plus basse de l'espace de chaine).
+$37e2-$37e3 Branche si ce n'est pas la dernière chaine (la plus basse) de l'espace de chaine.
+$37e5       B = 0 (car A = 0), donc BC est la longueur de la chaine de carractères.
+$37e6-$37e7 Efface la chaine de l'espace de nom.
+$37ea       [gstr_end]
+$37ea       Restaure ???
 
 $37ec       [bc_from_tmp]
             Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (temppt)
