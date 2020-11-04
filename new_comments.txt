@@ -8311,6 +8311,9 @@ $37cc       Boucle sur la copie.
 $37ce       [get_string]
             %MS_BASIC(GETSTR)
             Vérifie le type courant comme étant un chaine, puis enchaîne sur la récupération de la chaine de caractères courante.
+
+            Sortie :
+            - HL pointe sur un descripteur de chaine de caractères.
             
 $37ce       Vérifie que le type de donnée évaluée est de type chaine.
 
@@ -8336,63 +8339,65 @@ $37e6-$37e7 Efface la chaine de l'espace de nom.
 $37ea       [gstr_end]
 $37ea       Restaure ???
 
-$37ec       [bc_from_tmp]
-            Récupère dans BC une adresse contenue dans l'adresse juste avant le pointeur (temppt)
-            Si en remontant encore de deux adresse ou tombe sur DE, alors on met à jour (temppt) avec cette nouvelle adresse.
-            Sinon, on retourne.
-            Quoi qu'il arrive, avec BC
-$37ec       ---
-$37ef       ---
-$37f0       ---
-$37f1       ---
-$37f2       ---
-$37f3       ---
-$37f4       ---
-$37f5       ---
-$37f6       ---
-$37f7       ---
-$37fa       ---
+$37ec       [get_tmp]
+            Retourne dans BC le contenu de la chaine la plus en haut (la plus récente) de la pile des descripteurs de chaine temporaire.
+
+            Si DE pointe sur le descripteur le plus récent, le laisse dans la pile de chaines.
+            Sinon, retire le descripteur le plus récent de la pile.
+
+            Entrées :
+            - DE pointe sur un descripteur de chaine.
+
+            Sortie :
+            - BC pointe sur le 
+           
+$37ec       HL pointe sur sur le haut du buffer de descripteurs de chaines temporaires.
+$37ef-$37f4 BC pointe sur les données de la chaine décrite sur le haut du buffer.
+$37f5-$37f6 Retour si ce decripteur est celui pointé par DE. On laisse le descripteur dans le buffer.
+$37f7       Sinon, ajuste le pointeur pour retirer le descripteur.
 
 $37fb       [inst_len]
-            %CODE
-            Instruction BASIC len()
+            %CODE,MS_BASIC(LEN)
+            Fonction BASIC : `LEN`
             
-            MS_BASIC=LEN
-$37fb       Adresse de retour qui renvoie l'entier qui est dans A
-$37fe       ---
+$37fb-$37fe Retour de la routine pour les fonctions qui retournent le résultat dans A.
+
 $37ff       [fetch_str]
-$3802       C contient la longueur de la chaine de caractères, utilisées par certaines routines appelantes.
-$3803       ---
-$3804       C'est une valeur numérique
-$3807       HL pointe vers la longueur de chaine, qui est donc mise dans A pour valeur de retour
-$3808       ---
-$3809       ---
+$37ff       Récupère la chaine courante évaluée (depuis FAC).
+            Ou erreur si ce n'est pas une chaine.
+            HL pointe sur le descripteur de la chaine.
+$3802-$3803 D et A sont à 0.
+$3804       Le résultat est numérique.
+$3807       Récupère la longueur de la chaine dans A.
+$3808       Nettoie les drapeaux.
 
 $380a       [inst_asc]
-            %CODE
-            Fonction BASIC ASC()
-            Et sous routine pour pointer DE vers l'adresse de la chaine (indirection) avec le première caractère dans A.
-            La fonction change la valeur de retour vers la routine qui met le résultat de A dans FAC. Ce qui fait un transtypage ASCII -> VALEUR ENTIERE
-$380a       ---
-$380d       ---
+            %CODE,MS_BASIC(ASC)
+            Fonction BASIC : `ASC`
+
+$380a-$380d Retour de la routine pour les fonctions qui retournent le résultat dans A.
+
 $380e       [str_to_de]
-$3811       Saute si la longueur de la chaine est 0.
-$3814       ---
-$3815       ---
-$3816       ---
-$3817       ---
-$3818       DE <- pointeur sur la chaine
-$3819       A <- le premier caractère de la chaine, qui est aussi le résultat en numérique
-$381a       ---
+$380e       Récupère le chaine depuis le code commun de `LEN`.
+$3811       Si la chaine de caractères est de longueur nulle, c'est une erreur.
+$3814-$3818 DE pointe sur les données de la chaine de caractères.
+$3819       A est le premier caractère de la chaine, qui sera donc renvoyé sous forme numérique.
+
 $381b       [inst_chr]
-            %CODE
-$381e       ---
-$3821       ---
-$3824       ---
+            %CODE,MS_BASIC(CHR)
+            Fonction BASIC : `CHR`
+
+$381b       Crée une chaine de longueur 1.
+$381e       Lit le texte BASIC et le transforme en valeur numérique.
+$3821-$3824 Injecte le résultat de l'évaluation dans la chaine.
+
 $3825       [to_pool]
-$3825       ---
-$3826       ---
+$3825       Nettoie la pile (qui contient quoi ???)
+$3826       Monte la chaine dans ???
+
 $3829       [inst_left]
+            %CODE,MS_BASIC(LEFT)
+            Fonction BASIC : `LEFT`
             %CODE
 $382c       ---
 $382d       [loop382D]
