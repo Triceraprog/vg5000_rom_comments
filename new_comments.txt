@@ -8500,52 +8500,54 @@ $38a6       HL pointe vers le caractère modifié.
 $38a7       Restaure le caractère modifié.
 
 $38a9       [lf_rt_arg]
-            Récupère l'argument numérique de LEFT et RIGHT
-$38a9       ---
+            Récupère dans B l'argument numérique de `LEFT` et `RIGHT`
+$38a9       HL pointe vers le texte BASIC.
 $38aa       Vérifie que la suite est une parenthèse fermante, sinon, c'est une erreur de syntaxe.
 $38ab       %DATASKIP
+
 $38ac       [mid_arg]
-            Récupère le deuxième argument pour MID
-$38ad       Récupère l'argement depuis la pile en préservant l'adresse de retour.
-$38ae       ---
-$38af       Met l'argument (la longeur) dans B
-$38b0       ---
+            Récupère dans B le deuxième argument pour `MID`.
+
+$38ac-$38ae Récupère l'argement depuis la pile en préservant l'adresse de retour.
+$38af       Met l'argument dans B.
 
 $38b1       [inst_fre]
-            %CODE
-            Instruction : FRE()
-            Entrée : (valtyp)
-$38b1       ---
-$38b4       DE contient l'adresse de (strend)
-$38b5       ---
-$38b8       HL contient l'adresse de la pile
-$38b9       ---
-$38bc       ---
-$38bd       Saute si (valtyp) est à 0 (nombre)
-$38c0       ---
-$38c3       ---
-$38c6       ---
-$38ca       HL contient (fretop) et DE contient (stktop)
-$38cd       ---
+            %CODE,MS_BASIC(FRE)
+            Instruction BASIC : `FRE`
+
+            Si l'argument est numérique, la place restante calculée est celle qui reste pour les variables, tableaux et fonctions.
+
+            Si l'argument est une chaine, la place restante calculée est celle qui reste pour le contenu des chaines de caractères.
+
+$38b1-$38b4 DE contient l'adresse `(strend)`
+$38b5-$38b8 HL contient l'adresse de la pile.
+$38b9-$38bd Branche si l'argument est numérique sur le calcul de la différence (HL - DE).
+$38c0       Récupère la chaine courante (pour ne pas créer une chaine vide ???)
+$38c3       Lance le ramasse miette.
+$38c6       HL contient `(fretop)`, la plus haute mémoire accessible par le BASIC.
+$38ca       DE contient `(stktop)`, l'adresse la plus haute de la pile (donc le bas de la pile).
+$38cd       Branche sur le calcul de la différence (HL - DE).
 
 $38d0       [dim_cont]
             %CODE,SECTION(biptrg)
-            L'appel est induit par le push en $38d8, lors de l'exécution de l'instruction DIM.
-$38d0       ---
-$38d1       Si la zone de parsing contient 0, alors retour de l'instruction
-$38d2       ---
-$38d3       Sinon, vérification que le caractère suivant est une virgule ($2C) qui induit une deuxième définition de tableau
-$38d4       Valeur pour le chkchr précédent
+            L'appel est induit par le push en $38d8, lors de l'exécution de l'instruction `DIM`.
+
+            == DEBUT DE SECTION BIPTRG (BASIC pointer get routines) ==
+
+$38d0-$38d2 Le texte BASIC a atteint un caractères nul. Retour de la routine.
+$38d3       Sinon, le caractère doit être une virgule, sinon, c'est une erreur.
+$38d4       %DATASKIP
 
 $38d5       [inst_dim]
-            %CODE
-            Instruction : DIM
-            Le format d'un tableau (stocké à partir de arytab) est le suivant:
-            +0/+1 : identifiant du tableau
-            +2/+3 : taille des données allouées pour le tableau (dimensions comprises)
-            +4    : nombre de dimensions
-            paires suivantes : taille de chaque dimension
-            puis la zone d'allocation de données (4 octets par indice)
+            %CODE,MS_BASIC(DIM)
+            Instruction BASIC : DIM
+
+            La structure d'un tableau (stocké à partir de `(arytab)`) est le suivant :
+            - identifiant du tableau (2 octets),
+            - taille des données allouées pour le tableau (dimensions comprises) (2 octets),
+            - nombre de dimensions (1 octet),
+            - paires d'octets suivantes : taille de chaque dimension,
+            - puis la zone d'allocation de données (4 octets pour chaque valeur).
 $38d5       ---
 $38d8       ---
 $38d9       ---
