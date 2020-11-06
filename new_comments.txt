@@ -8010,6 +8010,7 @@ $3660       [crt_str_dsc]
 
             Sortie :
             - HL pointe vers un descripteur temporaire de chaine situé en `dsctmp`.
+            - DE pointe sur le contenu de la chaine de caractères.
             
 $3660       HL pointe vers le buffer temporaire de construction des chaines.
 $3663       Sauve cette adresse sur la pile.
@@ -8359,6 +8360,12 @@ $37f7       Sinon, ajuste le pointeur pour retirer le descripteur.
 $37fb       [inst_len]
             %CODE,MS_BASIC(LEN)
             Fonction BASIC : `LEN`
+
+            En appelant la deuxième partie de la routine, on obtient le résultat dans A et D = 0.
+
+            Sortie :
+            - D est à 0
+            - A est la longueur de la chaine
             
 $37fb-$37fe Retour de la routine pour les fonctions qui retournent le résultat dans A.
 
@@ -8398,108 +8405,105 @@ $3826       Monte la chaine dans ???
 $3829       [inst_left]
             %CODE,MS_BASIC(LEFT)
             Fonction BASIC : `LEFT`
-            %CODE
-$382c       ---
-$382d       [loop382D]
-$382e       ---
-$382f       ---
-$3830       ---
-$3831       ---
-$3832       ---
-$3834       ---
-$3835       ---
-$3836       [skip3836]
-$3838       ---
-$3839       ---
-$383c       ---
-$383d       ---
-$383e       ---
-$383f       ---
-$3840       ---
-$3841       ---
-$3842       ---
-$3843       ---
-$3844       ---
-$3845       ---
-$3847       ---
-$3848       ---
-$3849       ---
-$384a       ---
-$384d       ---
-$384e       ---
-$3851       ---
-$3852       ---
-$3855       ---
+
+            Les fonctions évaluent systématiquement leur premier argument avant d'arriver dans la routine ???
+            Où est-ce que c'est placé, dans la pile ??? Et HL ???
+
+$3829       Récupère l'argument numérique de `LEFT`.
+$382c       A = 0
+$382d       [from_right]
+$382d       Récupère le pointeur vers le descripteur de chaine. Haut de la pile = ???
+$382e       Copie A, l'index de début de la chaine à extraire, dans C.
+$382f       [from_mid]
+$382f       Sauve le pointeur vers le descripteur de chaine sur la pile.
+$3830-$3832 Branche si la longueur de la chaine est plus petite que la taille de la chaine à extraire.
+$3834       Sinon, copie la taille voulue dans A.
+$3835       Saute par dessus le 'ld c,$00' qui suit.
+$3836       [small_str]
+$3836       L'index de départ est 0, car la chaine initiale est plus petite que la chaine à extraire.
+$3838       Sauve BC sur la pile.
+$3839       Alloue une chaine de taille A. DE pointe sur la zone allouée.
+$383c       Restaure BC. C = index de départ.
+$383d       Restaure HL, le pointeur vers le descripteur de la chaine source.
+$383e-$3844 HL pointe vers les données de la chaine de caractères source.
+$3845       BC = index de départ.
+$3847       Ajuste HL pour pointer sur le premier caractère à extraire.
+$3848-$3849 BC pointe vers le premier caractère à extraire.
+$384a       Créé un descripteur de chaine temporaire vers DE
+$384d       Copie la longueur de la chaine dans L.
+$384e       Copie la chaine pointée par `BC` vers l'espace pointée vers `DE` sur une longueur `L`.
+$3851       Restaure le pointeur vers le descripteur source dans DE.
+$3852       ???
+$3855       Continue en plaçant le résultat dans le buffer de chaines temporaires ???
+            Comment est-ce que le résultat se retrouve-t-il dans FAC ???
+
 $3858       [inst_right]
-            %CODE
-$385b       ---
-$385c       ---
-$385d       ---
-$385e       ---
-$385f       ---
+            %CODE,MS_BASIC(RIGHT)
+            Fonction BASIC : `RIGHT`
+$3858       Récupère l'argument numérique de `RIGHT`.
+$385b-$385c Récupère dans DE le pointeur vers le descripteur de chaine source en le laissant sur la pile.
+$385d       A = longueur de la chaine source.
+$385e       A = index du début de la chaine source à extraire.
+$385f       Continue vers le code commun `LEFT`/`RIGHT`/`MID`.
+
 $3861       [inst_mid]
-            %CODE
-$3862       ---
-$3863       ---
-$3866       ---
-$3867       ---
-$3868       ---
-$386b       ---
-$386c       ---
-$386e       ---
-$3870       ---
-$3873       ---
-$3874       ---
-$3875       ---
-$3878       [jump3878]
-$3879       ---
-$387a       ---
-$387b       ---
-$387c       ---
-$387f       ---
-$3880       ---
-$3881       ---
-$3882       ---
-$3884       ---
-$3885       ---
-$3886       ---
-$3887       ---
-$3888       ---
-$3889       ---
-$388a       ---
-$388b       ---
-$388c       ---
+            %CODE,MS_BASIC(MID)
+            Fonction BASIC : `MID`
+$3861       HL pointe vers le texte BASIC.
+$3862       A = caractère suivante.
+$3863       Récupère le premier argument numérique dans B, index de début de la chaine source à extraire.
+$3866-$3868 Si l'index de départ est 0, c'est une erreur.
+$386b       Sauve B, l'index de départ, sur la pile.
+$386c       Longueur maximale de chaine à extraire dans E, valeur par défaut du deuxième paramètre numérique.
+$386e       %CHAR
+$386e-$3870 Branche si le caractère suivant est une parenthèse fermante.
+$3873       Dans le cas contraire, il doit y avoir une virgule.
+$3874       %CHAR
+$3875       Lecture du deuxième paramètre numérique de `MID` dans E.
+
+$3878       [mid_2_prms]
+$3878       Le caractère suivante doit être une parenthèse fermante. Sinon c'est une erreur de syntaxe.
+$3879       %DATASKIP
+$387a       Restaure l'index de départ dans A.
+$387b       HL = descripteur de la chaine source, Haut de la pile = pointeur vers le texte BASIC.
+$387c-$387f Branchement pour le prochain `ret` vers le code commun `LEFT`/`RIGHT`/`MID`.
+$3880       Ajuste l'index de départ pour un départ à l'index 0.
+$3881       Compare avec la longueur de la chaine source.
+$3882       Par défaut, la chaine extraire est de taille nulle.
+$3884       Ce qui est le cas si l'index de départ est plus grand que la longueur de la chaine source.
+            Dans ce cas, branche vers le code commun 'LEFT`/`RIGHT`/`MID` avec une taille nulle.
+$3885       Sinon, C = index de départ de la chaine (basé en 0)
+$3886-$3887 A = (longueur source - index de départ) = longueur de la chaine à extraire.
+$3888       Compare la longueur calculée avec la longueur exprimée par le paramètre de la fonction.
+$3889       Copie la longueur calculée dans B.
+$388a       Branche vers le code commun si la longueur calculée est plus petite que la longueur exprimée.
+$388b-$388c Sinon, branche vers le code commun avec la longueur exprimée.
+
 $388d       [inst_val]
-            %CODE
-            Appel à LEN
-$3890       Si la longueur est 0, alors le résultat est 0
-            Saute si la longueur de la chaine est 0. Le résultat est alors 0.
+            %CODE,MS_BASIC(VAL)
+            Fonction BASIC : `VAL`
+
+$388d       A = longueur de la chaine actuellement décrite par FAC.
+$3890       Branche si la longueur est 0, car alors le résultat est 0.
 $3893       Sauve la longueur de la chaine dans E
-$3894       ---
-$3895       ---
-$3896       Se positionne sur le pointeur de chaine
-$3897       ---
-$3898       ---
-$3899       Le pointeur est à présent dans HL
-$389a       Qui est poussé sur la pile
-$389b       Se place à la fin de la chaîne + 1 (D doit être égal à 0)
-$389c       ---
-$389d       Place 0 à la fin de la chaine pour terminaison (D est toujours égal à 0)
+$3894-$3899 HL pointe vers les données de la chaine de caractères.
+$389a       Sauve HL sur la pile.
+$389b       HL pointe sur la fin de la chaine +1 car DE = longueur de la chaine.
+$389c-$389d Remplace le caractère après la chaine par un 0 et garde l'ancien caractère dans B.
 $389e       Met la fin de chaine sur la pile et récupère le début de la chaine.
-$389f       Pousse sur la pile l'ancien contenu de la chaine + 1
+$389f       Sauve le caractère modifié sur la pile.
 $38a0       Positionne le pointeur un octet avant le début de la chaine pour pouvoir appeler chget.
-$38a1       Récupère le premier octet de la chaine dans A
-$38a2       Appelle la conversion de chaine vers FAC
-$38a5       Récupère l'ancien octet d'après la chaine
-$38a6       ... et son adresse
-$38a7       Replace l'octet à sa place
-$38a8       ---
+$38a1       Récupère le premier octet de la chaine dans A.
+$38a2       Appelle la conversion de chaine vers FAC.
+$38a5       Récupère le caractère modifié.
+$38a6       HL pointe vers le caractère modifié.
+$38a7       Restaure le caractère modifié.
 
 $38a9       [lf_rt_arg]
             Récupère l'argument numérique de LEFT et RIGHT
 $38a9       ---
 $38aa       Vérifie que la suite est une parenthèse fermante, sinon, c'est une erreur de syntaxe.
-$38ab       Caractère ')'
+$38ab       %DATASKIP
 $38ac       [mid_arg]
             Récupère le deuxième argument pour MID
 $38ad       Récupère l'argement depuis la pile en préservant l'adresse de retour.
