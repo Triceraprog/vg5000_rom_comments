@@ -8060,7 +8060,7 @@ $367c-$367d Boucle si le caractère n'est pas le terminateur contenu dans B.
 
 $367f       [create_str]
 $367f       %CHAR
-$367f-$3681 Si la lecture s'est terminée par des guillements, on les consomme.
+$367f-$3681 Si la lecture s'est terminée par des guillemets, on les consomme.
 $3684-$3685 Récupération du pointeur du début des données de la chaîne dans HL.
             Le haut de la pile contient l'adresse de fin des données de la chaîne.
 $3686       DE pointe sur le début des données de la chaîne de caractères.
@@ -8548,68 +8548,82 @@ $38d5       [inst_dim]
             - nombre de dimensions (1 octet),
             - paires d'octets suivantes : taille de chaque dimension,
             - puis la zone d'allocation de données (4 octets pour chaque valeur).
-$38d5       ---
-$38d8       ---
-$38d9       ---
+$38d5-$38d8 `DIM` s'appuie sur la récupération/initialisation d'un nom de variable, mais avec une adresse de retour forcée pour permettre le dimensionnement de plusieurs tableaux avec la même instruction.
+$38d9       A = $af et passe par dessus le `xor a` qui suit.
+            Ce qui fait qu'en passant par `DIM`, `(dimflg)` sera initialisé avec $af.
+            En arrivant directement dans la routine suivante, `(dimflg)` sera initialisé avec $00.
 
 $38da       [getvar]
-            Fonction qui parse le nom de la variable et initialise l'espace nécessaire après vartab, en poussant
-            l'existant. Puis inscrit l'identifiant. Si la variable existe, se contente de la retourner.
-            En entrée: HL pointe sur la zone de parsing.
-            En sortie: DE pointe sur la zone de mémoire contenant la valeur et cas d'assignation,
-                       l'accumulateur flottant la valeur en cas d
-                       HL sur la zone de parsing.
-            L'identifant est sur deux caractères. Si le type est alphanum, alors le second caractère a son bit de poids fort à 1.
-            Une variable a 4 octets de valeur.
-            Si le type est une fonction, le premier caractère a son bit de poids fort à 1 (vérifier ???)
-            Pour une chaine : taille, (rien), pointeur sur la chaine (en fin de mémoire)
-$38da       Saut depuis LET pour définir une variable
-$38db       0 dans dimflg sauf si l'on vient de DIM, auquel cas cela vaut $AF
-$38de       Récupération du premier caractère de la variable dans C
+            Cherche le nom de variable pointée par le texte BASIC.
+
+            Ce nom de variable peut référencer une variable numérique, alphanumérique, un tableau ou une fonction.
+
+            Un pointeur sur l'objet nommé est retourné par la routine après avoir été initialisé s'il ne l'était pas déjà.
+
+            Les noms sont stockés sur deux caractères.
+            
+            - Si le type de la variable est numérique, alors les deux caractères sont sur 7 bits avec les bits de poids fort à 0.
+            - Si le type de la variable est alphanumérique, alors le second caractère a son bit de poids fort à 1.
+            - Si le type de la variable est une fonction, alors le premier caractère a son bit de poids fort à 1. (vérifier ???)
+
+            La valeur est stockée sur les quatre octets qui suivent.
+            
+            - Si le type de la variable est numérique, les 4 octets indiquent la valeur.
+            - Si le type de la variable est alphanumérique, le premier octet est la longueur de la chaine, le second n'est pas utilisé, les deux derniers pointent vers les données de la chaine.
+            - Si le type de la variable est une fonction, ???
+
+            Entrée:
+            - HL pointe sur le texte BASIC au niveau du nom.
+
+            Sorties:
+            - DE pointe sur le descripteur de variable correspondant au nom en entrée.
+            - HL pointe sur le texte BASIC à la suite du référencement de la variable (incluant l'indice du tableau).
+            - FAC ???
+$38da       En arrivant ici, `(dimflg)` aura pour valeur 0.
+$38db       Initialisation de `(dimflg)`. En venant de `DIM`, avec $af, sinon avec $00.
+$38de       C est le premier caractère du nom de la variable.
+
 $38df       [get_id]
-$38e2       Si le nom de variable ne commence par par une lettre majuscule entre A et Z, c'est une erreur de syntaxe (rappel : tout ce qui est parsé hors chaîne de caractère est passé en majuscules)
-$38e5       ---
-$38e6       ---
-$38e7       valtyp à 0 par défaut (valeur numérique)
-$38ea       Lit le caractère suivant
-$38eb       Saute si le caractère lu est un chiffre
-$38ed       ---
-$38f0       Saute si le caractère lu n'est pas entre A et Z (donc si ni chiffre ni A à Z l'identifiant est terminé)
-$38f2       [idnum_trail]
-            Sauve le premier caractère de la variable dans B
-$38f3       [idtrail_skp]
-$38f4       Avance la lecture de l'identifiant tant que l'on trouve des chiffres
-$38f6       ---
-$38f9       Avance la lecture de l'identifiant tant que l'on trouve des lettres
+$38df-$38e2 Si le nom de variable ne commence par par une lettre majuscule entre A et Z, c'est une erreur de syntaxe.
+            Note : tout ce qui a été lu par le BASIC, hors chaîne de caractère entre guillemets, a préalablement été passé en majuscules.
+$38e5-$38e7 `(valtyp)` désigne une valeur numérique par défaut. Initialise aussi `B` à 0, qui désigne le second caractère du nom de la variable.
+$38ea       Lit le caractère suivant.
+$38eb       Branche si le caractère lu est un chiffre.
+$38ed-$38f0 Branche si le caractère lu n'est pas entre A et Z. Le nom de la variable est nécessairement terminé.
+
+$38f2       [id_num]
+$38f2       Sauve le second caractère de la variable dans B.
+$38f3       [id_trail_lp]
+$38f3-$38f4 Continue la lecture du nom de la variable tant que l'on trouve des chiffres.
+$38f6-$38f9 Continue la lecture du nom de la variable tant que l'on trouve des lettres.
+
 $38fb       [id_end]
-            Le nom de l'identifiant a été lu. On vérifie son qualificatif en '$'
-$38fd       Si '$' n'est pas présent, on saute. La valeur est bien numérique.
-$38ff       Sinon, la variable est de type chaîne de caractères
-$3900       Ce qui est indiqué dans valtyp
-$3903       A <= $80 et Carry à 1
-$3904       Ajoute $80 à B pour marque le type string de la variable
-$3905       B <- B + A ($80)
-$3906       Lecture du caractère suivant le '$'
-$3907       [num_vrble]
-            (subflg) == 1 pour une demande de tableau, >= 1 lorsque l'on vient d'un FOR ou d'une fonction ($80 lors d'une évaluation)
-$390a       ---
-$390b       Saut si subflg était égal à 1. L'appelant veut un tableau.
-$390e       Saut si subflg était supérieur à 1 (traitement des fonctions et FOR Le subflg est à $80 pour une fonction lors d'une évaluation avec la variable paramètre)
-$3911       ---
-$3912       ---
-$3914       Saut si le caractère suivant est une parenthèse ouvrante (pour le dimensionnement des tableaux)
-$3917       [simplevar]
-$3918       Reset de subflg
-$391b       Push de la position actuelle du pointeur de parsing
-$391c       ---
-$391d       DE <- BC
-$391e       ---
-$3921       Compare DE (le nom de variable cherchée) et HL (le nom pointée par le paramètre)
-$3922       ---
-$3925       Si la valeur sont identique, saute (pour un RET) avec DE placé sur la valeur du paramètre.
-$3928       ---
-$392b       ---
-$392c       HL est à (vartab) et DE est à (arytab). L'espace de stockage des variables est entre les deux (HL < ou égal à DE)
+$38fb       %CHAR
+$38fb-$38fd On branche si le caractère suivant n'est pas '$'. Le nom désigne une valeur numérique.
+$38ff-$3900 Sinon, la variable est de type chaîne de caractères.
+$3903-$3905 Ajoute $80 à B, deuxième caractère du nom, afin d'indiquer son type chaîne de caractères.
+$3906       Lecture du caractère suivant le signe '$'.
+
+$3907       [var_is_num]
+$3907       `(subflg)` est à 1 si un nom de tableau est cherché. Supérieur à 1 lorsque l'on vient d'un `FOR` ou d'une fonction.
+            $80 lors d'une évaluation de fonction par exemple.
+$390a-$390b Branche si `(subflg)` est à 1. On recherche un nom de tableau.
+$390e       Branche si `(subflg)` est à supérieur à 1. Les tableaux sont interdits pour `FOR` et les fonctions.
+$3912       %CHAR
+$3911-$3914 Branche si le caractère suivant est une parenthèse ouvrante.
+
+$3917       [var_no_ary]
+$3917-$3918 Le cas est celui d'une variable simple (pas un tableau).
+$391b       Sauve le pointeur vers le texte BASIC.
+$391c-$391d Copie le nom de la variable dans DE.
+$391e-$3921 Compare le nom du paramètre d'une fonction (HL) avec le nom cherché (DE).
+            Si on n'est pas dans une fonction, `(prmnam)` est égal à $00.
+$3922       DE pointe vers la valeur de paramètre.
+$3925       Branche à la fin de la routine si le paramètre de la fonction est référencé.
+            Le branchement restaure le pointeur vers le texte BASIC.
+$3928-$392c Sinon, HL = `(vartab)` et DE = `(arytab)`.
+            Les deux registres délimitent la mémoire contenant les noms de variables.
+
 $392f       [next_var]
 $3930       Saut si HL et DE sont égaux, c'est-à-dire (vartab) == (arytab) (donc pas de variable définie)
 $3933       À cet endroit, HL < DE et l'espace entre les deux contient des variables. BC contient l'identifiant de la variable en train d'être parsée.
