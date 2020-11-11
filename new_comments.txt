@@ -3298,6 +3298,8 @@ $119a-$11a7 Cette routine fait partie des valeurs montées en RAM au démarrage.
             Les valeurs sont injectées à la place des $00 par la routine de
             division.
 
+$11d3       [prt_init_1]
+$11d4       ---
 $11d7       ---
 $11d8       [i_prtstt]
 $11d9       [i_prtcom]
@@ -3391,14 +3393,16 @@ $177b       [txt_foun_en]
 $1782       [txt_skip_en]
 $1788       [txt_abrt_en]
 $17af       [txt_diff_en]
+$17be       [txt_nrdy_en]
 $17e0       [txt_abrt_fr]
 $17a4       [txt_bad_en]
 $17d1       [txt_foun_fr]
 $17d9       [txt_skip_fr]
 $1814       [txt_diff_fr]
 $1802       [txt_bad_fr]
+$182f       [txt_nrdy_fr]
 $1845       [prtxlt_tbl]
-            Trable de conversion pour l'imprimante.
+            Table de conversion pour l'imprimante.
 
             Référencée à travers `(prtxlt)` qui est initialisée à cette adresse au boot.
 
@@ -9119,7 +9123,7 @@ $3be1       [sendchar_pt]
 
 $3be1       A est le type de l'imprimante.
 $3be4-$3be6 Branche vers une imprimante définie par l'utilisateur (A = 255)
-$3be8-$3be9 Récupère l'e caractère à émettre dans A en préservant la pile.
+$3be8-$3be9 Récupère le caractère à émettre dans A en préservant la pile.
 $3bea-$3bec Branche si ce n'est pas le caractère de tabulation horizontale.
 $3bee       [prt_htab]
 $3bee-$3bf0 Émet (récursivement) un caractère d'espacement.
@@ -9130,13 +9134,14 @@ $3bfa       [prt_not_tab]
 $3bfa-$3bfc Si A est le retour chariot, la soustraction va mettre A à 0 ce qui, avec le branchement, amènera le chariot de l'imprimante en colonne 0.
 $3bfe       Les autres caractères inférieurs à 13 passent à la suite.
 $3c00-$3c02 Ainsi que tous les caractères strictement inférieurs à 32 (c'est-à-dire les caractères ASCII de contrôle).
-$3c04       ---
-$3c07       ---
-$3c09       ---
-$3c0c       ---
+$3c04-$3c09 En colonne 132, émet un retour chariot avant de continuer.
+$3c0c       Avance d'une colonne.
 $3c0d       [set_prt_col]
+$3c0d       Met à jour la colonne de l'imprimante (telle que vue par l'ordinateur).
+
 $3c10       [no_prt_ctrl]
-$3c11       ---
+$3c10       Récupère le caractère à émettre.
+$3c11       Continue sur l'émission du caractère vers l'imprimante.
 
 $3c14       [resetprt]
             Fonction: Mise à zéro de l'état de l'imprimante
@@ -9287,116 +9292,100 @@ $3ccc       ---
 $3ccf       [hl_incbuf]
             HL pointe sur la position suivante dans le buffer de crunch
 $3cd0       ---
-$3cd2       [jump3CD2]
-            $SECTION(biprtr)
-$3cd3       ---
-$3cd4       ---
-$3cd5       ---
-$3cd6       ---
-$3cd9       ---
-$3cdb       ---
-$3cde       ---
-$3ce1       ---
-$3ce3       ---
-$3ce5       ---
-$3ce8       [skip3CE8]
-$3ceb       ---
-$3ced       ---
-$3cee       ---
-$3cef       ---
-$3cf2       ---
-$3cf3       ---
-$3cf6       ---
-$3cf7       [skip3CF7]
-$3cf8       ---
-$3cf9       ---
-$3cfa       ---
-$3cfb       ---
-$3cfc       [call3CFC]
-$3cfe       ---
-$3d01       ---
-$3d02       ---
-$3d05       [loop3D05]
-$3d06       ---
-$3d07       ---
-$3d0a       ---
-$3d0b       ---
-$3d0d       ---
-$3d0e       ---
-$3d0f       [call3D0F]
-$3d10       ---
-$3d11       ---
-$3d12       ---
-$3d14       ---
-$3d17       [loop3D17]
-$3d1a       [loop3D1A]
-$3d1c       ---
-$3d1e       ---
-$3d1f       ---
-$3d20       ---
-$3d21       [loop3D21]
-$3d22       ---
-$3d23       ---
-$3d25       ---
-$3d26       ---
-$3d27       ---
-$3d29       ---
-$3d2a       ---
-$3d2d       ---
-$3d2f       [loop3D2F]
-$3d31       ---
-$3d32       ---
-$3d34       ---
-$3d37       ---
-$3d39       ---
-$3d3c       ---
-$3d3d       ---
-$3d3f       ---
-$3d42       ---
-$3d45       ---
-$3d46       ---
-$3d48       ---
-$3d4b       [skip3D4B]
-$3d4e       [skip3D4E]
-$3d50       ---
-$3d53       [loop3D53]
-$3d56       ---
-$3d57       ---
-$3d59       ---
-$3d5b       ---
-$3d5d       [call3D5D]
-$3d60       ---
-$3d62       ---
-$3d64       ---
-$3d67       ---
-$3d69       ---
-$3d6a       ---
-$3d6b       ---
-$3d6c       ---
-$3d6d       [call3D6D]
-$3d6e       ---
-$3d71       ---
-$3d72       ---
-$3d74       ---
-$3d77       ---
-$3d78       ---
-$3d79       ---
-$3d7b       ---
-$3d7c       ---
-$3d7d       ---
-$3d7e       ---
-$3d80       ---
-$3d81       ---
-$3d82       ---
-$3d83       ---
-$3d84       [skip3D84]
-$3d85       ---
-$3d86       [call3D86]
-$3d88       ---
-$3d8a       ---
-$3d8c       ---
-$3d8e       ---
-$3d90       ---
+
+$3cd2       [print_char]
+            %SECTION(biprtr)
+            Émet le caractère vers l'imprimante.
+
+$3cd2-$3cd5 Sauve les registres sur la pile.
+$3cd6-$3cdb Appelle la bascule 'on/off' si la touche PRT du clavier a été appuyée.
+$3cde-$3ce3 Branche si l'imprimante a déjà été initialiséé.
+$3ce5       Appelle l'initialisation de l'imprimante.
+
+$3ce8       [alrdy_init]
+$3ce8       Attends que l'imprimante soit prête.
+$3ceb       Branche si le caractère ne doit pas être envoyé (utilisateur 'off')
+$3ced-$3cee Récupère le caractère à envoyer en laissant la pile en état.
+$3cef       Modifie le caractère en fonction de la table de traduction de l'imprimante.
+$3cf2-$3cf6 Envoie le caractère à l'imprimante en désactivante les interruptions.
+$3cf7       [skip_prt]
+$3cf7-$3cfa Restaure les registres.
+
+
+$3cfc       [prt_init]
+            Initialise l'imprimante.
+
+$3cfc-$3cfe Indique que l'imprimante a été initialisée.
+            Le drapeau doit être à 1 avant l'initilisation elle-même car l'appel va être récursif.
+$3d01       Sauve la valeur de `(prtstt)` sur la pile.
+$3d02       HL pointe sur la chaîne d'initialisation de l'imprimante.
+
+$3d05       [send_init]
+$3d05-$3d0b Envoie sur l'imprimante tous les caractères de la chaîne d'initialisation jusqu'à trouver le premier caractère nul.
+            Par défaut, l'initialisation est $00. (à vérifier ???)
+$3d0d       Restaure dans A la valeur de `(prtstt)`
+
+$3d0f       [prt_status]
+            Lit l'état de l'imprimante et émet une erreur si celle-ci n'est pas prête.
+
+$3d0f-$3d10 Retour si la bascule 'user on/off' est sur 'off' (= 1). Le caractère n'est pas envoyé.
+$3d11-$3d14 Met à jour `(prtstt)` en passant à 0 les 4 bits de poids faibles.
+            Le bit 0 est busy, qui passe donc à 0.
+
+$3d17       [prt_wait]
+$3d17       HL = 7000, pour préparer la boucle d'attente.
+
+$3d1a       [loop_7000]
+$3d1a       Lit quoi de l'imprimante ??? (son état probablement)
+$3d1c-$3d1e Retour si le bit 2 de l'état de l'imprimante est 0.
+$3d1f       Décrémente HL ???
+$3d20       A = 0
+
+$3d21       [loop_256]
+$3d21-$3d23 Boucle 256 fois.
+$3d25-$3d27 Boucle 7000 fois.
+$3d29-$3d2a Selectionne l'écran comme périphérique de sortie.
+$3d2d       Prépare la boucle des 5 'bips'
+
+$3d2f       [bip_5]
+$3d2f-$3d32 Émet 5 'bips'
+$3d34-$3d37 Drapeau 'busy' à 0.
+$3d39-$3d3d Branche si le bit 0 des drapeaux utilisateur est à 1.
+            Cela signifie que l'on ne veut pas voir les messages à l'écran.
+$3d3f-$3d48 Prépare la chaîne 'Imprimante pas prête' dans la langue du système.
+$3d4b       [prt_not_rdy]
+$3d4b       Affiche la chaîne d'erreur.
+
+$3d4e       [skip_nrdy]
+$3d4e-$3d50 Rebascule sur l'imprimante comme périphérique de sortie.
+
+$3d53       [wait_key]
+$3d53-$3d57 Attend l'appuie d'une touche.
+$3d59-$3d5b Attend et rafraichis l'état de l'imprimante si la touche appuyée n'est pas `PRT`.
+            Sinon, continue avec la bascule de l'état utilisateur.
+
+$3d5d       [user_on_off]
+$3d5d-$3d62 Attend que la touche `PRT` soit relachée.
+$3d64-$3d6a Inverse le status 'user on/off', contrôlé par la touche `PRT`.
+$3d6b       Le status est poussé dans le Carry.
+
+$3d6d       [trans_char]
+$3d6d       Sauve AF.
+$3d6e-$3d72 Branche si l'imprimante est de type MSX (= 0).
+$3d74       HL pointe vers la table de caractères de l'imprimante.
+$3d77-$3d79 Branche si le pointeur est nul.
+$3d7b-$3d81 Ajoute le numéro du caractère à imprimer à la table.
+$3d82       A est le caractère traduit pour l'imprimante.
+$3d83       Qui est poussé sur la pile.
+
+$3d84       [raw_print]
+$3d84       Récupère le caractère potentiellement traduit dans A.
+
+$3d86       [send_prt]
+            Émet le caractère présent dans A vers l'imprimante.
+$3d86       Place le caractère sur le port $11.
+$3d88-$3d8e Émet brièvement un cycle 0/1 sur le port $10.
+
 $3d91       [reset_lst_3]
             Annule le mode `AUTO` et coupe le premier lien du listing BASIC.
 
