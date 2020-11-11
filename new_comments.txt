@@ -6674,7 +6674,7 @@ $2ebb       [stk_verify]
             %MS_BASIC(CHKSTK)
             Vérifie qu'il y a assez de place sur la pile pour un nombre donné de niveaux.
 
-            Un niveau a une taille de deux ocets. S'il n'y a pas la place nécessaire, provoque un message d'erreur.
+            Un niveau a une taille de deux octets. S'il n'y a pas la place nécessaire, provoque un message d'erreur.
 
             Garde toujours une marge de 96 octets dans la pile.
 
@@ -8576,7 +8576,7 @@ $38da       [getvar]
             - HL pointe sur le texte BASIC au niveau du nom.
 
             Sorties:
-            - DE pointe sur le descripteur de variable correspondant au nom en entrée.
+            - DE pointe sur la valeur de la variable correspondant au nom en entrée.
             - HL pointe sur le texte BASIC à la suite du référencement de la variable (incluant l'indice du tableau).
             - FAC ???
 $38da       En arrivant ici, `(dimflg)` aura pour valeur 0.
@@ -8625,155 +8625,143 @@ $3928-$392c Sinon, HL = `(vartab)` et DE = `(arytab)`.
             Les deux registres délimitent la mémoire contenant les noms de variables.
 
 $392f       [next_var]
-$3930       Saut si HL et DE sont égaux, c'est-à-dire (vartab) == (arytab) (donc pas de variable définie)
-$3933       À cet endroit, HL < DE et l'espace entre les deux contient des variables. BC contient l'identifiant de la variable en train d'être parsée.
-$3934       Comparaison du premier caractère de la variable avec le premier caractère de la variable pointée
+$392f-$3930 Branche si HL, qui pointe sur la prochaine variable, a atteint DE. Toutes les variables ont été vérifiées.
+$3933-$3934 Comparaison du premier caractère de la variable avec le premier caractère de la variable pointée par HL.
 $3935       Incrémente HL avant le saut potentiel
-$3936       Saut si les caractères étaient différents (dont pas la bonne variable)
-$3939       ---
-$393a       Comparaison des seconds caractères
+$3936       Branche si les caractères sont différents. HL ne pointe pas sur la variable cherchée.
+$3939-$393a Comparaison des premiers caractères de la variable cherchée et de la variable pointée.
 $393b       [var_diff]
-            Incrémente pour la deuxième fois HL, qui pointe après l'identifiant.
-$393c       Saute si le second caractère était identique à celui pointé. On a donc retrouvé la variable et on saute à la fin de la fonction
-$393f       ---
-$3940       ---
-$3941       ---
-$3942       La variable n'a pas été trouvée, on saute les 4 prochains octets pour aller vers la suivante (ou terminer en atteignant DE=(arytab))
-$3943       ---
+$393b       Incrémente pour la deuxième fois HL, qui pointe après l'identifiant.
+$393c       Branche si les premiers caractères étaient identiques La variable a été trouvée.
+$393f-$3942 Sinon, HL est avancé de 4 octets pour pointer vers la variable suivante.
+$3943       Boucle vers la variable suivante pointée par HL.
+
 $3946       [no_var_yet]
-$3947       Récupération dans HL dans la valeur de retour du CALL (2613 si appelé par LET)
-$3948       Push de DE qui contient arytab
-$3949       ---
-$394c       Comparaison de l'adresse de retour avec $2927 (quelle instruction ???)
-$394d       Pop de DE qui contient maintenant arytab
-$394e       Saut si l'adresse de retour venait de str_to_var. Attention, l'adresse de retour est toujours dans HL et le pointeur de parsing sur la pile
-$3951       Remise en place de l'adresse de retour et HL pointe sur le parsing.
-$3952       Sauve le pointeur de parsing. On remet tout en place.
+$3946       HL pointe vers le texte BASIC.
+$3947       HL est l'adresse de retour de la routine, Haut de la Pile est le pointer vers le texte BASIC.
+$3948       Sauve DE, qui contient `(arytab)`.
+$3949-$394c Compare l'adresse de retour récupérée avec `from_eval`.
+$394d       Restaure DE, qui contient `(arytab)`.
+$394e       Branche si l'appel à cette routine a été fait par `str_to_var`, c'est-à-dire depuis la routine d'évaluation d'expression. La résultat sera nul.
+            Dans le cas contraire, c'est une assignation, il faut créer une nouvelle entrée pour cette nouvelle variable.
+$3951       Remise en place de l'adresse de retour et HL pointe sur le texte BASIC.
+$3952       Sauve HL, le pointeur de texte BASIC sur la pile.
 $3953       Sauve BC, qui contient le nom de la variable.
-$3954       ---
-$3957       ---
-$395a       ---
-$395b       Ajout de 6 à strend
-$395c       Récupération de strend dans HL (pointeur de fin de mémoire utilisable)
-$395d       Sauvegarde de strend + 6
-$395e       Copie de DE,BC vers HL
-$3961       ---
-$3962       (strend) <- (strend) + 6
-$3965       ---
-$3966       HL <- BC
-$3967       (arytab) <- HL
+$3954       Taille d'une entrée de variables : 2 octets pour son nom et 4 octets pour son contenu.
+$3957       HL pointe sur la fin de la zone des tableaux en mémoire.
+$395a       HL est sauvé sur la pile.
+$395b       Calcule la nouvelle fin de la zone des tableaux en mémoire.
+$395c       Récupère l'actuelle fin de la zone des tableaux dans HL.
+$395d       Sauve la nouvelle fin de la zone des tableaux sur la pile.
+$395e       Copie [DE,BC], c'est-à-dire [`(arytab)`,`(strend)`] vers [`(arytab)`+6,`(strend)`+6], après vérification de mémoire disponible pour l'opération.
+            Cela laisse 6 octets de libre à la fin de la zone des variables.
+$3961       Restaure la nouvelle valeur de `(strend)`.
+$3962       Cette valeur est mise à jour dans la vairable `(strend)`.
+            Autrement dit : `(strend)` <- `(strend)` + 6
+$3965-$3967 Mise à jour de `(arytab)` selon le même calcul.
+
 $396a       [clear_mem]
-$396b       ---
-$396d       ---
-$396e       Mise à zéro de la partie entre l'ancien (arytab) (DE) et le nouveau (HL). C'est-à-dire l'espace libérée pour la nouvelle variable.
-$3970       DE récupère le nom de la variable.
-$3971       ---
-$3972       ---
-$3973       ---
-$3974       (HL) <- DE et HL += 2, enregistrement du nom de la variable dans son emplacement.
+$396a-$396e Mise à zéro de la partie entre l'ancien `(arytab)` (DE) et le nouveau (HL), c'est-à-dire l'espace libérée pour la nouvelle variable.
+$3970       DE récupère le nom de la variable depuis la pile.
+$3971-$3974 Écriture du nom de la variable dans les deux premiers octets de la variable. HL pointe sur la valeur, actuellement nulle.
+
 $3975       [var_found]
-            DE pointe sur la mémoire après le nom de la variable
-$3976       HL pointe sur la zone de parsing
-$3977       ---
+$3975       DE pointe sur la mémoire après le nom de la variable, c'est-à-dire sur sa valeur.
+$3976       HL pointe sur le texte BASIC.
+            Mais du coup, cmment est mis à jour FAC ???
+
 $3978       [ret_null]
-$397b       ---
-$397e       ---
-$3981       ---
-$3982       ---
+$3978-$397e Arrivé ici, A est à 0. La résultat monté dans FAC est donc une valeur qui est à la fois 0 en numérique et la chaîne vide en alphanumérique.
+$3981       HL pointe vers le texte BASIC.
 
 $3983       [subscript]
-            HL pointe sur la zone de parsing
-$3983       Sauvegarde du pointeur de parsing
-$3984       ---
-$3987       Récupération dans HL du pointeur de parsing et mise sur la pile de (dimflag)
-$3988       Initialisation de D à 0 (A == 0 ici)
+$3983       Sauve le pointeur vers le texte BASIC.
+$3984-$3987 HL = pointeur vers le texte BASIC, Haut de la pile : `(dimflg)` et `(valtyp)`.
+$3988       D = A = 0. A compte les dimensions.
 $3989       [loop_dim]
-$398a       ---
-$398b       ---
-$398e       ---
-$398f       ---
-$3990       HL <- DE, la taille demandée du tableau
-$3991       Mise sur la pile de la dimension.
-$3992       Remise en place de la valeur qui était sur la pile (insertion de la dimension avant la valeur de la pile). Il s'agit de (dimflg)
-$3993       DE contient le (dimflag), HL le pointeur de parsing
-$3994       ---
-$3995       D contient la dimension actuelle
-$3996       Parsing
-$3997       ---
-$3999       Saut si la taille est suivie par une virgule
-$399c       Vérification de parenthèse fermante
-$399d       Code pour la parenthèses fermante
-$399e       À ce moment, la pile contient (dimflg),(dimension tableau)+,...???, D contient le nombre de dimensions du tableau, HL le pointeur de parsing. La valeur du pointeur de parsing est sauvée dans (temp2)
-$39a1       ---
-$39a2       Remise en place de la valeur de (dimflg) venant de la pile (a-t-elle pu être modifiée ???)
-$39a5       ---
-$39a7       Nettoyage de E puis mise de DE (D contient le nombre de dimensions du tableau) sur la pile
-$39a8       En arrivant par ici, les push hl et push af suivant saut ignorés.
+$3989       Sauve le nombre de dimensions.
+$398a       Sauve le nom de la variable (et donc du tableau).
+$398b       Lit un entier sur 16 bits dans DE.
+$398e       Restaure le nom de la variable.
+$398f       Restaure le nombre de dimensions.
+$3990       Taille/Index du tableau dans HL.
+$3991-$3992 Place la taille/index sous `(dimflg)/(valtype)`
+$3993       HL pointe sur le texte BASIC, DE contient `(dimflag)/(valtyp)`.
+$3994       Augmente le nombre de dimensions.
+$3995       Et place le compte dans D.
+$3997       %CHAR
+$3996-$3999 Boucle si la taille est suivie par une virgule.
+$399c       Sinon, le caractère suivant doit être une parenthèse fermante.
+$399d       %DATASKIP
+$399e       Sauve HL, pointeur sur le texte BASIC, temporairement.
+$39a1-$39a2 Remise en place de la valeur `(dimflg)/(valtyp)` venant de la pile (a-t-elle pu être modifiée ???)
+$39a5-$39a7 D est le nombre de dimensions, E est à 0, le tout poussé sur la pile.
+$39a8       Saute par dessus les deux `push` qui suivent.
+
 $39a9       [aryvar]
-            On arrive ici par un jump conditionnel si lors d'une recherche de variable, (subflg) == 1
-$39aa       La pile contient (# de dimension),(tailles des dimensions)+
-$39ab       ---
-$39ae       En arrivant par ici, le add hl,de suivant est ignoré
+$39a9       Sauve le pointeur sur le texte BASIC.
+$39aa       Sauve A = 0 et Z à 1
+$39ab       HL pointe sur le début de la zone mémoire des tableaux.
+$39ae       Saute par dessus le 'add' qui suit.
+
 $39af       [dim_search]
-$39b0       ---
-$39b4       ---
-$39b5       ---
-$39b7       Premier caractère du nom du tableau (BC contient le nom du tableau courant)
-$39b8       ---
-$39b9       ---
-$39ba       Si le premier caractère est différent, on saute (c'est ok, pas de redimensionnement)
-$39bc       ---
-$39bd       Comparaison du second caractère du nom du tableau (le test aura lieu en $39c3)
+$39af       HL pointe vers le tableau suivant.
+$39b0-$39b5 Branche si HL a atteint la fin de la zone mémoire des tableaux.
+$39b7       Sinon, lit le premier caractère du nom du tableau dans A.
+$39b8       HL pointe vers le deuxième caractère du nom du tableau.
+$39b9-$39ba Branche si les premiers caractères du tableau pointé et du nom recherché sont différents.
+$39bc-$39bd Comparaison des seconds caractères des noms pour préparer le test plus loin.
+
 $39be       [dim_neq]
-$39bf       ---
-$39c0       ---
-$39c1       ---
-$39c2       Récupération dans DE de la taille mémoire du contenu du tableau (pour chaînage)
-$39c3       Si le nom de variable était différent, on boucle
-$39c5       Arrivé ici, cela signifie qu'une entrée de tableau a été trouvée avec le même nom
-$39c8       ---
-$39c9       Si (dimflg) était différent de zéro, c'est que l'on cherche à redéfinir un tableau. Lancement de l'erreur
-$39cc       Arrivé ici, le tableau a été trouvé (et c'est donc un accès).
-$39cd       BC <- HL, qui pointe vers les attributs du tableau (debut+4)
-$39ce       ---
-$39cf       Saut dans quel cas ???
-$39d2       Soustraction du type pour vérifier si c'est le même ???
-$39d3       ---
+$39be-$39c2 Lecture vers DE de la taille mémoire du contenu du tableau.
+$39c3       Boucle vers le prochain tableau en mémoire si le nom cherché et le nom pointé sont différents.
+$39c5       Sinon, A récupère l'action voulue (création ou lecture).
+$39c8-$39c9 Branche vers une erreur de redimensionnement si `(dimflg)` est différent de zéro (création de tableau).
+$39cc       Sinon, c'est une lecture. A prend le nombre de dimensions indiqués par le texte BASIC.
+$39cd-$39ce BC pointe vers les dimensions du tableau trouvé.
+$39cf       Branche en fonction des drapeaux que l'on vient de récupérer. Quels sont les cas ???
+$39d2-$39d3 Branche si les dimensions sont égales.
+
 $39d6       [out_range]
-            Il n'y avait pas égalité, on lance une erreur.
-$39d9       Sortie avec l'erreur "Subscript out of range"
+$39d6-$39d9 Les dimensions ne sont pas identiques, sort avec l'erreur "Subscript out of range".
 
 $39dc       [ary_at_end]
-            Arrive ici lorsque arytab == strend lors d'un dimensionnement de tableau.
+            %MS_BASIC(CREARY)
+            Le nom du tableau n'a pas été trouvé.
+
+            Entrées :
+            - HL est `(strend)`, pointeur vers le début de la mémoire inutilisée du BASIC.
+            - BC est le nom de la variable/tableau
+
             HL contient arytab
             BC contient le nom de la variable (du tableau)
-            DE est initalisé à 4, qui est la taille d'un élément pour la première dimension
             
-            MS_BASIC=CREARY
-$39dc       ---
-$39df       Récupération de la dimension (dans A, F == 0 normalement, sauf ???)
-$39e0       Quelle est la nature du test précédente récupéré par AF ???
-$39e3       Place le nom de la variable dans la zone pointée par HL (zone arytab)
-$39e4       ---
-$39e5       ---
-$39e6       ---
-$39e7       Place le nombre de dimensions dans C
-$39e8       Vérifie la place restante pour stocker le nombre de dimensions * 2 (ce qui ne semble pas suffisant, cela ne compte pas le nombre de dimension ni la taille)
-$39eb       ---
-$39ec       ---
-$39ed       Place le pointeur HL (4 octets après la variable) dans temp3
-$39f0       Place le nombre de dimensions du tableau dans la structure du tableau
-$39f1       HL pointe sur l'emplacement de la première dimension
-$39f2       ---
-$39f5       Pour setter Carry. A priori, si accès sans DIM, le Carry flag est OFF (donc bit de poids fors de A est à 0 ?)
-$39f6       A contient le nombre de dimensions
+$39dc       %NOT_LABEL
+            DE est initalisé à 4, qui est la taille d'un élément de tableau.
+$39df       Récupère la dimension dans A.
+            Z est forcément à 1 ???
+$39e0       Branche si Z était à 0 vers une erreur d'appel illégal. (dans quel cas ???)
+$39e3-$39e6 Inscrit le nom de la variable/tableau dans les deux premiers octets de l'entrée pointée.
+$39e7       Place le nombre de dimensions dans C.
+$39e8       Vérifie qu'il y a assez de place sur la pile pour 2 * le nombre de dimensions.
+            (c'est assez ???)
+$39eb-$39ec HL Pointe vers le nombre de dimensions.
+$39ed       Sauve ce pointeur.
+$39f0       Inscrit le nombre de dimensions du tableau dans le decripteur de ce tableau.
+$39f1       HL pointe sur l'emplacement des données de la première dimension.
+$39f2-$39f5 Carry à 0 pour une évaluation, Carry à 1 pour une création avec `DIM`.
+$39f6       A contient le nombre de dimensions du tablau.
+
 $39f7       [multi_dim]
-            Préparation de BC <- $000B pour le saut suivant. C'est la taille par défaut d'un tableau ; MS_BASIC=CRARLP
-$39fa       ---
-$39fc       BC contient la taille de la dimension traitée
-$39fd       En BASIC, la taille d'un tableau est d'une unité plus grande que celle spécifiée (à cause de l'indice 0). Ce BASIC n'a pas l'option pour démarrer les indices à 1.
+            %MS_BASIC(CRARLP)
+$39f7       BC = 11, la taille par défaut d'un tableau (DIM A(10) créé 11 emplacements).
+$39fa       Branche si le tableau est évalué. Il est alors créé avec la taille par défaut.
+$39fc       Sinon, BC contient la taille de la dimension demandée pour la création.
+$39fd       En BASIC, la taille d'un tableau est d'une unité plus grande que celle spécifiée (à cause de l'indice 0).
+            Ce BASIC n'a pas l'option pour démarrer les indices à 1.
+
 $39fe       [default_dim]
-            MS_BASIC=DEFSIZ
+            %MS_BASIC(DEFSIZ)
 $39ff       Sauvegarde de la dimension en cours sur la pile
 $3a00       ---
 $3a01       BC est placé dans les deux octets de la spécification de la dimension des données du tableau
