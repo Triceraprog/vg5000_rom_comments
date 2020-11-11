@@ -9103,40 +9103,39 @@ $3bd0       [outdo_impl]
             - A est le caractère à émettre.
 
             == DEBUT DE SECTION BIO (BASIC input/ouput controller) ==
-$3bd0       ---
-$3bd3       ---
-$3bd4       ---
-$3bd7       ---
-$3bd8       ---
-$3bda       ---
-$3bdb       ---
-$3bdd       ---
-$3bde       ---
+$3bd0       Appel au hook d'émission de caractère.
+$3bd3       Sauve AF sur la pile.
+$3bd4-$3bd8 Branche vers l'émission vers l'écran (A = 0)
+$3bda-$3bdb Branche vers l'émission vers l'imprimante (A = 1)
+$3bdd       Restaure AF
+$3bde       Branche vers l'émission vers la k7 (A = 255)
+            Véritablement, toute valeur de `(prtflg)` autre que 0 et 1 amène sur la k7 en fonctionnement normal.
+
 $3be1       [sendchar_pt]
-$3be4       ---
-$3be6       ---
-$3be8       ---
-$3be9       ---
-$3bea       ---
-$3bec       ---
-$3bee       [loop3BEE]
-$3bf0       ---
-$3bf1       ---
-$3bf4       ---
-$3bf6       ---
-$3bf8       ---
-$3bf9       ---
-$3bfa       [skip3BFA]
-$3bfc       ---
-$3bfe       ---
-$3c00       ---
-$3c02       ---
+            Émission d'un caractère vers l'imprimante.
+
+            Entrée :
+            - Haut de la pile contient AF, avec A qui est le caractère à émettre.
+
+$3be1       A est le type de l'imprimante.
+$3be4-$3be6 Branche vers une imprimante définie par l'utilisateur (A = 255)
+$3be8-$3be9 Récupère l'e caractère à émettre dans A en préservant la pile.
+$3bea-$3bec Branche si ce n'est pas le caractère de tabulation horizontale.
+$3bee       [prt_htab]
+$3bee-$3bf0 Émet (récursivement) un caractère d'espacement.
+$3bf1-$3bf6 Jusqu'à arriver sur un colonne multiple de 7.
+$3bf8       Jette le caractère sur la pile.
+
+$3bfa       [prt_not_tab]
+$3bfa-$3bfc Si A est le retour chariot, la soustraction va mettre A à 0 ce qui, avec le branchement, amènera le chariot de l'imprimante en colonne 0.
+$3bfe       Les autres caractères inférieurs à 13 passent à la suite.
+$3c00-$3c02 Ainsi que tous les caractères strictement inférieurs à 32 (c'est-à-dire les caractères ASCII de contrôle).
 $3c04       ---
 $3c07       ---
 $3c09       ---
 $3c0c       ---
-$3c0d       [skip3C0D]
-$3c10       [skip3C10]
+$3c0d       [set_prt_col]
+$3c10       [no_prt_ctrl]
 $3c11       ---
 
 $3c14       [resetprt]
