@@ -8576,7 +8576,7 @@ $38da       [getvar]
             - HL pointe sur le texte BASIC au niveau du nom.
 
             Sorties:
-            - DE pointe sur la valeur de la variable correspondant au nom en entrée.
+            - DE pointe sur la valeur de la variable correspondant au nom en entrée, ou à la donnée indexée dans le tableau.
             - HL pointe sur le texte BASIC à la suite du référencement de la variable (incluant l'indice du tableau).
             - FAC ???
 $38da       En arrivant ici, `(dimflg)` aura pour valeur 0.
@@ -8744,10 +8744,9 @@ $39e0       Branche si Z était à 0 vers une erreur d'appel illégal. (dans que
 $39e3-$39e6 Inscrit le nom de la variable/tableau dans les deux premiers octets de l'entrée pointée.
 $39e7       Place le nombre de dimensions dans C.
 $39e8       Vérifie qu'il y a assez de place sur la pile pour 2 * le nombre de dimensions.
-            (c'est assez ???)
 $39eb-$39ec HL Pointe vers le nombre de dimensions.
 $39ed       Sauve ce pointeur.
-$39f0       Inscrit le nombre de dimensions du tableau dans le decripteur de ce tableau.
+$39f0       Inscrit le nombre de dimensions du tableau dans le descripteur de ce tableau.
 $39f1       HL pointe sur l'emplacement des données de la première dimension.
 $39f2-$39f5 Carry à 0 pour une évaluation, Carry à 1 pour une création avec `DIM`.
 $39f6       A contient le nombre de dimensions du tablau.
@@ -8762,81 +8761,71 @@ $39fd       En BASIC, la taille d'un tableau est d'une unité plus grande que ce
 
 $39fe       [default_dim]
             %MS_BASIC(DEFSIZ)
-$39ff       Sauvegarde de la dimension en cours sur la pile
-$3a00       ---
-$3a01       BC est placé dans les deux octets de la spécification de la dimension des données du tableau
-$3a02       ---
-$3a03       Sauvegarde sur la pile de la position suivante dans la structure du tableau
-$3a04       ---
-$3a07       DE <- taille nécessaire pour les données de cette dimension
-$3a08       Récupération du pointeur sur les données du tableau
-$3a09       Récupération de la dimension en cours
-$3a0a       Dimension suivante (décroissante)
-$3a0b       ---
-$3a0d       Sauvegarde des flags (car A == 0 ici)
-$3a0e       ---
-$3a0f       BC <- DE (la taille du contenu du tableau à réserver)
-$3a10       HL contient la taille à réserver, DE contient le pointeur de contenu du tableau
-$3a11       Après l'addition, HL contient le pointeur de fin du contenu du tableau
-$3a12       Si HL a débordé, alors il n'y avait plus de mémoire pour sûr (dépassement de la plus haute adresse adressable)
-$3a15       Sinon, vérification par rapport à la mémoire installée
-$3a18       Si tout est bon, comme un nouveau tableau est toujours en dernier (on ne redimensionne pas les tableaux), mise à jour de (strend)
+$39fe-$3a02 Inscrit la taille de la dimension actuelle.
+            Sauvegarde le nombre de dimensions restantes et drapeaux sur la pile.
+$3a03       Sauvegarde de HL qui pointe vers le début des entrées du tableau.
+$3a04-$3a07 Calcule la taille nécessaire pour les données de cette dimension et la place dans DE.
+            Cela devient donc la taille d'une entrée pour la dimension suivante, s'il en reste.
+$3a08       Récupère le pointeur sur les données du tableau.
+$3a09       Récupère le nombre de dimensions restantes et les drapeaux.
+$3a0a       Décrémente le nombre de dimensions restantes.
+$3a0b       Boucle s'il reste des dimensions.
+$3a0d       Sauve les drapeaux (Carry qui désigne l'évaluation ou la création). A est forcément 0.
+$3a0e-$3a0f BC récupère la taille totale nécessaire pour les données du tableau.
+$3a10       HL contient la taille à réserver, DE contient le pointeur vers les données du tableau.
+$3a11       Après l'addition, HL contient le pointeur de fin du contenu du tableau.
+$3a12       Si HL a débordé, alors il n'y avait plus de mémoire (dépassement de la plus haute mémoire adressable).
+$3a15       Sinon, vérification par rapport à la mémoire installée.
+$3a18       S'il y a assez de mémoire, `(strend)` est mis à jour.
+            Les tableaux ne peuvent pas être redimensionnés.
+
 $3a1b       [dim_nullify]
-            MS_BASIC=ZERARY
-$3a1c       Mise à zéro du contenu du tableau
-$3a1e       ---
-$3a1f       Mise à zéro du contenu du tableau en ramenant HL (pointeur sur la fin du contenu du tableau) vers DE (début du contenu du tableau)
-$3a21       Incrément du la taille mémoire du tableau
-$3a22       A priori, A == 0 donc mise à 0 de D
-$3a23       ---
-$3a26       Récupération dans E du nombre de dimensions du tableau
-$3a27       ---
-$3a28       ---
-$3a29       HL <- 2 * (# de dimension) + BC(espace de tableau + 1)
-$3a2a       DE <- HL == taille nécessaire pour les données, les tailles des dimensions et le nombre de dimension
-$3a2b       ---
-$3a2c       Positionnement de HL à identifiant + 2, pour stocker la taille de mémoire allouée au tableau (hors identifiant)
-$3a2d       ---
-$3a2e       ---
-$3a2f       ---
-$3a30       Placement de la taille calculée à cet endroit
-$3a31       Récupération des anciens flags
-$3a32       Si le Carry Flag était set, alors on a fini. Sinon, il s'agit d'un accès au tableau (allocation par défaut lors d'un accès à un tableau non défini)
+            %MS_BASIC(ZERARY)
+$3a1b       HL pointe sur le dernier octet des données du tableau.
+$3a1c-$3a1f Mise à zéro du contenu du tableau en ramenant HL vers DE, pointeur vers le début du contenu du tableau.
+$3a21       Incrémente la taille nécessaire pour les données du tableau.
+$3a22       D = A = 0
+$3a23       Restaure le pointeur vers le début des données du tableau au niveau du nombre de dimensions.
+$3a26       DE est le nombre de dimensions du tableau.
+$3a27       HL = nombre de dimensions du tableau, DE = pointeur vers le tableau.
+$3a28-$3a29 HL <- 2 * (nombre de dimension) + BC (espace pour les données + 1)
+$3a2a       DE = taille totale nécessaire pour les données de toutes les dimensions, y compris les tailles de ces dimensions.
+            HL = pointeur vers le tableau.
+$3a2b-$3a30 Inscription dans l'entrée du tableau de la taille nécessaire pour les données.
+            Cette taille ne prend pas en compte le nom du tableau ni la taille elle-même.
+$3a31       Récupération du drapeau Carry (évaluation/création).
+$3a32       En cas de création (Carry à 1), branche vers la fin de la routine.
+            Sinon, il s'agit d'un accès au tableau (allocation par défaut lors d'un accès à un tableau non défini).
+
 $3a34       [dim_access]
-            MS_BASIC=FINDEL
-            En arrivant ici depuis $3a4e, a est égal à 0
-$3a35       Donc BC <- $00
-$3a36       HL est à identifiant+4. A <- nombre de dimensions du tableau
-$3a37       HL pointe sur le début des taille de dimensions du tableau
-$3a38       Le partial élimine le pop hl suivant
+            %MS_BASIC(FINDEL)
+$3a34-$3a35 BC = A = 0
+$3a36       A est le nombre de dimensions du tableau.
+$3a37       HL pointe sur la première dimension du tableau.
+$3a38       Saute par dessus le `pop hl` qui suit.
+
 $3a39       [dimension_l]
-            Récupération dans HL du pointeur vers la taille de la dimension courante (en première boucle, HL était initialisé par la partie précédente)
-$3a3a       ---
-$3a3b       ---
-$3a3c       Ce qui donne DE <- taille du tableau dans la dimension actuelle
-$3a3d       ---
-$3a3e       Les index sont sur la pile. Récupération de l'index dans HL (en partant de la droite)
-$3a3f       Sauvegarde du nombre de dimensions et flags
-$3a40       ---
-$3a41       Saut si l'index demandé est au delà de la taille du tableau
-$3a44       Sauvegarde de l'index accédé sur la pile
-$3a45       BC contient le numéro d'index accédé par la dimension précédente
-$3a48       Récuépration dans DE de l'index accédé
-$3a49       HL contient le début de la zone due à l'indice de la dimension précédente. On y ajoute l'index de la dimension courante.
-$3a4a       Récupération de la valeur d'AF sauvegardée en $3a3f (contient la dimension en cours et les flags)
-$3a4b       Décroit A, la dimension en court
-$3a4c       ---
-$3a4d       BC <- HL
-$3a4e       ---
-$3a50       ---
-$3a51       HL <- Index * 4, car chaque entrée du tableau prend 4 octets.
-$3a52       Récupération dans BC du pointeur des données du tableau mise sur la pile en $3a3e
-$3a53       HL <- adresse de la donnée cherchée
-$3a54       DE <- adresse de la donnée cherchée
+$3a39       Récupère dans HL le pointeur vers la taille de la dimension courante.
+$3a3a-$3a3d DE est la taille du tableau pour la dimension actuelle.
+$3a3e       HL = index, Haut de la pile = pointeur vers les données du tableau.
+$3a3f       Sauve les dimensions restantes.
+$3a40       Compare l'index et la taille de la dimension.
+$3a41       Branche vers une erreur si l'index demandé est au delà de la taille du tableau pour cette dimension.
+$3a44       Sauve l'index sur la pile.
+$3a45       Multiplie BC (numéro d'index accédé à la dimension précédente, 0 au premier passage) et DE (taille de la dimension actuelle) pour donner HL.
+$3a48       Récupère dans DE l'index accédé pour la dimension en cours.
+$3a49       L'ajoute à HL pour donner l'index intermédiaire pour la dimension actuelle.
+$3a4a       Récupère le nombre de dimensions dans A.
+$3a4b       Décrémente le nombre de dimensions restantes.
+$3a4c-$3a4d Copie l'index intermédiaire dans BC pour l'itération suivante.
+$3a4e       Boucle s'il reste des dimensions à parcourir.
+$3a50-$3a51 Multiplie l'index final par 4, car chaque entrée du tableau prend 4 octets.
+$3a52       Récupération dans BC du pointeur des données du tableau.
+$3a53-$3a54 DE pointe vers l'adresse finale de la donnée dans le tableau.
+
 $3a55       [end_dim]
-            MS_BASIC=ENDDIM
-            Récupération dans HL du pointeur de parsing
-$3a58       En cas de lecture du tableau, DE contient le pointeur vers l'entrée cherchée.
+            %MS_BASIC(ENDDIM)
+$3a55       Restaure le pointeur vers le texte BASIC.
 
 $3a59       [k7_advance2]
             Fait avancer la k7 pour sauter l'amorce. Rien n'est écrit, ni lu.
@@ -9107,8 +9096,13 @@ $3bcd       Attente jusqu'à la fin de la valeur haute.
 
 $3bd0       [outdo_impl]
             $SECTION(bio)
-            Fonction : envoie d'un caractère sur le périphérique sélectionné
-            Entrée : le caractère est contenu dans A
+
+            Émission d'un caractère vers le périphérique sélectionné.
+
+            Entrée :
+            - A est le caractère à émettre.
+
+            == DEBUT DE SECTION BIO (BASIC input/ouput controller) ==
 $3bd0       ---
 $3bd3       ---
 $3bd4       ---
