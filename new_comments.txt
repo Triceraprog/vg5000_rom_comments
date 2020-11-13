@@ -9188,37 +9188,35 @@ $3c51-$3c52 Met un caractère nul à la fin de la ligne.
 $3c53       Et fait pointer HL un octet avant le debut du buffer de travail `buf`.
 
 $3c57       [crdo]
-            Fonction : Envoi d'un retour chariot sur la sortie de caractère actuel
-$3c57       ---
-$3c5a       ---
-$3c5d       ---
-$3c5e       Saut si la sortie de caractère se faire sur le terminal
-$3c60       ---
-$3c61       Saut si la sortie de caractère n'est pas l'imprimante (donc la k7)
+            Envoi d'un retour chariot sur le périphérique de sortie actuel.
+
+$3c57       Appel le `hook` de retour chariot.
+$3c5a-$3c5e Branche si la sortie de caractère se fait sur l'écran.
+$3c60-$3c61 Branche si la sortie de caractère n'est pas l'imprimante (donc la k7)
 
 $3c63       [crdo_prt]
-            Fonction : Retour chariot à la ligne suivante sur l'imprimante
-$3c63       ---
-$3c65       ---
-$3c66       ---
-$3c68       ---
-$3c69       ---
-$3c6a       Mise à zéro de la colonne de l'imprimante (aucun test de la véracité...)
-$3c6d       ---
+            Retour à la ligne sur l'imprimante.
+
+$3c63-$3c65 Envoi d'un retour chariot (`carriage return`) à l'imprimante.
+$3c66-$3c68 Envoi d'un saut de ligne (`line feed`) à l'imprimante.
+$3c69-$3c6a Mise à zéro de la colonne logique de l'imprimante.
+            Il n'y a aucun test de la véracité de l'état. On considère que l'opération a réussi.
+
 $3c6e       [crdo_k7]
-$3c70       ---
-$3c71       ---
+            Retour à la ligne vers la k7.
+$3c6e-$3c70 Envoi d'un retour chariot (`carriage return`) à l'imprimante.
+
 $3c72       [crdo_term]
-$3c74       ---
-$3c75       ---
-$3c76       ---
+            Retour à la ligne sur l'écran.
+$3c72-$3c74 Envoie le caractère de retour à la ligne (non ASCII, spécifique VG5000).
+$3c75       A = 0
 
 $3c77       [chk_break]
-            Vérifie la séquence de BREAK puis continue sur l'instruction STOP.
-            L'instruction STOP commence par 'ret nz', qui fera donc un RET s'il
-            n'y a pas eu de BREAK, et qui fera un STOP dans le cas contraire.
-$3c77       ---
-$3c7a       ---
+            Vérifie la séquence d'interruption utilisateur puis continue sur l'instruction `STOP`.
+
+            L'instruction `STOP` commence par 'ret nz', qui fera donc un `RET` s'il n'y a pas eu de demande d'interruption, et qui exécutera la routine de `STOP` dans le cas contraire.
+$3c77       Vérifie la demande d'interruption utilisateur.
+$3c7a       Enchaîne sur la routine `STOP`.
 
 $3c7d       [break_delay]
             Vérifie si SHIFT + RUN-STOP est appuyée (interruption de commande).
@@ -9252,13 +9250,13 @@ $3c9f       %CHAR
 $3c9f-$3ca1 Émet ' ' sur le périphérique de sortie.
 
 $3ca2       [get_line]
+            %MS_BASIC(GETLIN)
             Récupération d'une ligne d'instruction entrée au BASIC
             Entre à chaque nouvelle invite. Sort lorsque la touche CR est appuyée.
 
             Sortie :
             - Le buffer `buf` contient les données lues.
             
-            MS_BASIC=GETLIN
 $3ca2       Appel au hook d'entrée de ligne.
 $3ca5       HL pointe vers le buffer de travail
 $3ca8       [get_line2]
@@ -9277,17 +9275,17 @@ $3cbb-$3cbe Retour à la boucle de traitement si la touche STOP n'a pas été ap
 $3cc0       La combinaison d'interruption de commande (SHIFT+STOP) a été détectée. Carry est à 1 et on termine l'acquisition des touches. Le retour se fait en $22b1
 
 $3cc1       [decodebasic]
-            Fonction : décode la ligne en BASIC ?
-$3cc1       ---
-$3cc3       Saute si la touche était la touche entrée.
-$3cc5       ---
-$3cc7       Remise du caractère dans le buffer en s'assurant qu'il soit sur 7 bits
-$3cc8       ---
-$3ccb       Comparaison de HL avec $4918, qui est juste avant la fin du buffer de crunch. Mais comment est-ce que HL pourrait déborder ? Pas en entrée direct on dirait... Il est possible qu'on n'arrive là que via la lecture k7 ?
-$3ccc       ---
+            Fonction : décode la ligne en BASIC ???
+$3cc1-$3cc3 Branche si le dernier caractère acquis était un retour chariot.
+$3cc5-$3cc7 Sinon, replace le caractère dans le buffer en effaçant le bit de poids fort.
+$3cc8-$3ccb Compare le pointeur vers le texte entré avec la fin du buffer de travail.
+            Mais comment est-ce que HL pourrait déborder ??? Pas en entrée direct on dirait...
+            Il est possible qu'on n'arrive là que via la lecture k7 ???
+$3ccc       Branche vers la suite.
+
 $3ccf       [hl_incbuf]
-            HL pointe sur la position suivante dans le buffer de crunch
-$3cd0       ---
+$3ccf       Incrémente le pointeur dans le buffer de travail.
+$3cd0       Et continue vers l'acquisition de la ligne BASIC.
 
 $3cd2       [print_char]
             %SECTION(biprtr)
@@ -9450,13 +9448,13 @@ $3ddc-$3ddd Copie le pointeur vers la ligne trouvée dans HL
 $3dde       Branche vers l'effacement du chaînage du listing à partir de cette ligne.
 
 $3de1       [decodenext]
-            Si HL était avant la fin du buffer de crunch, on incrémente HL et on continue.
-$3de3       Si HL n'est pas égal non plus, c'est qu'il est supérieur à la fin du buffer de crunch, on loop directement sur le moniteur sans toucher à HL.
+$3de1       Si HL pointe avant la fin du buffer de travail, le pointeur est incrémenté puis la routine l'acquisition continue.
+$3de3       Si HL n'est pas égal, c'est qu'il est supérieur à la fin du buffer de travail, l'acqusition continue sans toucher à HL.
             Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ?) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
-$3de6       ---
-$3de8       ---
+$3de6-$3de8 Sinon, HL vient d'atteindre la fin du buffer de travail, un 'bip' est émit. Puis enchaîne sur l'incrémentation du pointeur et la suite de l'acquisition.
+
 $3de9       [ind_inchl]
-            Saut intermédiaire pour aller incrémenter HL
+$3de9       Saut intermédiaire pour aller incrémenter HL et poursuivre l'acquisition de la ligne BASIC.
 
 $3dec       [prompt_1]
             Code patché de la ROM 1.1 ???
