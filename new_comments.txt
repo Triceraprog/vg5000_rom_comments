@@ -9145,51 +9145,47 @@ $3c11       Continue sur l'émission du caractère vers l'imprimante.
 
 $3c14       [resetprt]
             Fonction: Mise à zéro de l'état de l'imprimante
-$3c14       ---
-$3c16       Sélectionne l'imprimante pour l'affichage
-$3c19       ---
-$3c1c       ---
-$3c1e       ---
-$3c20       Récupération et mise à zéro du Bit 7 du status de l'imprimante
-$3c23       ---
-$3c25       Si le bit était à 0, récupération du numéro de ligne de l'imprimante dans a
-$3c28       Permet de mettre à jour les flags de F
-$3c29       [skip3C29]
-            Appel si le bit 7 du status était 1, ou bien si la ligne de l'imprimante n'est pas 0
-$3c2c       ---
-$3c2f       ---
-$3c31       Clear du picflg sauf le bit 6 (signal de curseur en fin de page)
-$3c34       ---
-$3c35       Sélection du terminal comme sortie des caractères
+$3c14-$3c16 Sélectionne l'imprimante pour l'émission de caractère.
+$3c19-$3c20 Récupère l'était `user on/off` et le met à 0 ('user on').
+$3c23       Branche si l'état était 'user off'.
+$3c25       Sinon, récupère le numéro de colonne de l'imprimante dans A.
+$3c28       Met à jour le drapeau Z pour préparer le test qui suit.
+
+$3c29       [rst_prt_0]
+$3c29       Émet un retour chariot si l'état précédent était 'user off', ou si la colonne de l'imprimante n'était pas 0.
+$3c2c-$3c31 Réinitialise les états d'affichage, sauf l'était de curseur en fin de page.
+$3c34-$3c35 Sélectionne le terminal comme périphérique de sortie.
 $3c38       Mise à zéro de l'état de l'imprimante.
-$3c3b       ---
+
 $3c3c       [sendchar_te]
-            Récupération de AF qui contient prtflg
-$3c3d       ---
+            Émet un caractère vers l'écran.
+$3c3c       Récupère dans A le caractère à afficher.
+$3c3d       Branche vers la suite.
 
 $3c40       [cursor_x0]
+            %MS_BASIC(STTLIN)
             Remet le terminal en état. Puis, si le curseur n'était pas en
-            première colonne, fait un saut à la ligne sur le terminal. Sinon, ressort.
+            première colonne, fait un saut à la ligne à l'écran.
             
-            MS_BASIC=STTLIN
-$3c40       ---
-$3c43       ---
-$3c46       ---
-$3c47       ---
-$3c48       ---
+$3c40       Réinitialise l'écran.
+$3c43-$3c47 Retour si le curseur était en colonne 1.
+$3c48       Sinon, saut à la ligne.
 
-$3c4a       [putnulatend]
-            Fonction: met un caractère NUL à la fin de la chaîne précédent le pointeur HL actuel, en ignorant les espaces.
-            À la fin de la fonction, HL contient $4897, c'est-a-dire juste avant le buffer de crunch de la ligne.
-$3c4a       ---
-$3c4b       ---
-$3c4c       ---
-$3c4e       Recale le pointeur HL sur le derniere caractère non espace ($20) avant le CR ($0D)
-$3c50       HL pointe donc à présent juste après le dernier caractère de la ligne à traiter
+$3c4a       [nul_at_end]
+            Met un caractère nul à la fin de la chaîne précédent le pointeur HL actuel, en ignorant les espaces de fin de ligne.
+
+            Entrée :
+            - HL pointe à la fin d'un ligne BASIC qui vient d'être acquise.
+
+            Sortie :
+            - HL pointe un octet avant le buffer de travail `buf`.
+
+$3c4a-$3c4e Recale le pointeur HL sur le dernier caractère non espace ($20) avant le retour chariot ($0d).
+$3c50       HL pointe donc à présent juste après le dernier caractère de la ligne à traiter.
 
 $3c51       [hl_on_buf]
-$3c51-$3c52 Place un $0 sur ce que pointe HL, qui est la fin d'un buffer pour la ligne entrée dans le moniteur.
-$3c53       Et faite pointer HL un octet avant le buffer de travail `buf`.
+$3c51-$3c52 Met un caractère nul à la fin de la ligne.
+$3c53       Et fait pointer HL un octet avant le debut du buffer de travail `buf`.
 
 $3c57       [crdo]
             Fonction : Envoi d'un retour chariot sur la sortie de caractère actuel
@@ -9435,22 +9431,24 @@ $3dc6-$3dc8 Prépare la redéfiniction du caractère $20 étendu.
 $3dcb       Branche sur la suite de la routine après le patch.
 
 $3dce       [inst_new]
-            %CODE
-            Instruction : NEW
+            %CODE,MS_BASIC(NEW)
+            Instruction BASIC : NEW
+
             Efface le listing courant.
+
             S'il n'y a pas de paramètre, on branche directement vers le reset de la mémoire.
-            S'il y a un paramètre`et que c'est un numéro de ligne, on efface à partir de ce numéro de ligne (a vérifier ???)
+            S'il y a un paramètre et que c'est un numéro de ligne, on efface à partir de ce numéro de ligne.
+
+            La routine est entièrement déplacée par rapport à la ROM 1.0 ???
             
-            MS_BASIC=NEW
-$3dce       ---
-$3dd1       ---
-$3dd4       ---
-$3dd5       ---
-$3dd8       ---
-$3dd9       ---
-$3ddc       ---
-$3ddd       ---
-$3dde       ---
+$3dce       Branche vers l'effacement du chaînage à partir de la première ligne si l'instruction n'est suivi par aucun argument.
+$3dd1       Sinon, récupère un numéro de ligne.
+$3dd4       Retour s'il reste encore des caractères après le numéro de ligne, cela provoquera une erreur de syntaxe.
+$3dd5-$3dd8 Place l'adresse de retour comme la boucle du moniteur BASIC.
+$3dd9       Cherche la ligne spécifiée par l'argument.
+$3ddc-$3ddd Copie le pointeur vers la ligne trouvée dans HL
+$3dde       Branche vers l'effacement du chaînage du listing à partir de cette ligne.
+
 $3de1       [decodenext]
             Si HL était avant la fin du buffer de crunch, on incrémente HL et on continue.
 $3de3       Si HL n'est pas égal non plus, c'est qu'il est supérieur à la fin du buffer de crunch, on loop directement sur le moniteur sans toucher à HL.
