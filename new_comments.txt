@@ -524,8 +524,8 @@ $0144       Coordonnées du curseur dans HL
 $0147-$0149 Branche si la ligne du curseur est 0
 $014b-$014d Sinon, ajoute 7 au numéro de ligne logique pour obtenir le numéro de ligne VDP.
 $014e       [set_curssor]
-$014e-$0154 VDP - $26/H
-$0156-$015a VDP - $27/L
+$014e-$0154 VDP - $26/H - Place le curseur sur le ligne H
+$0156-$015a VDP - $27/L - Place le curseur sur la colonne L
 $015c-$0162 VDP - $28/$0a
 $0164-$0166 VDP - $20
 
@@ -544,13 +544,8 @@ $018a       Active les interruptions.
 
 $018c       [putahl_impl]
             Implémentation de `putahl:`.
-$018c       ---
-$018e       ---
-$0190       ---
-$0192       Place le curseur sur le ligne H
-$0194       ---
-$0196       ---
-$0198       Place le curseur sur le colonne L
+$018c-$0192 VDP - $26/H - Place le curseur sur le ligne H
+$0194-$0198 VDP - $27/L - Place le curseur sur la colonne L
 
 $019a       [putici_impl]
             Implémentation de `putici:`.
