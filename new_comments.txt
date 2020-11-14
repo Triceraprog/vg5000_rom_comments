@@ -5900,7 +5900,6 @@ $29a8-$29ac Retour si la priorité est plus faible que $64.
 $29ad       Sinon, met un nouveau bloc à évaluer sur la pile pour délayer la comparaison.
 
 $29b0       [comp_addr]
-            Attention, le commentaire trop long ci-dessous est tromqué (bug du parser ???)
 $29b0       Addresse de la fonction qui suit, afin de pouvoir construire le bloc d'évaluation à dépiler ci-dessus.
 
 $29b2       [compare]
