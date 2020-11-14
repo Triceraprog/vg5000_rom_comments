@@ -11,7 +11,7 @@ $0000       [reset]
 
             Cette adresse est variable d'une machine à l'autre. Sur VG5000µ, c'est
             $1000.
-$0003       ???
+$0003       Un octet inutilisé.
 $0004       [num_ver]
 $0004       %NTS
             Numéro de la version de la ROM
@@ -129,13 +129,13 @@ $0038       [irq]
             Le Z80 fonctionne en mode 1. Dans ce mode, un signal IRQ provoque, après
             traitement de l'instruction en cours, un branchement à cette adresse.
 
-            Sur le VG5000µ, cette interruption est levée par le signal VBLANK (???)
-            de l'affichage, provoqué par l'EF9345.
+            Sur le VG5000µ, cette interruption est levée par le signal Vertical Sync 
+            de l'affichage (sortie PC/VS sur l'EF9345).
 
             Un vecteur est disponible pour installer une routine d'utilisateur qui
             sera appelée lors du traitement de l'IRQ.
 
-            Appel par `RST $38`/`RST 7`. ???
+            Appel par `RST $38`/`RST 7`.
 
             [ArticleUserIRQ]
 
@@ -157,11 +157,11 @@ $0066       [nmi]
             Interruption non masquable.
 
             L'interruption est provoquée par l'appui sur la touche Delta, qui est branchée
-            sur l'interruption du processeur (via ???)
+            sur l'interruption du processeur (broche \NMI)
 
             L'interruption branche immédiatement vers un vecteur qui, par défaut, branche à
             son tour vers `test_reset`. Cette routine par défaut vérifie l'appuie sur la
-            touche CTRL. Si c'est le cas, un redémarrage à chaud aura lieu. Sinon, il ne
+            touche `CTRL`. Si c'est le cas, un redémarrage à chaud aura lieu. Sinon, il ne
             se passe rien de plus.
 
             [ArticleUserNMI]
@@ -2827,8 +2827,8 @@ $0f2e       [stka_impl]
             - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
             
             Sortie :
-            - A = 0, aucune action.
-            - A = 1, bouton actif.
+            - A et B = 0, aucune action.
+            - A et B = 1, bouton actif.
 
             Modifie :
             - AF, B
@@ -2852,7 +2852,7 @@ $0f3e       Vérification de l'appuie sur la bouton action du joystick 0
 $0f40       Complément à 1.
 $0f41       Masque sur le bits 4 et 5.
 $0f43-$0f46 Décalage pour amener le résultat sur les bits 0 et 1
-$0f47       Résultat assu dans B (pourquoi ???)
+$0f47       Résultat aussi dans B.
 
 $0f49       [inst_key]
             %CODE
@@ -3187,15 +3187,15 @@ $116d       [start_music]
 $1179       [init_ef_seq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 
-            VDP - $28/$81 -> Écriture de quelque chose dans le TGS
-            VDP - $29/$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
+            VDP - $28/$81 -> TGS prend la valeur de R1
+            VDP - $29/$00 -> TGS = R1 = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
             VDP - $20/$82,$29/$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur(
             VDP - $20/$83,$29/$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, insert mode : Active Area, Flash ON, Format court pour le 40 colonnes)
             VDP - $20/$84,$29/$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
             VDP - $20/$87,$29/$08 -> ROR = $08 (Z=0, Y=8)
             VDP - $26/$08 -> R6=$08
             VDP - $27/$00 -> R7=$00
-            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ???)
+            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (R1 = $08, R2 = ???)
 
 $1194       [i_ramlow]
             %CODE
@@ -3223,7 +3223,7 @@ $11d9       [i_prtcom]
 $11da       [i_prtint]
 $11dc       [i_prtxlt]
 $11de       [i_contbl]
-$11de       Table de redirection des touches de contrôle vers les caractères accentués. (??? la ligne est coupée par l'outil)
+$11de       Table de redirection des touches de contrôle vers les caractères accentués.
 $11e8       [i_autflg]
 $11e9       [i_autlin]
 $11eb       [i_autinc]
@@ -3346,14 +3346,14 @@ $1966       Met $82 dans ($4810 + $14) (`ft` + $14) (premier octet de la somme d
 $1969       Envoie le listing vers le buffer de travail.
 $196c-$196e Envoie $b3 vers le buffer de travail de la k7.
 $1971       Récupère le contenu de (ft + $14) (premier octet de la somme de contrôle).
-$1974       ???
-$1977       ???
+$1974       Écrit le buffer sur la k7.
+$1977       Affiche les erreurs potentielles.
 $197a       Restaure le pointeur du texte BASIC.
 $197b       Réinitialise la mémoire du programme. Le programme est effacé.
 
 $197e       [inst_load]
             %CODE
-            Commande BASIC `SAVE`
+            Commande BASIC : `LOAD`
 
             Charge un listing qui a été sauvé en ASCII.
             Le listing chargé est mélangé à celui existant.
@@ -3361,7 +3361,7 @@ $197e       [inst_load]
 $197e       Lecture de la paire de ligne à charger.
 $1981-$1986 Annule les drapeaux d'erreurs qui auraient pu être levés précédemment.
 $1989       Coupe l'insertion vidéo
-$198c-$198e Couleur de la marge à 5 (??? préciser quelle est la couleur)
+$198c-$198e Couleur de la marge à 5 (Magenta)
 $1991       Calibre la k7 en lisant l'amorce du fichier.
 $1994       Branche si interruption ou erreur.
 $1996       Lecture de la k7 avec préservation des registres.
@@ -3385,7 +3385,7 @@ $19cc-$19cf Affiche "Mauvais fichier"
 $19d2       [load_nerr]
 $19d2-$19d5 Affiche le message "Pause..."
 $19d8-$19d9 Annule la commande AUTO
-$19dc-$19dd Met $ff dans `getflg` indiquant que l'entrée se fait par k7 (???)
+$19dc-$19dd Met $ff dans `getflg` indiquant que l'entrée se fait par k7 (a tracer ???)
 $19e0       Revient à l'interpréteur BASIC.
 
 $19e3       [pause_msg]
@@ -3453,7 +3453,7 @@ $1a60       Lit le potentiel second paramètre.
 $1a63       Éteint la marge de l'écran.
 
 $1a66       [read_file]
-$1a66-$1a68 Change la couleur de la marge (??? quelle couleur)
+$1a66-$1a68 Change la couleur de la marge à 1 (Rouge)
 $1a6b       Calibre la vitesse de lecture.
 $1a6e       Branche en cas d'erreur ou d'interruption de commande.
 $1a70       Lit le début du descripteur de fichier en décalé.
@@ -3464,7 +3464,7 @@ $1a7b       Branche si les deux noms correspondent (comme la correspondance se f
 $1a7d-$1a86 Charge dans HL l'adresse du texte "Skip: " dans la bonne langue.
 $1a89       [out_skip]
 $1a89       Affiche le message "Skip: " si l'utilisateur ne l'a pas désactivé.
-$1a8c-$1a8e Change la couleur de la marge (??? quelle couleur)
+$1a8c-$1a8e Change la couleur de la marge à 4 (Bleu)
 $1a91       Lance une nouvelle calibration
 $1a94       Branche en cas d'erreur ou d'interruption de commande.
 
@@ -3482,7 +3482,7 @@ $1aa4       [file_found]
 $1aa4-$1aad Pointe vers le message de fichier trouvé dans la bonne langue.
 $1ab0       [out_found]
 $1ab0       Affiche le message si l'utilisateur ne l'a pas désactivé.
-$1ab3-$1ab5 Change la couleur de la marge (??? quelle couleur)
+$1ab3-$1ab5 Change la couleur de la marge à 2 (Vert)
 $1ab8       Premier caractère du descripteur de fichier lu, qui contient donc le type de fichier.
 $1abb       %CHAR
 $1abb-$1abd Branche si le type n'est pas ' ' (caractère espace)
@@ -3516,7 +3516,7 @@ $1aef       [ok_clear]
 $1aef-$1af2 Affiche la chaîne "Ok!"
 
 $1af8       [mem_out_k7]
-            Indique une erreur de fichier trop grand dans `cascom` et affiche une erreur de dépassement de mémoire (vraiment celui-là ???)
+            Indique une erreur de fichier trop grand dans `cascom` et affiche une erreur de dépassement de mémoire.
 $1af8       Signale l'erreur de fichier trop grand dans `cascom`
 $1afa-$1afc Affiche l'erreur "Out of Memory"
 
@@ -3970,10 +3970,10 @@ $1d79       [fetch_dim]
             - DE pointe sur la zone mémoire contenant le descripteur du tableau (???)
             - HL pointe vers le texte BASIC avec le descripteur de tableau
 
-$1d79 -$1d7b Mise à 1 de subflg pour demander la recherche d'un tableau
+$1d79-$1d7b Mise à 1 de `subflg` pour demander la recherche d'un tableau
 $1d7e       Recherche de la variable
 $1d81       "Appel illégal" si le tableau n'a pas été trouvé
-$1d84       Remise à 0 de subflg (???)
+$1d84       Remise à 0 de `subflg`.
 
 $1d88       [rd_str_expr]
             Évalue une expression de type chaîne de caractères.
@@ -4299,7 +4299,6 @@ $1f9c       [check_mem_2]
             - A à $ff s'il n'y a plus assez de mémoire.
             - Carry est à 1 s'il reste de la place
 
-            Choisir un meilleur label pour ici ou pour l'affiche de `check_mem` ???
 $1f9c       Préserve HL
 $1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). Mais si on n'a pas 64ko de RAM ???
 $1fa5       Branche s'il y a eu retenue, et donc que HL est supérieur à la limie.
@@ -4308,7 +4307,6 @@ $1fa8       Restaure HL
 $1fa9       Retour si la pile augmentée de la place restante dépasse. Il y a encore de la place.
 $1faa       Préserve HL (pour être cohérent avant la fin de la routine)
 $1fab       [out_of_mem2]
-            Choisir un meilleur label pour ici ou pour l'affiche de `out_of_mem` ???
 $1fab       Restaure HL
 $1fac-$1fad Valeur de retour de A à $ff
 
@@ -4342,20 +4340,16 @@ $1fde       [margin_col]
 
             Commande directe au VDP.
 
-            Envoi au VDP :
-            - $28 / $82
-            - $29 / `cursor` (MAT) & $f8 | E
-
-            Préciser les commandes $28 et $29 ???
-$1fde-$1fe4 Envoi de la commande $28 avec le paramètre $82 au VDP
-$1fe6-$1ff0 Envoi de la commande $29 avec la variable `cursor` privée de la partie « couleur de la marge », remplacée par la couleur dans le registre E.
+$1fde-$1fe4 VDP - $28/$82, MAT = R1
+$1fe6-$1ff0 VDP - $29/..., R1 = `(cursor)` avec la couleur de la marge remplacée par la couleur dans le registre E.
+            Comme `(cursor)` représente `MAT` côté RAM, c'est un changement direct et temporaire sur le VDP.
 
 $1ff3       [stka_joy1]
 $1ff3       Vérification de l'appuie sur la bouton action du joystick 0
 $1ff5       Complément à 1.
 $1ff6       Masque sur le bits 4 et 5.
 $1ff8-$0ffb Décalage pour amener le résultat sur les bits 0 et 1
-$1ffc       Résultat aussi dans B (pourquoi ???)
+$1ffc       Résultat aussi dans B.
 
 $1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comme deux octets libres.
 
@@ -4662,7 +4656,7 @@ $236b       [tokenize]
             - C contient la taille du buffer résultat
             - A est égal à 0
             
-$236b-$236c Mise à 0 de (`dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
+$236b-$236c Mise à 0 de `(dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
 $236f       Taille initial du buffer de sortie (pourquoi 5 ???)
 $2371       DE pointe sur le buffer de tokenisation
 $2374       [analyze]
@@ -5060,8 +5054,8 @@ $256c       [get_lin_num]
             Lecture depuis le buffer pointé par HL d'un nombre entier positif.
             Ce nombre peut soit être exprimé en ASCII, soit déjà décodé avec le marqueur `$0e`.
 
-            La routine est utilisée pour les numéros de ligne, et vérifie que le nombre est entre 0 (exclu ???)
-            et 65529, numéro de ligne maximum.
+            La routine est utilisée pour les numéros de ligne, et vérifie que le nombre est inférieur
+            à 65529, numéro de ligne maximum.
             
             Entrée :
             - HL pointe sur un buffer de type texte BASIC
@@ -5080,7 +5074,7 @@ $2576       Puis lecture du caractère suivant dans A.
 
 $2578       [ascii_num]
 $2578       Revient en arrière dans le buffer d'entrée.
-$2579       Initialise l'accumlateur de résultat à 0.
+$2579       Initialise l'accumulateur de résultat à 0.
 $257c       [num_decode]
 $257c       Lecture d'un caractère depuis le buffer d'entrée.
 $257d       Si le caractère n'était pas un chiffre, retour immédiat.
