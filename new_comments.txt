@@ -549,61 +549,40 @@ $0194-$0198 VDP - $27/L - Place le curseur sur la colonne L
 
 $019a       [putici_impl]
             Implémentation de `putici:`.
-$019a       ---
-$019d       ---
-$019f       ---
-$01a1       [put_wait1]
-$01a3       ---
-$01a4       ---
-$01a7       ---
-$01a9       ---
-$01ab       ---
-$01ad       ---
-$01af       ---
-$01b1       [put_wait2]
-$01b3       ---
-$01b4       ---
-$01b7       ---
-$01b9       ---
-$01bb       ---
-$01bd       ---
-$01bf       ---
-$01c1       ---
-$01c3       ---
+$019a       B = $03, C = $cf (port I/O pour les données VDP)
+$019d-$019f VDP - $20
+
+$01a1       [put_wait_1]
+$01a1-$01a4 Attente du VDP.
+$01a7-$01ab VDP - $22/D - Code caractère.
+$01ad-$01af VDP - $20
+
+$01b1       [put_wait_2]
+$01b1-$01b4 Attente du VDP.
+$01b7-$01bb VDP - $21/E - Code attribut
+$01bd-$01c1 VDP - $28/$03
 
 $01c4       [getahl_impl]
             Implémentation de `getahl:`.
-$01c4       ---
-$01c6       ---
-$01c8       ---
-$01ca       ---
-$01cc       ---
-$01ce       ---
-$01d0       ---
+$01c4       Préparation du port I/O pour les données VDP
+$01c6-$01ca VDP - $26/H - Place le curseur sur le ligne H
+$01cc-$01d0 VDP - $27/L - Place le curseur sur la colonne L
 
 $01d2       [getici_impl]
             Implémentation de `getici:`.
-$01d2       ---
-$01d5       ---
-$01d7       ---
-$01d9       ---
-$01db       ---
-$01dd       ---
-$01df       [get_wait1]
-$01e1       ---
-$01e2       ---
-$01e5       ---
-$01e7       ---
-$01e9       ---
-$01eb       ---
-$01ed       ---
-$01ef       [get_wait2]
-$01f1       ---
-$01f2       ---
-$01f5       ---
-$01f7       ---
-$01f9       ---
-$01fb       ---
+$01d2       B = $0b, C = $cf (port I/O pour les données VDP)
+$01d5-$01d9 VDP - $28/$0b
+$01db-$01dd VDP - $20
+
+$01df       [get_wait_1]
+$01df-$01e2 Attente du VDP.
+$01e5-$01e9 VDP - $22, lecture dans D
+$01eb-$01ed VDP - $20
+
+$01ef       [get_wait_2]
+$01ef-$01f2 Attente du VDP.
+$01f5-$01f9 VDP - $21, lecture dans E
+
 $01fc       [delim_wrt]
             Inscrit un délimiteur à l'écran avec les attributs courants et avance le curseur.
 
@@ -661,38 +640,32 @@ $0259-$0262 Copie le contenue de la première ligne dans le reste du buffer écr
 
 $0265       [cli_impl]
             Implémentation de `cli:`.
-$0265       ---
-$0267       ---
-$0268       ---
-$026b       Écriture de $80 à la première position de la ligne
-$026d       Récupération des attributs par défaut
-$0270       ---
-$0271       Écriture dans la position suivante des attributs par défaut
-$0272       ---
-$0275       ---
-$0276       if bit(C,7) == 1 then A = 0 else A = $20
-            Le bit 7 de C étant à 1 pour un caractère graphique, 0 pour texte
-$0278       ---
-$027a       ---
-$027c       ---
+$0265-$0268 HL pointe vers le buffer d'écran BASIC aux coordonnées X=0, Y=A.
+$026b       Écriture de `$80` à la première position de la ligne.
+            Ce caractère indique le début d'une ligne logique (par opposition au caractère de continuité).
+$026d       A récupère les attributs par défaut de fond `(attbak)`.
+$0270-$0271 Écrit dans la position suivante les attributs par défaut de fond `(attbak)`.
+            La colonne 0 est donc un caractère marqueur représenté par un caractère vide aux attributs par défaut.
+            Dans le mode du VDP utilisé par la ROM, la couleur de fond influe la ligne jusqu`au prochain délimiteur.
+$0272       C récupère les attributs par défaut de caractère `(attcar)`.
+$0275       HL pointe sur le caractère de la seconde colonne.
+$0276-$027c Si `(attcar)` indique le mode texte (= 0), alors A prépare le caractère d'espacement ($20).
+            Si `(attcar)` indique le mode graphique (= 1), alors A prépare le caractère nul.
+
 $027d       [cli_default]
             Boucle pour écrire dans les positions suivantes de la ligne alternativement A et C.
             Donc un espace pour le mode texte et 0 pour le mode graphique, suivi des attributs
+$027d       B = 39 colonnes
 $027f       [cli_loop]
-$0280       ---
-$0281       ---
-$0282       ---
-$0283       ---
-$0285       ---
+$027f-$0280 Place le caractère préparé dans les positions paires.
+$0281-$0282 Place `(attcar)` dans les positions impaires.
+$0283       Boucle sur les 39 colonnes.
 
 $0286       [wait_impl]
             Implémentation de `wait:`.
-$0286       ---
-$0288       ---
+$0286-$0288 VDP - $20
 $028a       [wait_loop]
-$028c       ---
-$028d       ---
-$0290       ---
+$028a-$028d Attente du VDP.
 
 $0291       [fndadr_impl]
             Implémentation de `fndadr`.
@@ -743,11 +716,12 @@ $02ae       Branche si une touche est pressée sur cette ligne.
 $02b0       Vise le port précédent.
 $02b1       Boucle sur le nombre de ports (7).
 $02b3       Quel est le port ici ???
-$02b5       ---
+$02b5       Du coup, on prend le complément de quoi ???
 $02b6       Masque avec b10111011 de la dernière ligne lue.
 $02b8       [key_pressed]
 $02b8       Branche si aucune touche n'est pressée.
-$02ba       ---
+$02ba       Initialise le compteur de nombre de rang du clavier.
+
 $02bc       [col_count]
 $02bc-$02bf Cherche la 'colonne' de la touche appuyée et décalant
             vers la gauche A jusqu'à ce que Carry passe à 1, tout
@@ -760,8 +734,7 @@ $02c4       A=8 * colonne
 $02c5       A=(8 * colonne) + (port de la ligne) ($80 à $87)
 $02c6       A=(8 * colonne) + (port de la ligne - $80) (0 à 7)
             Cela donne l'index dans la table de décodage.
-$02c8       ---
-$02ca       Lecture du rang 0 dans B pour vérifier l'appui sur `shift` et `control`.
+$02c8-$02ca Lecture du rang 0 dans B (port $80) pour vérifier l'appui sur `shift` et `control`.
 $02cc-$02cf Préparation de la table de décodage dans HL et du potentiel décalage.
 $02d2       Vérification de la touche `shift` appuyée.
 $02d4       Branchement si `shift` n'est pas appuyée.
@@ -3219,28 +3192,37 @@ $116d       [start_music]
 $1179       [init_ef_seq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 
-            $28,$81 -> Écriture de quelque chose dans le TGS
-            $29,$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
-            $20,$82,$29,$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur
-            $20,$83,$29,$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, Insert mode : Active Area, Flash ON, Format court pour le 40 Char
-            $20,$84,$29,$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
-            $20,$87,$29,$08 -> ROR = $08 (Z=0, Y=8)
-            $26,$08,$27,$00,$28,$02 -> R6=$08, R7=$00, KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ??)
+            VDP - $28/$81 -> Écriture de quelque chose dans le TGS
+            VDP - $29/$00 -> TGS = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
+            VDP - $20/$82,$29/$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur(
+            VDP - $20/$83,$29/$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, insert mode : Active Area, Flash ON, Format court pour le 40 colonnes)
+            VDP - $20/$84,$29/$13 -> DOR = $13 (Block G0=3, Block G1=1<<1, Block Q=0<<3)
+            VDP - $20/$87,$29/$08 -> ROR = $08 (Z=0, Y=8)
+            VDP - $26/$08 -> R6=$08
+            VDP - $27/$00 -> R7=$00
+            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (data R1, R2 = $08, ???)
 
-            ??? mieux détailler la séquence.
-
-$1194       [initvalues]
+$1194       [i_ramlow]
+            %CODE
             Liste des valeurs qui sont copiées dans les variables système au boot.
-$119a       [div_subr]
+
+            Toutes les étiquettes préfixées par `i_` sont les équivalents des variables système sans ce préfixe.
+
+$1197       [i_usrloc]
+            %CODE
+$119a       [i_div_subr]
             %CODE
 $119a-$11a7 Cette routine fait partie des valeurs montées en RAM au démarrage.
             Elle contient la soustraction du dividende par le diviseur.
             Les valeurs sont injectées à la place des $00 par la routine de
             division.
-
-$11d3       [prt_init_1]
-$11d4       ---
-$11d7       ---
+$11a9       [i_rndcnt]
+$11d2       [i_lptpos]
+$11d3       [i_prtflg]
+$11d4       [i_getflg]
+$11d5       [i_picflg]
+$11d6       [i_cascom]
+$11d7       [i_rawprt]
 $11d8       [i_prtstt]
 $11d9       [i_prtcom]
 $11da       [i_prtint]
