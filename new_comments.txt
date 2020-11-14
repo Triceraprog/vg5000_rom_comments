@@ -1,5 +1,6 @@
 $0000       [reset]
             %CODE,SECTION(in)
+            == DEBUT DE SECTION IN (bas niveau et interruptions) ==
             Tout commence par un saut à l'adresse $1000.
 
             C'est aussi `RST 0`.
@@ -10,9 +11,6 @@ $0000       [reset]
 
             Cette adresse est variable d'une machine à l'autre. Sur VG5000µ, c'est
             $1000.
-
-            == DEBUT DE SECTION IN (bas niveau et interruptions) ==
-
 $0003       ???
 $0004       [num_ver]
 $0004       %NTS
@@ -768,11 +766,10 @@ $02f4-$02dc Utilisation de `outi` pour enoyer les paires vers le VDP.
 
 $02ff       [add_half]
             %SECTION(f4i),MSBASIC(ROUND)
+            == DEBUT DE SECTION F4I (mathématiques flottantes) ==
             Ajoute `0.5` à FAC (l'accumulateur flottant).
 
             Est utilisé pour faire un arrondi à l'entier le plus proche.
-
-            == DEBUT DE SECTION F4I (mathématiques flottantes) ==
 
 $0302       [fp_add_hl]
             %MS_BASIC(ADDPHL)
@@ -2100,6 +2097,7 @@ $0a71       1/1
 
 $0a75       [inst_play]
             %CODE,SECTION(gr)
+            == DEBUT DE SECTION GR (manipulations graphiques et sonores) ==
             Commande BASIC `PLAY`
 
             Joue une séquence de notes dans un langage spécialisé contenu dans la chaîne de caractères en paramètre.
@@ -2107,8 +2105,6 @@ $0a75       [inst_play]
             Comme le rafraichissement de l'écran est désactivé pendant PLAY, une note dans le manuel indique qu'il
             faut provoquer un rafraichissement avant l'appel à PLAY pour être a jour de l'affichage, en appelant
             `DISPLAY`.
-
-            == DEBUT DE SECTION GR (manipulations graphiques et sonores) ==
 
 $0a75       Appel du `hook` de PLAY.
 $0a78       Désactivation du rafraichissement.
@@ -3005,6 +3001,7 @@ $0fee       Padding de fin de section. Ces octets ne sont pas utilisés.
 
 $1000       [start]
             %SECTION(biinit)
+            == DEBUT DE SECTION BIINIT (BASIC INITIALISATION) ==
             C'est ici que commence l'intialisation complète de la machine.
             La première étape est de recopier le contenu de la ROM dans
             l'espace RAM adressable. Adressable ne signifie pas que de la RAM
@@ -3022,8 +3019,6 @@ $1000       [start]
             On remarquera que si une ROM répond avec un contenu identique à
             la ROM à une adresse multiple de 16ko, l'initialisation va
             penser que c'est de la RAM accessible.
-
-            == DEBUT DE SECTION BIINIT (BASIC INITIALISATION) ==
 
 $1000       Désactivation de l'IRQ.
 $1001-$100a Copie de la ROM en boucle sur toute la mémoire addressable.
@@ -3244,8 +3239,8 @@ $11f8       [i_octsav]
 
 $11f9       [keybfr_0]
             %SECTION(txtfil)
-
             == DEBUT DE SECTION TXTFIL (messages textuels) ==
+
 $1201       [keybfr_1]
 $1209       [keybfr_2]
 $1211       [keybfr_3]
@@ -3330,12 +3325,12 @@ $1845       [prtxlt_tbl]
 
 $1945       [inst_save]
             %CODE,SECTION(bicset)
+            == DEBUT DE SECTION BICSET (gestion haut niveau de la cassette) ==
             Commande BASIC `SAVE`
 
             Sauvegarde du listing BASIC en ASCII.
             Attention, la routine efface tout le contenu mémoire à la fin.
 
-            == DEBUT DE SECTION BICSET (gestion haut niveau de la cassette) ==
 $1945       Lit le paramètre de vitesse et initialise les valeurs correspondantes.
 $1948       Récupère les paramètres de lignes de début et fin (optionnels)
 $194b       Sauve le pointeur de texte BASIC
@@ -4366,8 +4361,8 @@ $1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comm
 
 $2000       [instr_table]
             $SECTION(bintrp)
-
             == DEBUT DE SECTION BINTRP (BASIC INTERPRETER) ==
+
 $2064       [funct_table]
 $209d       [prekeywords]
 $209e       [keywords]
@@ -6154,6 +6149,7 @@ $2ad2       Restaure le pointeur vers le texte BASIC.
 
 $2ad4       [acq_key]
             $SECTION(te)
+            == DEBUT DE SECTION TE (TEXT EDITOR) ==
             Décode une touche du clavier.
             
             Affiche sa valeur à l'écran en traitant les touches spéciale.
@@ -6164,8 +6160,6 @@ $2ad4       [acq_key]
             Sortie :
             - A est à 0 si aucune touche n'a été appuyée ou si elle a été traitée.
             - Quelques touches spéciales n'ont pas l'air d'être traitées et sont alors renvoyées dans A. Lesquelles ???
-
-            == DEBUT DE SECTION TE (TEXT EDITOR) ==
 
 $2ad4-$2ad6 Sauve BC, DE et HL sur la pile.
 $2ad7-$2adc Branche si la ligne n'est pas entrée depuis le BASIC. (depuis un INPUT ???)
@@ -6568,7 +6562,7 @@ $2d9e       [accel_keys]
 
 $2ead       [mem_move_v]
             $SECTION(bimisc),%MS_BASIC(MOVUP)
-
+            == DEBUT DE SECTION BIMISC (BASIC INTERPRETER MISCELLANEOUS) ==
             Routine de copie de mémoire.
 
             La zone source se trouve entre DE et BC (inclus ???).
@@ -6580,9 +6574,6 @@ $2ead       [mem_move_v]
             - DE est le pointeur de début de la zone source.
             - BC est le pointeur de fin de la zone source. DE < BC
             - HL est le pointeur de fin de la zone destination. BC < HL
-
-
-            == DEBUT DE SECTION BIMISC (BASIC INTERPRETER MISCELLANEOUS) ==
 
 $2ead       Vérifie qu'il reste assez de mémoire.
 
@@ -7276,13 +7267,12 @@ $3275       Boucle sur la suite de l'émission du listing.
 
 $3278       [initscreen]
             %SECTION(co)
+            == DEBUT DE SECTION CO (SCREEN COMMUNICATIONS) ==
             Réinitialisation du curseur et d'attributs d'affichage.
 
             Redéfinition de deux caractères: $20 et $7F.
 
             Efface l'écran, remise en colonne 1.
-
-            == DEBUT DE SECTION CO (SCREEN COMMUNICATIONS) ==
 
 $3278       Le bit 6 de `(cursor)` (MAT du VDP) indique l'activation du curseur.
 $327c       Test du bit 0 de `(fklock)` (variable majuscules = 1 / minuscules = 0).
@@ -7853,9 +7843,9 @@ $3608       Un octet inutilisé.
 
 $3609       [str_cmp]
             %CODE,SECTION(bistrs),MS_BASIC(CMPSTR)
+            == DEBUT DE SECTION BISTRS (BASIC string handler) ==
             Comparaison entre deux chaînes de caractères.
 
-            == DEBUT DE SECTION BISTRS (BASIC string handler) ==
 $3609       Sauve le nom de la chaîne sur la pile.
 $360a       Récupère la chaîne. (d'où ???)
 $360d       A = longueur de la chaîne.
@@ -8456,9 +8446,8 @@ $38cd       Branche sur le calcul de la différence (HL - DE).
 
 $38d0       [dim_cont]
             %CODE,SECTION(biptrg)
-            L'appel est induit par le push en $38d8, lors de l'exécution de l'instruction `DIM`.
-
             == DEBUT DE SECTION BIPTRG (BASIC pointer get routines) ==
+            L'appel est induit par le push en $38d8, lors de l'exécution de l'instruction `DIM`.
 
 $38d0-$38d2 Le texte BASIC a atteint un caractères nul. Retour de la routine.
 $38d3       Sinon, le caractère doit être une virgule, sinon, c'est une erreur.
@@ -9022,13 +9011,12 @@ $3bcd       Attente jusqu'à la fin de la valeur haute.
 
 $3bd0       [outdo_impl]
             $SECTION(bio)
-
+            == DEBUT DE SECTION BIO (BASIC input/ouput controller) ==
             Émission d'un caractère vers le périphérique sélectionné.
 
             Entrée :
             - A est le caractère à émettre.
 
-            == DEBUT DE SECTION BIO (BASIC input/ouput controller) ==
 $3bd0       Appel au hook d'émission de caractère.
 $3bd3       Sauve AF sur la pile.
 $3bd4-$3bd8 Branche vers l'émission vers l'écran (A = 0)
