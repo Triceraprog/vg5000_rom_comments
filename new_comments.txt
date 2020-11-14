@@ -70,7 +70,7 @@ $001b       [setext]
             [ArticleSetExtCommandsAndMemoryLayout]
 
 $001b       L'implémentation de `setext` est plus loin.
-$001e       ---
+$001e       Deux octets inutilisés.
 
 $0020       [dcompr]
             %CODE
@@ -92,7 +92,7 @@ $0020       [dcompr]
 $0020-$0024 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
             Aucun des deux registres n'est modifié.
 
-$0026       ---
+$0026       Deux octets inutilisés.
 
 $0028       [getsign]
             %CODE
@@ -150,14 +150,9 @@ $0048-$004c Test puis mise à zéro du bit 0 du flag d'affichage.
 $0050       Si le flag d'affichage était à zéro, on évite le rafraichissement.
 $0053-$0055 Début du rafraichissement de l'affichage, avec sauvegarde
             de registres.
-$0056       Envoi à EF9345 de commandes (à décoder)
-$0058       ---
-$005a       ---
-$005c       ---
-$005e       ---
-$0060       ---
-$0062       ---
-$0065       ---
+$0056-$005c VDP - $28/$82
+$005e-$0062 Prépare la commande $29
+$0065       Un octet inutilisé.
 
 $0066       [nmi]
             %CODE
@@ -182,7 +177,7 @@ $0069-$006b Messages en anglais.
 $006e-$0071 Table de transcription du clavier en anglais.
 $0074       Retour d'interruption NMI.
 
-$0076       ---
+$0076       Dix octets inutilisés.
 
 $0080       [retfun]
             %CODE
@@ -489,113 +484,63 @@ $00bc       [disp_refrsh]
             du contenu de la mémoire vidéo en RAM ($4000)
 
             Le séquence commence avant le branchement à la fin de `irq:`.
-$00bc       ---
-$00bf       Séquence EF9345 à décoder
-$00c1       ---
-$00c3       ---
-$00c5       ---
-$00c7       ---
-$00c9       ---
-$00ca       ---
-$00cc       ---
-$00ce       ---
-$00d0       ---
-$00d1       ---
-$00d3       ---
-$00d6       ---
-$00d8       ---
-$00da       ---
-$00dc       ---
-$00de       ---
+$00bc-$00c1 VDP - $29/MAT (sauf le bit 6) ???
+$00c3-$00ca VDP - $26/0 ???
+$00cc-$00d1 VDP - $26/0 ???
+$00d3       HL pointe vers le début du buffer d'écran BASIC.
+$00d6       Prépare l'argument de la prochaine commande.
+$00d8       Compteur pour les 80 prochain octets (ou 160 ???)
+$00da-$00de VDP - $20/$03
 $00e0       [r_line0_lp]
-$00e2       ---
-$00e4       ---
-$00e6       ---
-$00e8       ---
-$00ea       ---
+$00e0-$00e4 VDP - $22/(HL) et HL++
+$00e6-$00ea VDP - $29/(HL) et HL++
 $00ec       Boucle sur les 80 octets de la première ligne
-$00ee       ---
-$00f0       ---
-$00f2       ---
-$00f4       ---
-$00f6       ---
-$00f8       ---
-$00fa       ---
-$00fb       ---
+$00ee-$00f4 VDP - $26/8
+$00f6-$00fb VDP - $27/0
 $00fd       24 lignes
 $00ff       [r_line_loop]
-$0101       ---
-$0103       ---
-$0105       [jump0105]
-$0107       ---
-$0108       ---
-$010b       ---
-$010d       ---
-$010f       ---
-$0111       [loop0111]
-$0113       ---
-$0115       [jump0115]
-$0117       ---
-$0118       ---
-$011b       ---
-$011d       ---
-$011f       ---
-$0121       ---
-$0123       ---
-$0125       ---
-$0127       ---
-$0129       ---
-$012b       ---
-$012d       [jump012D]
-$012f       ---
-$0130       ---
-$0133       ---
-$0135       ---
-$0137       ---
-$0139       ---
-$013b       ---
-$013c       ---
-$013e       ---
-$0142       ---
-$0144       ---
-$0147       ---
-$0148       ---
-$0149       ---
-$014b       ---
-$014d       ---
-$014e       [skip014E]
-$0150       ---
-$0152       ---
-$0154       ---
-$0156       ---
-$0158       ---
-$015a       ---
-$015c       ---
-$015e       ---
-$0160       ---
-$0162       ---
-$0164       ---
-$0166       ---
-$0168       [jump0168]
-$016a       ---
-$016b       ---
-$016e       ---
-$0170       ---
-$0172       ---
-$0174       ---
-$0176       ---
-$0178       ---
-$017a       ---
-$017e       ---
-$0181       ---
-$0183       [skip0183]
-$0184       ---
-$0185       ---
+$00ff       Compteur pour les 120 prochain transferts ???
+$0101-$0103 VDP - $20
+
+$0105       [w_vdp_1]
+$0105-$0108 Attente du VDP
+$010b-$010f VDP - $20/E ???
+
+$0111       [col_loop]
+$0111-$0113 VDP - $20
+$0115       [w_vdp_2]
+$0115-$0118 Attente du VDP
+$011b-$011f VDP - $22/(HL) et HL++
+$0121-$0125 VDP - $29/(HL) et HL++
+$0127       Boucle 120 fois.
+$0129-$012b VDP - $20
+
+$012d       [w_vdp_3]
+$012d-$0130 Attente du VDP
+$0133-$0139 VDP - $29/$b0
+$013b-$013c Boucle sur les 24 lignes
+$013e-$0142 Branche si le curseur n'est pas actif.
+$0144       Coordonnées du curseur dans HL
+$0147-$0149 Branche si la ligne du curseur est 0
+$014b-$014d Sinon, ajoute 7 au numéro de ligne logique pour obtenir le numéro de ligne VDP.
+$014e       [set_curssor]
+$014e-$0154 VDP - $26/H
+$0156-$015a VDP - $27/L
+$015c-$0162 VDP - $28/$0a
+$0164-$0166 VDP - $20
+
+$0168       [w_vdp_4]
+$0168-$016b Attente du VDP
+$016e-$0174 VDP - $28/$82
+$0176-$0181 VDP - $29/`(cursor)` après avoir forcé l'activation de la marge.
+
+$0183       [end_refresh]
+$0183-$0185 Restaure les registres.
+
 $0186       [skip_dsplay]
 $0186       Incrémente le compteur de répétition des touches.
-$0189       ---
-$018a       ---
-$018b       ---
+$0189       Restaure AF.
+$018a       Active les interruptions.
 
 $018c       [putahl_impl]
             Implémentation de `putahl:`.
