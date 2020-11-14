@@ -86,10 +86,10 @@ $0020       [dcompr]
             - A est modifié
             - Carry est à 1 si DE est supérieur à HL.
             - Z est à 1 si les deux registres sont égaux.
+            - HL et DE sont conservés.
+            
 
 $0020-$0024 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
-            Aucun des deux registres n'est modifié.
-
 $0026       Deux octets inutilisés.
 
 $0028       [getsign]
@@ -827,7 +827,7 @@ $0324       Copie BCDE dans FAC
 $0327-$0328 Et récupère BCDE (l'ancien FAC) depuis la pile.
 $0329       [no_swap]
             Ici, BCDE contient le plus petit des nombres. A contient la différence (positive) entre les deux exposants.
-$0328-$032b Si la différence est de plus de 25. BCDE est négligeable face à FAC, on a terminé.
+$0329-$032b Si la différence est de plus de 25. BCDE est négligeable face à FAC, on a terminé.
 $032c       Sauve AF
 $032d       Extrait les signes de FAC et BCDE, A bit 7 à 1 si les signes sont opposés, 0 si identiques.
 $0330       Sauve le résultat du signe dans H
@@ -937,7 +937,7 @@ $03bf-$03ca HL pointe sur la mantisse de FAC. Y ajoute la mantisse CDE.
 
 $03cb       [cpl_2]
             Complément à 2 de la mantisse sous forme CDEB.
-$03cb-$03cd Inverse le bit de signe temporaire.
+$03cb-$03d0 Inverse le bit de signe temporaire.
 
 $03df       [scale]
             %MS_BASIC(SCALE)
@@ -1000,7 +1000,7 @@ $0430       [logtab2_3]
 $0430       0.3535534143447876
 $0434       [inst_log]
             %CODE
-$0434-$0426 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
+$0434-$0436 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
 $0439       Appel le calcul du log.
 $043c-$043f BCDE = ln(2)
 $0442       Multiplie le résultat par ln(2)
