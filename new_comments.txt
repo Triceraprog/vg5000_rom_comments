@@ -2833,6 +2833,8 @@ $0f2e       [stka_impl]
 
             Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
 
+            Cette routine est modifiée en ROM 1.1 par rapport à la version ROM 1.0 pour prendre en compte deux boutons.
+
             Entrées :
             - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
             
@@ -2845,19 +2847,15 @@ $0f2e       [stka_impl]
 
             Normalement appelé depuis `stka`.
 
-$0ef9       
-$0edb       
-$0edf       
-$0eff-$0f00 
-$0f02-$0f04 Lecture de la flêche vers le haut du clavier
-
 $0f2e       Prépare la valeur de retour.
 $0f30       Restreint le paramètre d'entrée entre 0 et 3.
 $0f32       Branche pour le cas 0.
 $0f34-$0f35 Branche pour le cas 1.
 $0f38-$0f3a Vérification de l'appuie de la touche ESPACE
 $0f3c       Branche vers la partie finale commune.
+
 $0f3e       [stka_joy0]
+            Partie étendue par rapport à la ROM 1.0 pour prendre en compte deux boutons.
 $0f3e       Vérification de l'appuie sur la bouton action du joystick 0
 $0f40       Complément à 1.
 $0f41       Masque sur le bits 4 et 5.
@@ -4358,6 +4356,7 @@ $1fe6-$1ff0 VDP - $29/..., R1 = `(cursor)` avec la couleur de la marge remplacé
             Comme `(cursor)` représente `MAT` côté RAM, c'est un changement direct et temporaire sur le VDP.
 
 $1ff3       [stka_joy1]
+            Partie étendue par rapport à la ROM 1.0 pour prendre en compte deux boutons.
 $1ff3       Vérification de l'appuie sur la bouton action du joystick 0
 $1ff5       Complément à 1.
 $1ff6       Masque sur le bits 4 et 5.
@@ -4369,6 +4368,8 @@ $1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comm
 $2000       [instr_table]
             $SECTION(bintrp)
             == DEBUT DE SECTION BINTRP (BASIC INTERPRETER) ==
+
+            Le dernier pointeur d'instruction, sur `NEW`, est modifié entre la ROM 1.0 et la ROM 1.1
 
 $2064       [funct_table]
 $209d       [prekeywords]
@@ -5470,7 +5471,7 @@ $2780       Acquisition des données.
 $2783       Rend le curseur invisible.
 $2787-$278e Efface la continuité de ligne et signal que l'on a terminé l'instruction `INPUT`.
 
-$2792       Octet inutilisé.
+$2792       Octet inutilisé du au patch de `INPUT` dans la ROM 1.1
 
 $2793       [input_data]
 $2793       Récupère le pointeur de texte BASIC dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
@@ -6155,7 +6156,7 @@ $2acb       [poke_addr]
             Routine de récupération du premier argument pour `POKE`.
             Cette routine est séparée de la routine pour l'instruction pour une raison inconnue.
 
-            Cette routine n'était pas appelée dans la ROM 1.0 certainement par erreur.
+            Cette routine n'est pas appelée dans la ROM 1.0 certainement par erreur.
             Dans la ROM 1.1, elle est bien appelée par la routine pour `POKE`, mais une
             seule fois, ce qui laisse entière la question : pourquoi une routine
             séparée ?
@@ -6201,17 +6202,17 @@ $2b07       [acq_key_3]
 
 $2b07-$2b09 Branche pour traiter la touche Déplacement vers le haut.
 $2b0c-$2b0e Branche pour traiter la touche Saut de ligne.
-$2b11-$2b13 Branche pour traiter la touche Saut de page.
+$2b11-$2b13 Branche pour traiter la touche Saut de page. ???
 $2b16       Poursuit le traitement de l'acquisition d'une touche appuyée.
 
-$2b19       Octet inutilisé
+$2b19       Octet inutilisé du au patch de la ROM 1.1
 
 $2b1a       [key_effe]
             La touche EFFE a été appuyée
 $2b1a-$2b1f Branche si la drapeau de commande INPUT est activé.
 $2b21       Sinon, remet la valeur $1f dans la touche appuyée.
 
-$2b23       [acq_key_7]
+$2b23       [key_out]
 $2b23       Au final, la touche appuyée est émise vers le périphérique sélectionné.
 
 $2b24       [acq_sync]
@@ -6286,7 +6287,7 @@ $2b9a       Renvoie avoir acquis un retour chariot
 $2b9c       [if_col_1]
 $2b9c       Redirige ves une insertion de ligne puis acquisition d'un retour chariot.
 
-$2b9f       Deux octets inutilisés.
+$2b9f       Deux octets inutilisés du au patch de la ROM 1.1
 
 $2ba1       [not_digit]
 $2ba1       Place le curseur après le bloc de ligne logique.
@@ -6340,12 +6341,13 @@ $2be0       [ifcr]
 $2be0       Récupération des coordonnées du curseur dans HL.
 
 $2be3       [find_start_l]
+            Cette partie est patchée dans la ROM 1.1 pour le traitement des lignes logiques.
 $2be3       Décrémentation le numéro de colonne.
 $2be4       Sauve les coordonnées ainsi modifiées.
 $2be5       Lit le caractère à cet endroit.
 $2be8       Restaure les coordonnées modifiées.
 $2be9-$2beb Branche si le caractère trouvé est $80, le début de ligne logique.
-$2bed-$2bf1 Branche si le caractère n'est pas un chiffre ou ???
+$2bed-$2bf1 Branche si le caractère n'est pas un chiffre.
 $2bf3       Boucle sur la recherche de début de ligne logique.
 
 $2bf5       [line_start]
@@ -6375,7 +6377,7 @@ $2c20       [found_start]
             Les coordonnées du curseur dans `(retadr)` sont sur le début logique d'une ligne.
 
 $2c20-$2c25 Branche si la commande `INPUT` n'est pas en train d'être exécutée.
-$2c27-$2c2b Quelques `NOP`s pour une raison inconnue (patch ???)
+$2c27-$2c2b Quelques `NOP`s pour patch de la ROM 1.1 qui annulent le traitement de `INPUT` dans la ROM 1.0
 $2c2c       Recupération des coordonnées du début de ligne logique.
 $2c2f       Sauve ces coordonnées sur la pile.
 $2c30       Calcule dans HL la correspondance en buffer écran du BASIC.
@@ -9417,6 +9419,7 @@ $3e0a-$3e0c Branche si la touche appuyée n'est pas Effacement de l'écran (touc
 $3e0e       Sinon, branche sur le traitement de la touche `EFFE`.
 
 $3e11       [insert_n_cr]
+            Patch de la ROM 1.1 pour traiter le cas `INPUT`.
 $3e11-$3e16 Branche si on n'est pas dans un `INPUT`
 $3e19-$3e1b Sinon, émet une insertion de ligne.
 $3e1c       Puis valide la ligne.
@@ -9432,7 +9435,7 @@ $3e2a       Sinon, continue avec la routine de traitement `INSC`.
 $3e2d       [acq_key_2]
             Suite du traitement de l'entrée de caractère.
 
-            Il s'agit ici de code patché pour la ROM 1.1
+            Il s'agit ici de code patché pour la ROM 1.1 afin de traiter des cas particuliers.
 
 $3e2d       Branche si la touche appuyée est Entrée.
 $3e30       Sauve AF

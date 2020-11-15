@@ -2833,6 +2833,8 @@ $0f2e       [stka_impl]
 
             Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
 
+            Cette routine est modifiée en ROM 1.1 par rapport à la version ROM 1.0 pour prendre en compte deux boutons.
+
             Entrées :
             - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
             
@@ -2845,24 +2847,22 @@ $0f2e       [stka_impl]
 
             Normalement appelé depuis `stka`.
 
-$0ef9       
-$0edb       
-$0edf       
-$0eff-$0f00 
-$0f02-$0f04 Lecture de la flêche vers le haut du clavier
-
 $0f2e       Prépare la valeur de retour.
 $0f30       Restreint le paramètre d'entrée entre 0 et 3.
 $0f32       Branche pour le cas 0.
 $0f34-$0f35 Branche pour le cas 1.
-$0f38-$0f3a Vérification de l'appuie de la touche ESPACE
-$0f3c       Branche vers la partie finale commune.
-$0f3e       [stka_joy0]
-$0f3e       Vérification de l'appuie sur la bouton action du joystick 0
-$0f40       Complément à 1.
-$0f41       Masque sur le bits 4 et 5.
-$0f43-$0f46 Décalage pour amener le résultat sur les bits 0 et 1
-$0f47       Résultat aussi dans B.
+$0f37-$0f39 Vérification de l'appuie de la touche ESPACE
+$0f3b       Branche vers la partie finale commune.
+
+$0f3d       [stka_joy0]
+            Dans cette version ROM 1.0, ne prend en compte qu'un seul bouton.
+$0f3f       Vérification de l'appuie sur la bouton action du joystick 0
+$0f41       Branche vers la partie finale commune.
+
+$0f43       [stka_joy1]
+            Dans cette version ROM 1.0, ne prend en compte qu'un seul bouton.
+$0f45       Vérification de l'appuie sur la bouton action du joystick 1
+$0f47       Branche vers la partie finale commune.
 
 $0f49       [inst_key]
             %CODE
@@ -4363,6 +4363,8 @@ $1ff3       Padding de fin de section.
 $2000       [instr_table]
             $SECTION(bintrp)
             == DEBUT DE SECTION BINTRP (BASIC INTERPRETER) ==
+
+            Le dernier pointeur d'instruction, sur `NEW`, est modifié entre la ROM 1.0 et la ROM 1.1
 
 $2064       [funct_table]
 $209d       [prekeywords]
@@ -6145,7 +6147,10 @@ $2acb       [poke_addr]
             Routine de récupération du premier argument pour `POKE`.
             Cette routine est séparée de la routine pour l'instruction pour une raison inconnue.
 
-            Dans la ROM 1.0, elle n'est jamais appelée, c'est un bug corrigé dans la ROM 1.1.
+            Cette routine n'est pas appelée dans la ROM 1.0 certainement par erreur.
+            Dans la ROM 1.1, elle est bien appelée par la routine pour `POKE`, mais une
+            seule fois, ce qui laisse entière la question : pourquoi une routine
+            séparée ?
 
 $2acb       Lit l'expression pointée par HL
 $2ace       Sauve le pointeur vers le texte BASIC.
@@ -6181,25 +6186,19 @@ $2af4-$2afb Indique qu'un caractère a été entré depuis une interaction en BA
             La désactivement du défilement est retiré dans la ROM 1.1.
 $2afe       Restaure AF
 $2aff       Branche si la touche validée était une touche de fonction.
-$2b02       Comparaison de la touche appuyée avec la touche Entrée.
-$2b04       Il s'agit de code patché par rapport à la ROM 1.0, on branche donc plus loin avant de revenir juste après.
-
-$2b07       [acq_key_3]
-            Suite du traitement de l'appuie de touche, si la boucle BASIC est active.
-
+$2b02-$2b04 Branche si la touche appuyée est Entrée.
+            La ROM 1.1 patch ce morceau afin de traiter les cas particulier (lors d'une instruction `INPUT`).
 $2b07-$2b09 Branche pour traiter la touche Déplacement vers le haut.
 $2b0c-$2b0e Branche pour traiter la touche Saut de ligne.
-$2b11-$2b13 Branche pour traiter la touche Saut de page.
-$2b16       Poursuit le traitement de l'acquisition d'une touche appuyée.
-
-$2b19       Octet inutilisé
+$2b11-$2b13 Branche pour traiter la touche Saut de page. ???
+$2b16-$2b18 Branche si la touche n'est pas Efface Écran
 
 $2b1a       [key_effe]
             La touche EFFE a été appuyée
 $2b1a-$2b1f Branche si la drapeau de commande INPUT est activé.
 $2b21       Sinon, remet la valeur $1f dans la touche appuyée.
 
-$2b23       [acq_key_7]
+$2b23       [key_out]
 $2b23       Au final, la touche appuyée est émise vers le périphérique sélectionné.
 
 $2b24       [acq_sync]
@@ -6272,9 +6271,7 @@ $2b97       Descend jusqu'après le bloc de ligne logique.
 $2b9a       Renvoie avoir acquis un retour chariot
 
 $2b9c       [if_col_1]
-$2b9c       Redirige ves une insertion de ligne puis acquisition d'un retour chariot.
-
-$2b9f       Deux octets inutilisés.
+$2b9c-$2b9f Émet l'insertion de ligne (comme une touche `INSL`) puis prétend que la touche Entrée a été appuyée.
 
 $2ba1       [not_digit]
 $2ba1       Place le curseur après le bloc de ligne logique.
@@ -6328,28 +6325,26 @@ $2be0       [ifcr]
 $2be0       Récupération des coordonnées du curseur dans HL.
 
 $2be3       [find_start_l]
-$2be3       Décrémentation le numéro de colonne.
-$2be4       Sauve les coordonnées ainsi modifiées.
-$2be5       Lit le caractère à cet endroit.
-$2be8       Restaure les coordonnées modifiées.
-$2be9-$2beb Branche si le caractère trouvé est $80, le début de ligne logique.
-$2bed-$2bf1 Branche si le caractère n'est pas un chiffre ou ???
-$2bf3       Boucle sur la recherche de début de ligne logique.
+            Cette partie est patchée dans la ROM 1.1 pour le traitement des lignes logiques.
+$2be3-$2be5 Branche si le curseur est en colonne 1.
+$2be7       Sinon décrémente le numéro de colonne.
+$2be8       Sauve les coordonnées ainsi modifiées.
+$2be9       Lit le caractère à cet endroit.
+$2bec       Restaure les coordonnées modifiées.
+$2bed-$2bf3 Branche si le caractère n'est pas un chiffre.
+$2bf5       Boucle sur la recherche de début de ligne logique.
 
-$2bf5       [line_start]
-            Le curseur est positionné sur le caractère de continuité de ligne.
-$2bf5-$2bf7 Si on n'était pas sur la colonne 0, c'était une fausse alerte et non un vrai début de ligne.
-            Continue à chercher.
-$2bf9       Sinon, se place sur la colonne 1 de la première ligne de la ligne logique.
-$2bfa-$2bfe Branche si le mode `AUTO` n'est pas en cours.
-$2c00-$2c01 Sinon, le mode `AUTO` est annulé.
-$2c04       L'adresse du curseur mis à jour.
-$2c07-$2c09 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne courante)
-$2c0a       Et la touche acquise sera validée comme étant un retour chariot ($0d).
+$2bf7       [line_start]
+            Le curseur est positionné sur la colonne 0.
+$2bf7-$2bfb Branche si le mode `AUTO` n'est pas en cours.
+$2cfd-$2cfe Sinon, le mode `AUTO` est annulé.
+$2c01       L'adresse du curseur mis à jour.
+$2c04-$2c06 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne courante)
+$2c07       Et la touche acquise sera validée comme étant un retour chariot ($0d).
 
-$2c0d       [find_cont]
+$2c0a       [find_cont]
             Traitement lors d'une continuité trouvée au début de la ligne ???
-$2c0d       Place les coordonnées modifiées du curseur sur la colonne 1.
+$2c0a-$2c0d Place les coordonnées du curseur sur la colonne 1.
 $2c0f       [find_start]
 $2c0f       Enregistre la coordonnées modifiée comme la coordonnées actuelle de ligne envoyée au BASIC.
 $2c12       Sauve ces coordonnées sur la pile.
@@ -6363,7 +6358,8 @@ $2c20       [found_start]
             Les coordonnées du curseur dans `(retadr)` sont sur le début logique d'une ligne.
 
 $2c20-$2c25 Branche si la commande `INPUT` n'est pas en train d'être exécutée.
-$2c27-$2c2b Quelques `NOP`s pour une raison inconnue (patch ???)
+$2c27-$2c29 Annule le traitement de la commande `INPUT`.
+            Cette partie est remplacée par des `NOP`s dans la ROM 1.1
 $2c2c       Recupération des coordonnées du début de ligne logique.
 $2c2f       Sauve ces coordonnées sur la pile.
 $2c30       Calcule dans HL la correspondance en buffer écran du BASIC.
