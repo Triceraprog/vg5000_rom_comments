@@ -481,8 +481,12 @@ $00bc       [disp_refrsh]
             Rafraichissement de l'état de l'affichage sur l'EF9345 en fonction
             du contenu de la mémoire vidéo en RAM ($4000)
 
-            Le séquence commence avant le branchement à la fin de `irq:`.
-$00bc-$00c1 VDP - $29/MAT, R1 = `(cursor)`
+            La séquence commence avant le branchement à la fin de `irq:`.
+
+            La séquence envoyée au VDP change entre la ROM 1.0 et ROM 1.1
+            La version ROM 1.1 est plus optimisée.
+
+$00bc-$00c1 VDP - $29/MAT, R1 = `(cursor)` (+ Exec)
             Le bit 6 de MAT est forcé à 0, ce invalide l'affichage du curseur.
 $00c3-$00ca VDP - $26/$00, R6 = 0
 $00cc-$00d1 VDP - $27/$00, R7 = 0
@@ -490,11 +494,11 @@ $00d3       HL pointe vers le début du buffer d'écran BASIC.
 $00d6       Prépare l'argument de la prochaine commande.
 $00d8       Compteur pour les 80 prochaines paires caractère/attribut à transférer au VDP.
             Cela représente les deux premières lignes de l'écran.
-$00da-$00de VDP - $20/$03, KRG avec incrément, MP = $0000.
+$00da       [r_line0_lp]
+$00da-$00dc VDP - $22/(HL), R2 = (HL) et HL++
+$00e0-$00e4 VDP - $21/(HL), R1 = (HL) et HL++
+$00e6-$00ea VDP - $28/$03, KRG avec incrément, MP = $0000. (+ Exec)
 
-$00e0       [r_line0_lp]
-$00e0-$00e4 VDP - $22/(HL), R2 = (HL) et HL++
-$00e6-$00ea VDP - $29/(HL), R1 = (HL) et HL++
 $00ec       Boucle sur les 160 octets des deux première lignes.
 
 $00ee-$00f4 VDP - $26/$08, R6 = 0
@@ -505,18 +509,18 @@ $00fd       24 transferts.
 $00ff       [r_line_loop]
 $00ff       Compteur pour les 120 prochains octets à transférer.
 
+$0101       [col_loop]
 $0101-$0103 VDP - $20
 $0105       [w_vdp_1]
 $0105-$0108 Attente du VDP
-$010b-$010f VDP - $20/$03, KRG avec incrément (E = $03)
+$010b-$010f VDP - $22/(HL), R2 = (HL) et HL++
 
-$0111       [col_loop]
 $0111-$0113 VDP - $20
 $0115       [w_vdp_2]
 $0115-$0118 Attente du VDP
 
-$011b-$011f VDP - $22/(HL), R2 = (HL) et HL++
-$0121-$0125 VDP - $29/(HL), R1 = (HL) et HL++
+$011b-$011f VDP - $21/(HL), R1 = (HL) et HL++
+$0121-$0125 VDP - $28/$03, KRG avec incrément (E = $03) (+ Exec)
 $0127       Boucle 60 fois.
 
 $0129-$012b VDP - $20
@@ -9223,7 +9227,8 @@ $3cc5-$3cc7 Sinon, replace le caractère dans le buffer en effaçant le bit de p
 $3cc8-$3ccb Compare le pointeur vers le texte entré avec la fin du buffer de travail.
             Mais comment est-ce que HL pourrait déborder ??? Pas en entrée direct on dirait...
             Il est possible qu'on n'arrive là que via la lecture k7 ???
-$3ccc       Branche vers la suite.
+$3ccc       Si le pointeur a atteint la fin du buffer, branche vers la validation de la ligne.
+            Cette partie est patchée dans la ROM 1.1 pour une meilleure gestion de la fin de buffer.
 
 $3ccf       [hl_incbuf]
 $3ccf       Incrémente le pointeur dans le buffer de travail.

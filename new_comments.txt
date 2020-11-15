@@ -481,8 +481,12 @@ $00bc       [disp_refrsh]
             Rafraichissement de l'état de l'affichage sur l'EF9345 en fonction
             du contenu de la mémoire vidéo en RAM ($4000)
 
-            Le séquence commence avant le branchement à la fin de `irq:`.
-$00bc-$00c1 VDP - $29/MAT, R1 = `(cursor)`
+            La séquence commence avant le branchement à la fin de `irq:`.
+
+            La séquence envoyée au VDP change entre la ROM 1.0 et ROM 1.1
+            La version ROM 1.1 est plus optimisée.
+
+$00bc-$00c1 VDP - $29/MAT, R1 = `(cursor)` (+ Exec)
             Le bit 6 de MAT est forcé à 0, ce invalide l'affichage du curseur.
 $00c3-$00ca VDP - $26/$00, R6 = 0
 $00cc-$00d1 VDP - $27/$00, R7 = 0
@@ -494,7 +498,7 @@ $00da-$00de VDP - $20/$03, KRG avec incrément, MP = $0000.
 
 $00e0       [r_line0_lp]
 $00e0-$00e4 VDP - $22/(HL), R2 = (HL) et HL++
-$00e6-$00ea VDP - $29/(HL), R1 = (HL) et HL++
+$00e6-$00ea VDP - $29/(HL), R1 = (HL) et HL++ (+ Exec)
 $00ec       Boucle sur les 160 octets des deux première lignes.
 
 $00ee-$00f4 VDP - $26/$08, R6 = 0
@@ -516,7 +520,7 @@ $0115       [w_vdp_2]
 $0115-$0118 Attente du VDP
 
 $011b-$011f VDP - $22/(HL), R2 = (HL) et HL++
-$0121-$0125 VDP - $29/(HL), R1 = (HL) et HL++
+$0121-$0125 VDP - $29/(HL), R1 = (HL) et HL++ (+ Exec)
 $0127       Boucle 60 fois.
 
 $0129-$012b VDP - $20
@@ -9420,9 +9424,13 @@ $3ddc-$3ddd Copie le pointeur vers la ligne trouvée dans HL
 $3dde       Branche vers l'effacement du chaînage du listing à partir de cette ligne.
 
 $3de1       [decodenext]
+            Code patché de la ROM 1.1 pour la routine `decodebasic`.
+            
+            Le patch consiste a un meilleur traitement lorsque le buffer d'acquisition de la ligne est rempli.
+
 $3de1       Si HL pointe avant la fin du buffer de travail, le pointeur est incrémenté puis la routine l'acquisition continue.
 $3de3       Si HL n'est pas égal, c'est qu'il est supérieur à la fin du buffer de travail, l'acqusition continue sans toucher à HL.
-            Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ?) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
+            Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ???) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
 $3de6-$3de8 Sinon, HL vient d'atteindre la fin du buffer de travail, un 'bip' est émit. Puis enchaîne sur l'incrémentation du pointeur et la suite de l'acquisition.
 
 $3de9       [ind_inchl]
