@@ -148,7 +148,7 @@ $0048-$004c Test puis mise à zéro du bit 0 du flag d'affichage.
 $0050       Si le flag d'affichage était à zéro, on évite le rafraichissement.
 $0053-$0055 Début du rafraichissement de l'affichage, avec sauvegarde
             de registres.
-$0056-$005c VDP - $28/$82
+$0056-$005c VDP - $28/$82, MAT = R1
 $005e-$0062 Prépare la commande $29
 $0065       Un octet inutilisé.
 
@@ -482,55 +482,64 @@ $00bc       [disp_refrsh]
             du contenu de la mémoire vidéo en RAM ($4000)
 
             Le séquence commence avant le branchement à la fin de `irq:`.
-$00bc-$00c1 VDP - $29/MAT (sauf le bit 6) ???
-$00c3-$00ca VDP - $26/0 ???
-$00cc-$00d1 VDP - $26/0 ???
+$00bc-$00c1 VDP - $29/MAT, R1 = `(cursor)`
+            Le bit 6 de MAT est forcé à 0, ce invalide l'affichage du curseur.
+$00c3-$00ca VDP - $26/$00, R6 = 0
+$00cc-$00d1 VDP - $27/$00, R7 = 0
 $00d3       HL pointe vers le début du buffer d'écran BASIC.
 $00d6       Prépare l'argument de la prochaine commande.
-$00d8       Compteur pour les 80 prochain octets (ou 160 ???)
-$00da-$00de VDP - $20/$03
-$00e0       [r_line0_lp]
-$00e0-$00e4 VDP - $22/(HL) et HL++
-$00e6-$00ea VDP - $29/(HL) et HL++
-$00ec       Boucle sur les 80 octets de la première ligne
-$00ee-$00f4 VDP - $26/8
-$00f6-$00fb VDP - $27/0
-$00fd       24 lignes
-$00ff       [r_line_loop]
-$00ff       Compteur pour les 120 prochain transferts ???
-$0101-$0103 VDP - $20
+$00d8       Compteur pour les 80 prochaines paires caractère/attribut à transférer au VDP.
+            Cela représente les deux premières lignes de l'écran.
+$00da-$00de VDP - $20/$03, KRG avec incrément, MP = $0000.
 
+$00e0       [r_line0_lp]
+$00e0-$00e4 VDP - $22/(HL), R2 = (HL) et HL++
+$00e6-$00ea VDP - $29/(HL), R1 = (HL) et HL++
+$00ec       Boucle sur les 160 octets des deux première lignes.
+
+$00ee-$00f4 VDP - $26/$08, R6 = 0
+$00f6-$00fb VDP - $27/$00, R7 = 8
+            R6, R7 forment le nouveau pointeur pour KRG.
+$00fd       24 transferts.
+
+$00ff       [r_line_loop]
+$00ff       Compteur pour les 120 prochains octets à transférer.
+
+$0101-$0103 VDP - $20
 $0105       [w_vdp_1]
 $0105-$0108 Attente du VDP
-$010b-$010f VDP - $20/E ???
+$010b-$010f VDP - $20/$03, KRG avec incrément (E = $03)
 
 $0111       [col_loop]
 $0111-$0113 VDP - $20
 $0115       [w_vdp_2]
 $0115-$0118 Attente du VDP
-$011b-$011f VDP - $22/(HL) et HL++
-$0121-$0125 VDP - $29/(HL) et HL++
-$0127       Boucle 120 fois.
-$0129-$012b VDP - $20
 
+$011b-$011f VDP - $22/(HL), R2 = (HL) et HL++
+$0121-$0125 VDP - $29/(HL), R1 = (HL) et HL++
+$0127       Boucle 60 fois.
+
+$0129-$012b VDP - $20
 $012d       [w_vdp_3]
 $012d-$0130 Attente du VDP
-$0133-$0139 VDP - $29/$b0
-$013b-$013c Boucle sur les 24 lignes
+
+$0133-$0139 VDP - $29/$b0, Increment Y
+$013b-$013c Boucle 24 fois.
 $013e-$0142 Branche si le curseur n'est pas actif.
 $0144       Coordonnées du curseur dans HL
 $0147-$0149 Branche si la ligne du curseur est 0
 $014b-$014d Sinon, ajoute 7 au numéro de ligne logique pour obtenir le numéro de ligne VDP.
-$014e       [set_curssor]
-$014e-$0154 VDP - $26/H - Place le curseur sur le ligne H
-$0156-$015a VDP - $27/L - Place le curseur sur la colonne L
-$015c-$0162 VDP - $28/$0a
-$0164-$0166 VDP - $20
+$014e       [set_cursor]
+$014e-$0154 VDP - $26/H - R6 = H, la ligne du curseur.
+$0156-$015a VDP - $27/L - R7 = L, la colonne du curseur.
+$015c-$0162 VDP - $28/$0a - RAM VDP à l'adresse R6/R7 vers R1/R2
 
+$0164-$0166 VDP - $20
 $0168       [w_vdp_4]
 $0168-$016b Attente du VDP
-$016e-$0174 VDP - $28/$82
-$0176-$0181 VDP - $29/`(cursor)` après avoir forcé l'activation de la marge.
+
+$016e-$0174 VDP - $28/$82, MAT = R1
+$0176-$0181 VDP - $29/`(cursor)`, R1 = `(cursor)` après avoir forcé l'activation de la marge.
 
 $0183       [end_refresh]
 $0183-$0185 Restaure les registres.
@@ -601,7 +610,8 @@ $020c       Avance le pointeur de l'écran.
 $020d       Met dans le second octet de la paire caractère/attribut les attributs de couleurs.
 $020e       Avance le pointeur de l'écran.
 $020f       Sauve le pointeur de l'écran dans DE.
-$0210-$0213 Désactive la continuité de ligne (expliquer le fonctionnement de la continuité ailleurs ???)
+$0210-$0213 Désactive la continuité de ligne.
+            L'écriture du délimiteur ne provoquera pas de création de ligne logique.
 $0215       Récupère les coordonnées du curseur.
 $0216-$0219 Branche si la colonne est inférieure à 39
 $021b       Sinon ramène le curseur à la colonne 0.
@@ -5102,11 +5112,14 @@ $259a       [inst_run]
             %CODE,%MS_BASIC(RUN)
             Instruction BASIC : RUN
 
-            L'instruction RUN sans argument branche sur la boucle d'exécution directement. (tracer ???)
+            L'instruction RUN sans argument réinitalise les variables BASIC et faite pointer l'interpréteur vers la première ligne du programme.
+
             Avec un argument, le contexte BASIC est réinitialisé puis continue vers l'instruction `GOTO`.
 
 $259a       Coupe l'affichage du curseur (au prochain rafraichissement)
-$259e       Branche s'il n'y a pas d'argument à la commande. (du coup, comment ça démarre ???)
+$259e       Branche s'il n'y a pas d'argument à la commande.
+            La réinitialisation des variables va faire pointer la prochaine instruction au début du listing.
+            L'adresse de retour étant `end_of_inst`, l'interpréteur enchaînera sur le programme depuis son début.
 $25a1       Réinitialise les variables de contexte BASIC.
 $25a4       Prépare le retour dans la boucle d'exécution.
 $25a7       Branche vers l'instruction `GOTO` précédé de la mise sur la pile de BC.
@@ -5138,7 +5151,7 @@ $25c0-$25c1 Et sauve le pointeur ajusté sur la ligne suivante.
 $25c2-$25c5 Compare la ligne courante (HL) et la ligne voulue (DE)
 $25c6       Restaure le pointeur de texte BASIC.
 $25c7       Appelle si le numéro de ligne voulue est au-delà de la ligne courante.
-$25ca       Appelle si le numéro de ligne voulue est avant la ligne courante (ou égal à ???)
+$25ca       Appelle si le numéro de ligne voulue est égale ou avant la ligne courante.
 $25cd-$25ce Copie de la ligne trouvée dans HL
 $25cf       Ajuste le pointeur vers la ligne un octet avant.
 $25d0       Retour si la ligne a été trouvée.
@@ -5600,7 +5613,7 @@ $2855       Double sa valeur et ajoute la retenue (Carry).
 $2856       Met en place les drapeaux.
 $2857       Retour si le résultat est pair (0 pour deux numériques, ou 2 pour deux chaînes).
 $2858       Branche sur l'erreur sinon.
-$285b       4 octets non utilisés ???
+$285b       4 octets inutilisés.
 
 $285f       [paren_expr]
             Appelé lorsque l'on débute l'analyse d'une sous-expression entre parenthèses.
@@ -5792,7 +5805,8 @@ $2935       Prépare l'index dans le tableau des fonctions.
 $2937       Double l'index de la fonction.
 $2938       BC = index de la fonction multiplié par 2.
 $2939       Sauvegarde de l'index dans le tableau.
-$293a       Ignore la parenthèse après le nom de la fonction (???)
+$293a       Permet de se placer au niveau de la parenthèse après le nom de la fonction.
+            Cela permet d'utiliser l'évaluation d'une expression entre parenthèses pour évaluer l'argument de la fonction.
 $293b-$293e Branche si la fonction est après `CHR$`, qui sont les fonctions de traitement de chaînes de caractères qui ont plusieurs paramètres.
 $2940       Sinon, c'est une fonction alphanumérique avec plusieurs paramètres. Évaluation du premier paramètre.
 $2943       Vérification que le caractère suivant est ','
@@ -5853,7 +5867,7 @@ $2977       [fp_bcde_or]
             Appelé lors de l'évaluation d'une expression via la table de priorités.
             
 $2977       Marqueur pour le traitement de `OR`. A n'est pas 0.
-            En $2979 arrive le traitement de `AND` et dans ce cas, l'instruction est `xor a`, donc A = 0.
+            En $2978 arrive le traitement de `AND` et dans ce cas, l'instruction est `xor a`, donc A = 0.
 
             (La détection de l'instruction partielle ne fonctionne pas dans ce cas, pourquoi ???)
 $2978       [fp_bcde_and]
@@ -6416,7 +6430,7 @@ $2caa-$2cac Pour les lignes inférieures à 24, ne traite pas le déplacement ve
 
 $2caf       [ifformf]
             Saut de page, ou bien plutôt `HOME` ???
-$2caf-$2cb4 Ignore la touche si on est dans un traitement de `INPUT` (laquelle du coup ???).
+$2caf-$2cb4 Ignore la touche si on est dans un traitement de `INPUT`.
 $2cb7       Place le Carry à 1 pour la mise à jour de la liste dynamique. (qu'est-ce que cela indique ???)
 $2cb8       Branche vers la mise à jour du listing dynamique.
 
@@ -6506,7 +6520,7 @@ $2d41       Boucle si l'octet n'est pas un token. Cela imprimera l'octet en tant
 $2d44-$2d46 C contient le numéro d'index du token.
 $2d47       DE pointe vers la table des mots-clés.
 $2d4a-$2d4c Branche si ce n'est pas le token `REM`
-$2d4e       Sinon, passe la couleur d'écriture en rouge (vérifier la couleur ???).
+$2d4e       Sinon, passe la couleur d'écriture en rouge.
 $2d52       [keyw_search]
 $2d52-$2d55 Boucle jusqu'à trouver un caractère avec le bit 8 à 1 (marqueur de début de mot clé).
 $2d58       Décrémente le compteur initialement index de token.
@@ -6558,7 +6572,7 @@ $2ead       [mem_move_v]
             == DEBUT DE SECTION BIMISC (BASIC INTERPRETER MISCELLANEOUS) ==
             Routine de copie de mémoire.
 
-            La zone source se trouve entre DE et BC (inclus ???).
+            La zone source se trouve entre DE et BC inclus.
             La zone de destination se termine à HL et à la même taille que la zone source.
 
             La copie se fait en partant de la fin, pour permettre le recouvrement de la zone si HL est supérieur à BC.
@@ -7183,7 +7197,7 @@ $31e2       Le pointeur vers la première ligne spécifiée par les arguments es
 
 $31e4       [print_list]
             Routine d'affichage du listing. Appelée par `LIST`, `LLIST` ainsi que par `SAVE`.
-$31e4-$31e6 Indique que le caractère de continuation a été lu (??? pourquoi)
+$31e4-$31e6 Indique que le caractère de continuation devra être écrit lorsqu'une ligne logique dépassera des 40 colonnes.
 $31e9       DE = pointeur vers le texte BASIC, HL = pointeur vers la ligne à émettre.
 
 $31ea       [listing_lp]
@@ -7580,7 +7594,7 @@ $345a       [sd_effc]
             Traitement de EFFC (par le caractère 2).
 
 $345a       Charge les coordonnées du curseur dans HL.
-$345d-$3460 Branche si le curseur est sur la colonne 1 ou plus.
+$345d-$3460 Branche si le curseur est sur la colonne 1 ou moins.
 $3463       Sinon, sauve les coordonnées sur la pile
 $3464       Calcule l'adresse correspondante dans le buffer d'écran BASIC.
 $3467       Récupère les coordonnées du curseur dans BC.
@@ -7609,9 +7623,10 @@ $348c-$348d Et HL deux octets ensuite.
 $348e       Compteur de BC pour une ligne complète.
 $3491       Branche pour décaler la ligne suivante.
 
-$3493       [effc_left]
-            Traite le cas où le caractère effacé est sur la même ligne, à gauche du curseur.
-$3493-$3495 Retour si le curseur est sur la ligne 0. (??? on ne peut pas effacer sur la ligne 0 ???)
+$3493       [left_col_1]
+            Traite le cas où le caractère effacé à gauche du curseur sur la colonne 1 (ou moins).
+$3493-$3495 Retour si le curseur est sur la ligne 0.
+            On ne peut pas effacer un caractère à gauche de la colonne 1 sur la ligne 0.
 $3496       Sinon, décale le curseur vers la gauche (éventuellement en montant d'une ligne).
 $3497       Lit le caractère pointé par les coordonnées.
 $349a       Retour si ce caractère n'est pas le caractère de continuité.
@@ -7761,7 +7776,7 @@ $357c       Le compare au caractère de continuité de ligne logique.
 $357f       [sd_insl]
             Traitement de `INSL` (par le caractère 6)
 
-            La ligne insérée est au-dessus du curseur ???
+            La ligne insérée est au niveau du curseur et poussent tous les lignes du dessus vers le haut.
 $357f       Charge les coordonnées du curseur dans HL.
 $3582-$3584 Branche si la ligne est 0.
 $3586       Sinon, coordonnées en colonne 0.
@@ -8304,11 +8319,12 @@ $381b       [inst_chr]
             Fonction BASIC : `CHR`
 
 $381b       Crée une chaine de longueur 1.
-$381e       Lit le texte BASIC et le transforme en valeur numérique.
+$381e       Lit le texte BASIC et le transforme en valeur numérique (dans A ainsi que dans E)
 $3821-$3824 Injecte le résultat de l'évaluation dans la chaine.
 
 $3825       [to_pool]
-$3825       Nettoie la pile (qui contient quoi ???)
+$3825       Jette l'adresse de retour vers le traitement de la valeur de la fonction.
+            L'évaluation d'une chaine est transmise par FAC.
 $3826       Monte la chaine dans ???
 
 $3829       [inst_left]
@@ -9219,7 +9235,7 @@ $3d02       HL pointe sur la chaîne d'initialisation de l'imprimante.
 
 $3d05       [send_init]
 $3d05-$3d0b Envoie sur l'imprimante tous les caractères de la chaîne d'initialisation jusqu'à trouver le premier caractère nul.
-            Par défaut, l'initialisation est $00. (à vérifier ???)
+            Par défaut, l'initialisation est $00, et s'arrête donc immédiatement.
 $3d0d       Restaure dans A la valeur de `(prtstt)`
 
 $3d0f       [prt_status]
@@ -9233,9 +9249,9 @@ $3d17       [prt_wait]
 $3d17       HL = 7000, pour préparer la boucle d'attente.
 
 $3d1a       [loop_7000]
-$3d1a       Lit quoi de l'imprimante ??? (son état probablement)
+$3d1a       Lit le status de l'imprimante.
 $3d1c-$3d1e Retour si le bit 2 de l'état de l'imprimante est 0.
-$3d1f       Décrémente HL ???
+$3d1f       Décrémente le compteur d'attente longue.
 $3d20       A = 0
 
 $3d21       [loop_256]
@@ -9375,7 +9391,10 @@ $3dfb-$3dfd Branche si la touche appuyée n'est pas Insertion de ligne (touche I
 $3dff-$3e02 Test du drapeau de commande INPUT actif
 
 $3e07       [acq_key_6]
-$3e07       Trampoline qui permet d'utiliser le `JR` conditionnel pour un saut long... Pourquoi ne pas utiliser un `JP` conditionnel ???
+$3e07       Trampoline pour le `jr` conditionnel de `acq_key_5`
+
+            Pourquoi ne pas avoir utilisé un `jp nz,acq_key_7' ?
+
 $3e0a       [acq_key_5]
 $3e0a-$3e0c Branche si la touche appuyée n'est pas Effacement de l'écran (touche EFFE, valeur non ASCII)
 $3e0e       Sinon, branche sur le traitement de la touche `EFFE`.
