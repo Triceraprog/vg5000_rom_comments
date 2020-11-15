@@ -6895,6 +6895,8 @@ $302c       [str_hex_dec]
             %MS_BASIC(HEXTFP)
             Transforme un nombre de la forme &"xxxx" en nombre flottant.
 
+            La fin de la routine est patchée dans la ROM 1.1 pour se reposer sur `bade_to_fac`.
+
             Entrée :
             - HL pointe vers le texte BASIC au niveau du '&' initial.
             
@@ -6916,14 +6918,13 @@ $3042       Il reste potentiellement des chiffres. Boucle.
 
 $3044       [not_hexa]
 $3044       %CHAR
-$3044-$3046 Si le dernier caractère lu n'est pas '"', c'est une erreur de syntaxe.
-$3049       Sinon, il est lu afin d'avancer HL.
-$304a       Préparation de l'exposant pour un nombre entier.
-$304c       Sauve le pointeur vers le texte BASIC.
-$304d-$304e BADE (avec B = $98, A = 0 et DE l'accumulateur) est monté dans FAC.
-$3051       Restaure le pointeur vers le texte BASIC.
-
-$3053       Cinq octets inutilisés.
+$3044-$3047 Si le dernier caractère lu n'est pas '"', c'est une erreur de syntaxe.
+            HL, pointeur sur le texte BASIC, est incrémenté.
+$304a-$304c L'exposant pour un nombre entier est placé dans FAC.
+$304f-$3051 A = B = C = 0.
+$3052       Sauve le pointeur vers le texte BASIC.
+$3053       Normalise CDEB.
+$3057       Restaure le pointeur vers le texte BASIC.
 
 $3058       [inst_renum]
             %CODE
@@ -7153,6 +7154,9 @@ $31ae       Revient à la boucle de l'éditeur BASIC en ignorant l'adresse de re
 
 $31b1       [line_pair]
             Lit deux arguments de type numéro de ligne depuis le pointeur HL sur du texte BASIC.
+
+            La routine est patchée en ROM 1.1 pour corriger l'erreur en cas d'absence de premier argument.
+            En ROM 1.0, en cas d'absence de premier argumer, `(temp)` n'est pas mis à 0. Sa valeur est donc indéterminée.
             
             Entrée :
             - HL pointe sur le texte BASIC.
@@ -7168,8 +7172,9 @@ $31b4-$31b5 Lit le premier caractère du texte BASIC.
 $31b6       Branche si la fin d'instruction est atteinte, pas de premier argument.
 $31b8       %CHAR
 $31b8-$31ba Lit un numéro de ligne si le caractère suivant n'était pas une virgule. C'est le premier argument, lu dans DE.
-$31bd       [no_pair_1]
-$31bd       Le premier argument, qu'il soit lu ou par défaut, est placé dans '(temp)'.
+$31bd       Le premier argument est placé dans '(temp)'.
+            S'il n'y a pas d'argument, `(temp)` n'est pas touché. C'est un bug corrigé dans la ROM 1.1
+$31c1       [no_pair_1]
 $31c1       Sauve le pointeur vers le texte BASIC.
 $31c2       Cherche le premier numéro de ligne valide à partir de DE.
 $31c5       Restaure le pointeur vers le texte BASIC.
@@ -7271,9 +7276,10 @@ $3278       [initscreen]
             == DEBUT DE SECTION CO (SCREEN COMMUNICATIONS) ==
             Réinitialisation du curseur et d'attributs d'affichage.
 
-            Redéfinition de deux caractères: $20 et $7F.
-
+            Redéfinition du caractère $7F.
             Efface l'écran, remise en colonne 1.
+
+            Cette routine est patchée en ROM 1.1 pour ajouter la redéfinition du caractère $20.
 
 $3278       Le bit 6 de `(cursor)` (MAT du VDP) indique l'activation du curseur.
 $327c       Test du bit 0 de `(fklock)` (variable majuscules = 1 / minuscules = 0).
@@ -7284,9 +7290,8 @@ $3286       Changement de l'aspect du curseur pour les majuscules : curseur plei
 $328a       [lower_cur]
 $328a       Réinitialisation des variables qui concernent l'écran.
 $328d       Charge A avec 127 pour préparer la redéfinition de ce caractère.
-$328f       Branchement sur la patch de la ROM 1.1
+$328f       Pointe vers les données de redéfinition du caractère $7f étendu.
 
-$3292       [initscreen2]
 $3292       Redéfinition du caractère $20 étendu.
 $3295       Prépare la couleur de fond pour l'enchainement vers la routine suivante.
 
@@ -7589,6 +7594,8 @@ $345a       [sd_effc]
 
 $345a       Charge les coordonnées du curseur dans HL.
 $345d-$3460 Branche si le curseur est sur la colonne 1 ou moins.
+
+            [sd_effc_lp]
 $3463       Sinon, sauve les coordonnées sur la pile
 $3464       Calcule l'adresse correspondante dans le buffer d'écran BASIC.
 $3467       Récupère les coordonnées du curseur dans BC.
@@ -7619,17 +7626,18 @@ $3491       Branche pour décaler la ligne suivante.
 
 $3493       [left_col_1]
             Traite le cas où le caractère effacé à gauche du curseur sur la colonne 1 (ou moins).
+
+            Cette partie est patchée en ROM 1.1
+
 $3493-$3495 Retour si le curseur est sur la ligne 0.
             On ne peut pas effacer un caractère à gauche de la colonne 1 sur la ligne 0.
 $3496       Sinon, décale le curseur vers la gauche (éventuellement en montant d'une ligne).
 $3497       Lit le caractère pointé par les coordonnées.
 $349a       Retour si ce caractère n'est pas le caractère de continuité.
-$349b       Branche sur le traitement du reste de la ligne.
+$349b       Monte le curseur d'une ligne vers le haut.
 
-$349d       [if_input]
-$349d       Branche si le drapeau de commande INPUT était actif.
-$34a0       Sinon, on remet la valeur $06 (Insertion de ligne) pour la valeur de touche appuyée.
-$34a2       Puis branche vers l'émission de la touche.
+$349e-$34a0 Place le curseur en colonne 39.
+$34a2       Puis boucle sur la suite du traitement de l'effacement à gauche.
 
 $34a5       [effc_end]
 $34a5       %CHAR
@@ -7703,10 +7711,9 @@ $3503-$3505 Branche si le caractère texte est l'espace.
 
 $3508       [insc_gr]
 $3508-$350b Charge les coordonnées du curseur dans HL et décrémente le numéro de ligne.
-$350c       Branche sur la suite du traitement.
+$350c       Branche si le numéro de ligne du curseur est négatif. Le curseur était sur la ligne 0.
+            Cette instruction est patchée dans la ROM 1.1 pour traiter le cas `INPUT`.
 
-$350f       [insc_2]
-            Retour après le patch de la ROM 1.1
 $350f       Sauve les coordonnées modifiées du curseur (ligne précédente)
 $3510-$3516 Place le curseur sur la ligne après la dernière ligne logique et émet `INSL`, afin de faire de la place pour la ligne logique.
 $3519       Où est le curseur maintenant ???
@@ -7838,8 +7845,30 @@ $35f3       [jump_ret]
 
 $35f4       [char20]
 $35f4       Données pour la redéfinition du caractère $20.
+            Le motif est différent dans les deux versions de la ROM.
+            Ces données ne sont pas utilisées dans la ROM 1.0
+            ........
+            ...X....
+            ..X.X...
+            ........
+            ........
+            ........
+            ........
+            ........
+            ........
+            ........
 $35fe       [char7f]
 $35fe       Données pour la redéfinition du caractère $7f.
+            ........
+            ........
+            ........
+            ........
+            ........
+            ..X.X...
+            ........
+            ........
+            ........
+            ........
 $3608       [zero]
 $3608       Un octet inutilisé.
 
@@ -8746,12 +8775,12 @@ $3a55       [end_dim]
 $3a55       Restaure le pointeur vers le texte BASIC.
 
 $3a59       [k7_advance2]
+            %SECTION(caset)
             Fait avancer la k7 pour sauter l'amorce. Rien n'est écrit, ni lu.
-
-            Il semble que cette fonction soit patchée depuis la ROM 1.0, vérifier (???)
             Elle est appelée depuis `k7_advance`.
 
-            $SECTION(caset)
+            == DEBUT DE SECTION CASET (Low level cassette handler) ==
+
 $3a59-$3a5b Allume le moteur du lecteur de k7.
 $3a5d       Désactive les interruptions.
 
@@ -9293,119 +9322,7 @@ $3d86       [send_prt]
 $3d86       Place le caractère sur le port $11.
 $3d88-$3d8e Émet brièvement un cycle 0/1 sur le port $10.
 
-$3d9a       [auto]
-            Traitement du mode AUTO actif.
-
-            Cette partie est patchée par rapport à la ROM 1.0
-
-            Entrée :
-            - HL contient l'ancien numéro de ligne
-
-$3d9a       Sauve HL sur la pile.
-$3d9b       Affiche HL sur le périphérique de sortie.
-$3d9e       Récupération du numéro de ligne dans DE
-$3d9f       Recherche de la ligne
-$3da2       Branche si la ligne n'a pas été trouvée (affichera un espace avant de continuer sur la boucle du moniteur BASIC)
-$3da5-$3da7 Sinon, affiche le caractère $a0 pour indiquer qu'il y a déjà du contenu. Puis continue aussi sur la boucle du moniteur BASIC.
-
-$3daa       [auto_patch]
-            Partie patchée en ROM 1.1 avec l'amélioration de la commande `AUTO`.
-$3daa       Branche si le calcul de la nouvelle ligne a provoqué un dépassement de capacité. `AUTO` est terminé.
-$3dac-$3db1 Compare le numéro de ligne avec $fff9 (65529, plus haut numéro de ligne valide)
-$3db2       Branche si le numéro de ligne courant (dans HL) est égal ou supérieur à 65529.
-$3db4       Sinon, la nouvelle ligne de `AUTO` est validée et enregistrée.
-$3db7       Branchement vers la suite du patch
-
-$3db9       [stop_auto]
-$3db9-$3dba Annule le mode `AUTO`.
-
-$3dbd       [auto_patch2]
-$3dbd       Retour à la suite de la routine. Fin du patch pour `AUTO`.
-
-$3dc0       [initscreen1]
-            Patch de la routine d'initalisation de l'écran pour la ROM 1.1.
-
-            Ce patch ajoute la redéfinition du caractère $20.
-            Seul le caractère $7f est redéfini dans la ROM 1.0.
-
-$3dc0       Pointe vers les données de redéfinition du caractère $7f étendu.
-$3dc3       Redéfini le caractère.
-$3dc6-$3dc8 Prépare la redéfiniction du caractère $20 étendu.
-$3dcb       Branche sur la suite de la routine après le patch.
-
-$3dce       [futur_new]
-            %CODE,MS_BASIC(NEW)
-            Instruction BASIC : NEW
-
-            Efface le listing courant.
-
-            S'il n'y a pas de paramètre, on branche directement vers le reset de la mémoire.
-            S'il y a un paramètre et que c'est un numéro de ligne, on efface à partir de ce numéro de ligne.
-
-            La routine est entièrement déplacée par rapport à la ROM 1.0 ???
-            
-$3dce       Branche vers l'effacement du chaînage à partir de la première ligne si l'instruction n'est suivi par aucun argument.
-$3dd1       Sinon, récupère un numéro de ligne.
-$3dd4       Retour s'il reste encore des caractères après le numéro de ligne, cela provoquera une erreur de syntaxe.
-$3dd5-$3dd8 Place l'adresse de retour comme la boucle du moniteur BASIC.
-$3dd9       Cherche la ligne spécifiée par l'argument.
-$3ddc-$3ddd Copie le pointeur vers la ligne trouvée dans HL
-$3dde       Branche vers l'effacement du chaînage du listing à partir de cette ligne.
-
-$3de1       [decodenext]
-$3de1       Si HL pointe avant la fin du buffer de travail, le pointeur est incrémenté puis la routine l'acquisition continue.
-$3de3       Si HL n'est pas égal, c'est qu'il est supérieur à la fin du buffer de travail, l'acqusition continue sans toucher à HL.
-            Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ?) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
-$3de6-$3de8 Sinon, HL vient d'atteindre la fin du buffer de travail, un 'bip' est émit. Puis enchaîne sur l'incrémentation du pointeur et la suite de l'acquisition.
-
-$3de9       [ind_inchl]
-$3de9       Saut intermédiaire pour aller incrémenter HL et poursuivre l'acquisition de la ligne BASIC.
-
-$3dfb       [acq_key_4]
-            Suite du traitement de l'entrée de caractère.
-            On arrive ici que la boucle de BASIC soit active ou non.
-
-            Il s'agit ici de code patché pour la ROM 1.1
-$3dfb-$3dfd Branche si la touche appuyée n'est pas Insertion de ligne (touche INSL, valeur non ASCII)
-$3dff-$3e02 Test du drapeau de commande INPUT actif
-
-$3e07       [acq_key_6]
-$3e07       Trampoline pour le `jr` conditionnel de `acq_key_5`
-
-            Pourquoi ne pas avoir utilisé un `jp nz,acq_key_7' ?
-
-$3e0a       [acq_key_5]
-$3e0a-$3e0c Branche si la touche appuyée n'est pas Effacement de l'écran (touche EFFE, valeur non ASCII)
-$3e0e       Sinon, branche sur le traitement de la touche `EFFE`.
-
-$3e11       [insert_n_cr]
-$3e11-$3e16 Branche si on n'est pas dans un `INPUT`
-$3e19-$3e1b Sinon, émet une insertion de ligne.
-$3e1c       Puis valide la ligne.
-
-$3e1f       [insc_path]
-            Traitement de la touche `INSC` patché.
-
-            Il s'agit ici de code patché pour la ROM 1.1 (??? à vérifier)
-$3e1f       Branche si le numéro de ligne du curseur est négatif. Le curseur était sur la ligne 0.
-$3e22-$3e27 Branche si on est dans une commande `INPUT`.
-$3e2a       Sinon, continue avec la routine de traitement `INSC`.
-
-$3e2d       [acq_key_2]
-            Suite du traitement de l'entrée de caractère.
-
-            Il s'agit ici de code patché pour la ROM 1.1
-
-$3e2d       Branche si la touche appuyée est Entrée.
-$3e30       Sauve AF
-$3e31-$3e35 Branche si la boucle BASIC n'est pas active, pour éviter de traiter certaines touches d'édition.
-$3e37       Restaure AF
-
-$3e3b       [skip_ctrl_k]
-$3e3b       Restaure AF
-$3e3c       Évite le traitement des touches d'édition.
-
-$3e3f       [end_of_rom]
+$3d91       [end_of_rom]
 $4000       [screen]
 $47d0       [inthk]
 $47d3       [calhk]

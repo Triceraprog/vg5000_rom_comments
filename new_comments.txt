@@ -6915,6 +6915,8 @@ $302c       [str_hex_dec]
             %MS_BASIC(HEXTFP)
             Transforme un nombre de la forme &"xxxx" en nombre flottant.
 
+            La fin de la routine est patchée dans la ROM 1.1 pour se reposer sur `bade_to_fac`
+
             Entrée :
             - HL pointe vers le texte BASIC au niveau du '&' initial.
             
@@ -6943,7 +6945,7 @@ $304c       Sauve le pointeur vers le texte BASIC.
 $304d-$304e BADE (avec B = $98, A = 0 et DE l'accumulateur) est monté dans FAC.
 $3051       Restaure le pointeur vers le texte BASIC.
 
-$3053       Cinq octets inutilisés.
+$3053       Cinq octets inutilisés, reliquat du patch de la routine précédente pour la ROM 1.1
 
 $3058       [inst_renum]
             %CODE
@@ -7174,6 +7176,9 @@ $31ae       Revient à la boucle de l'éditeur BASIC en ignorant l'adresse de re
 $31b1       [line_pair]
             Lit deux arguments de type numéro de ligne depuis le pointeur HL sur du texte BASIC.
             
+            La routine est patchée en ROM 1.1 pour corriger l'erreur en cas d'absence de premier argument.
+            En ROM 1.0, en cas d'absence de premier argumer, `(temp)` n'est pas mis à 0. Sa valeur est donc indéterminée.
+
             Entrée :
             - HL pointe sur le texte BASIC.
 
@@ -7292,8 +7297,9 @@ $3278       [initscreen]
             Réinitialisation du curseur et d'attributs d'affichage.
 
             Redéfinition de deux caractères: $20 et $7F.
-
             Efface l'écran, remise en colonne 1.
+
+            Cette routine est patchée en ROM 1.1 pour ajouter la redéfinition du caractère $20.
 
 $3278       Le bit 6 de `(cursor)` (MAT du VDP) indique l'activation du curseur.
 $327c       Test du bit 0 de `(fklock)` (variable majuscules = 1 / minuscules = 0).
@@ -7639,6 +7645,9 @@ $3491       Branche pour décaler la ligne suivante.
 
 $3493       [left_col_1]
             Traite le cas où le caractère effacé à gauche du curseur sur la colonne 1 (ou moins).
+
+            Cette partie est patchée en ROM 1.1
+
 $3493-$3495 Retour si le curseur est sur la ligne 0.
             On ne peut pas effacer un caractère à gauche de la colonne 1 sur la ligne 0.
 $3496       Sinon, décale le curseur vers la gauche (éventuellement en montant d'une ligne).
@@ -7647,6 +7656,9 @@ $349a       Retour si ce caractère n'est pas le caractère de continuité.
 $349b       Branche sur le traitement du reste de la ligne.
 
 $349d       [if_input]
+            Ce morceau profite de la place gagnée par le patch de la routine
+            précédente en ROM 1.1 pour insérer un morceau de patch de l'acquisition du clavier.
+
 $349d       Branche si le drapeau de commande INPUT était actif.
 $34a0       Sinon, on remet la valeur $06 (Insertion de ligne) pour la valeur de touche appuyée.
 $34a2       Puis branche vers l'émission de la touche.
@@ -7723,7 +7735,7 @@ $3503-$3505 Branche si le caractère texte est l'espace.
 
 $3508       [insc_gr]
 $3508-$350b Charge les coordonnées du curseur dans HL et décrémente le numéro de ligne.
-$350c       Branche sur la suite du traitement.
+$350c       Branche sur la partie patchée de la ROM 1.1, qui reviendra juste après.
 
 $350f       [insc_2]
             Retour après le patch de la ROM 1.1
@@ -7858,8 +7870,30 @@ $35f3       [jump_ret]
 
 $35f4       [char20]
 $35f4       Données pour la redéfinition du caractère $20.
+            Le motif est différent dans les deux versions de la ROM.
+            Ces données ne sont pas utilisées dans la ROM 1.0
+            ........
+            ...X....
+            ..XXX...
+            .XXXXX..
+            XXXXXXX.
+            .XXXXX..
+            ..XXX...
+            ...X....
+            ........
+            ........
 $35fe       [char7f]
 $35fe       Données pour la redéfinition du caractère $7f.
+            ........
+            ........
+            ........
+            ........
+            ........
+            ..X.X...
+            ........
+            ........
+            ........
+            ........
 $3608       [zero]
 $3608       Un octet inutilisé.
 
@@ -8766,12 +8800,12 @@ $3a55       [end_dim]
 $3a55       Restaure le pointeur vers le texte BASIC.
 
 $3a59       [k7_advance2]
+            %SECTION(caset)
             Fait avancer la k7 pour sauter l'amorce. Rien n'est écrit, ni lu.
-
-            Il semble que cette fonction soit patchée depuis la ROM 1.0, vérifier (???)
             Elle est appelée depuis `k7_advance`.
 
-            $SECTION(caset)
+            == DEBUT DE SECTION CASET (Low level cassette handler) ==
+
 $3a59-$3a5b Allume le moteur du lecteur de k7.
 $3a5d       Désactive les interruptions.
 
@@ -9424,10 +9458,10 @@ $3e11-$3e16 Branche si on n'est pas dans un `INPUT`
 $3e19-$3e1b Sinon, émet une insertion de ligne.
 $3e1c       Puis valide la ligne.
 
-$3e1f       [insc_path]
+$3e1f       [insc_patch]
             Traitement de la touche `INSC` patché.
 
-            Il s'agit ici de code patché pour la ROM 1.1 (??? à vérifier)
+            Il s'agit ici de code patché pour la ROM 1.1 afin de traiter le cas `INPUT`.
 $3e1f       Branche si le numéro de ligne du curseur est négatif. Le curseur était sur la ligne 0.
 $3e22-$3e27 Branche si on est dans une commande `INPUT`.
 $3e2a       Sinon, continue avec la routine de traitement `INSC`.
@@ -9435,7 +9469,7 @@ $3e2a       Sinon, continue avec la routine de traitement `INSC`.
 $3e2d       [acq_key_2]
             Suite du traitement de l'entrée de caractère.
 
-            Il s'agit ici de code patché pour la ROM 1.1 afin de traiter des cas particuliers.
+            Il s'agit ici de code patché pour la ROM 1.1 afin de traiter le cas `INPUT`.
 
 $3e2d       Branche si la touche appuyée est Entrée.
 $3e30       Sauve AF
