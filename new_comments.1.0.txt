@@ -4357,14 +4357,8 @@ $1fde-$1fe4 VDP - $28/$82, MAT = R1
 $1fe6-$1ff0 VDP - $29/..., R1 = `(cursor)` avec la couleur de la marge remplacée par la couleur dans le registre E.
             Comme `(cursor)` représente `MAT` côté RAM, c'est un changement direct et temporaire sur le VDP.
 
-$1ff3       [stka_joy1]
-$1ff3       Vérification de l'appuie sur la bouton action du joystick 0
-$1ff5       Complément à 1.
-$1ff6       Masque sur le bits 4 et 5.
-$1ff8-$0ffb Décalage pour amener le résultat sur les bits 0 et 1
-$1ffc       Résultat aussi dans B.
-
-$1ffe       Padding de fin de section. Indiqués dans le Technical Bulletin comme deux octets libres.
+$1ff3       Padding de fin de section.
+            14 octets inutilisés qui deviendront `stka_joy1:` dans la ROM 1.1
 
 $2000       [instr_table]
             $SECTION(bintrp)
@@ -4500,8 +4494,8 @@ $2299       [monitorloop]
 $2299-$229c Met la ligne courante du BASIC à -1 ($ffff), c'est-à-dire, par de ligne courante
 $229f-$22a3 Branche si `(autflg)` est à 0, `AUTO` n'est pas actif.
 $22a5       Ligne courante du mode AUTO dans HL
-$22a8       Patch de `AUTO`par rapport à la ROM 1.0, branche plus loin.
-            Le patch consiste en l'affichage d'un signe montrant qu'une ligne est déjà existante.
+$22a8       Écrit le nombre.
+            Dans la ROM 1.1, un patch introduit ici le caractère signal d'une ligne déjà existante.
 
 $22ab       [out_space]
             Suivant si la ligne a déjà du contenu ou pas, le mode de numérotation automatique
@@ -4536,7 +4530,8 @@ $22cd       Sauve le numéro de ligne.
 $22ce       Sauve la taille du buffer résultat tokenisé.
 $22cf       Sauve l'adresse du buffer résultat (HL pointe un octet avant le premier octet du buffer).
 $22d0-$22d3 Augmente le numéro de ligne gérée par la commande `AUTO`. HL contient le numéro numéro de ligne.
-$22d4       Branche sur le code patché pour la ROM 1.1 qui introduit la vérification du numéro de ligne maximum.
+$22d4       Mise à jour de la nouvelle ligne pour `AUTO`.
+            Dans la ROM 1.1, un patch introduit ici la vérification du dépassement de numéro de ligne maximum.
 
 $22d7       [line_record]
 $22d7       Récupération de l'adresse du buffer résultat.
@@ -5459,18 +5454,11 @@ $2773       Affiche la chaine de caractères
 $2776       Évite le `push hl` qui suit.
 $2777       [raw_input]
 $2777       Sauve le pointeur sur le texte BASIC.
-$2778       Patch de la ROM 1.1 pour ajouter le traitement de la continuité de ligne dans `INPUT`.
-$277b       Branche sur l'acquisition des données.
-
-$277d       3 octets inutilisés.
-            Reliquat du patch de la routine pour `INPUT` dans la ROM 1.1
-
-$2780       [prompt_2]
-$2780       Acquisition des données.
-$2783       Rend le curseur invisible.
-$2787-$278e Efface la continuité de ligne et signal que l'on a terminé l'instruction `INPUT`.
-
-$2792       Octet inutilisé.
+$2778-$277b Signal le fait que l'on est dans une instruction `INPUT` (bit 5 de `picflg`)
+            Ce code est patché dans la ROM 1.1 pour traiter la continuité de ligne.
+$2780       Affiche le curseur.
+$2787       Rend le curseur invisible.
+$278b-$2790 Efface la continuité de ligne et signal que l'on a terminé l'instruction `INPUT`.
 
 $2793       [input_data]
 $2793       Récupère le pointeur de texte BASIC dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
@@ -6140,25 +6128,24 @@ $2ab8       Retourne A comme résultat de la fonction.
 $2abb       [inst_poke]
             %CODE
             Instruction BASIC : POKE
-$2abb       Récupère dans DE le premier argument de POKE, qui est l'adresse.
-$2abe       Sauve l'adresse.
-$2abf       Vérifie que ce qui suit est une virgule.
-$2ac0       %DATASKIP
-$2ac1       Récupère dans A le second argument de POKE, qui est la valeur.
-            Dans la ROM 1.0, la routine appelée retourne le résultat dans E, ce qui oblige un `ld a,e` supplémentaire.
-$2ac4       Restaure l'adresse.
+$2abb       Évalue l'arguement de l'instruction.
+$2abe       Récupère dans DE le premier argument de POKE, qui est l'adresse.
+
+$2ac1       Sauve l'adresse.
+$2ac2       Vérifie que ce qui suit est une virgule.
+$2ac3       %DATASKIP
+$2ac4       Récupère dans A le second argument de POKE, qui est la valeur.
+            Dans la ROM 1.1, la routine appelée retourne le résultat directement dans A.
+$2ac7       Copie le résultat dans A.
+$2ac8       Restaure l'adresse.
 $2ac5       Place A dans l'adresse spécifiée.
 
-$2ac7       Quatre octets inutilisés, reliquat du patch de l'instruction `POKE` en ROM 1.1.
-
 $2acb       [poke_addr]
+            %CODE
             Routine de récupération du premier argument pour `POKE`.
             Cette routine est séparée de la routine pour l'instruction pour une raison inconnue.
 
-            Cette routine n'était pas appelée dans la ROM 1.0 certainement par erreur.
-            Dans la ROM 1.1, elle est bien appelée par la routine pour `POKE`, mais une
-            seule fois, ce qui laisse entière la question : pourquoi une routine
-            séparée ?
+            Dans la ROM 1.0, elle n'est jamais appelée, c'est un bug corrigé dans la ROM 1.1.
 
 $2acb       Lit l'expression pointée par HL
 $2ace       Sauve le pointeur vers le texte BASIC.
@@ -6190,7 +6177,8 @@ $2ae8-$2aeb Configure le son émis lors de l'appuie d'un caractère.
 $2aee       Pendant une durée très courte.
 $2af1       Émet le son.
 $2af4-$2afb Indique qu'un caractère a été entré depuis une interaction en BASIC.
-            Les deux `NOPs` sont un patch de la ROM 1.0 qui désactivait le défilement de l'écran.
+            Le défilement de l'écran est désactivé (bit 7 de `(picflg)`.
+            La désactivement du défilement est retiré dans la ROM 1.1.
 $2afe       Restaure AF
 $2aff       Branche si la touche validée était une touche de fonction.
 $2b02       Comparaison de la touche appuyée avec la touche Entrée.
@@ -6643,20 +6631,18 @@ $2ed1       Retour si HL + SP provoque une retenue, il y a assez d'espace. ???
 $2ed2       [out_of_mem]
 $2ed2-$2ed5 Message d'erreur "Out of Memory"
 
-$2ed8       Un octet inutilisé.
-            Il s'agit d'un relicat du point d'entrée de l'instruction `NEW` dans la ROM 1.0.
+$2ed8       [inst_new]
+            %CODE
+            %CODE,MS_BASIC(NEW)
+            Instruction BASIC : NEW
+
+            Efface le listing courant.
 
 $2ed9       [reset_lst]
             %MS_BASIC(CLRPTR)
-            Casse le chaînage du listing en mettant à 0 le premier lien.
-
 $2ed9       HL pointe vers le début du listing BASIC.
-
-$2edc       [reset_lst_2]
 $2edc       A = 0
-$2edd       Branche vers le code patché de la ROM 1.1
-
-$2ee0       [reset_lst_4]
+$2edd-$2edf Coupe le premier lien du listing BASIC.
 $2ee0-$2ee1 Ajuste le pointeur de début des variables `(vartab)` à `(txttab)+2`.
 
 $2ee4       [reset_vars]
@@ -9311,19 +9297,10 @@ $3d86       [send_prt]
 $3d86       Place le caractère sur le port $11.
 $3d88-$3d8e Émet brièvement un cycle 0/1 sur le port $10.
 
-$3d91       [reset_lst_3]
-            Annule le mode `AUTO` et coupe le premier lien du listing BASIC.
-
-            Partie patchée par rapport à la ROM 1.0
-$3d91       0 dans `(autflg)` pour annuler le mode `AUTO`.
-$3d94-$3d96 Met le premier lien du listing BASIC à 0.
-$3d97       Continue vers le code non patché.
-
 $3d9a       [auto]
             Traitement du mode AUTO actif.
 
-            Cette partie est patchée par rapport à la ROM 1.0.
-            La ROM 1.1 ajoute l'affichage d'un signe si la ligne contient déjà quelque chose.
+            Cette partie est patchée par rapport à la ROM 1.0
 
             Entrée :
             - HL contient l'ancien numéro de ligne
@@ -9336,8 +9313,7 @@ $3da2       Branche si la ligne n'a pas été trouvée (affichera un espace avan
 $3da5-$3da7 Sinon, affiche le caractère $a0 pour indiquer qu'il y a déjà du contenu. Puis continue aussi sur la boucle du moniteur BASIC.
 
 $3daa       [auto_patch]
-            Partie patchée en ROM 1.1 avec l'amélioration de la commande `AUTO` en ajoutant la vérification du numéro de ligne maximum.
-
+            Partie patchée en ROM 1.1 avec l'amélioration de la commande `AUTO`.
 $3daa       Branche si le calcul de la nouvelle ligne a provoqué un dépassement de capacité. `AUTO` est terminé.
 $3dac-$3db1 Compare le numéro de ligne avec $fff9 (65529, plus haut numéro de ligne valide)
 $3db2       Branche si le numéro de ligne courant (dans HL) est égal ou supérieur à 65529.
@@ -9361,7 +9337,7 @@ $3dc3       Redéfini le caractère.
 $3dc6-$3dc8 Prépare la redéfiniction du caractère $20 étendu.
 $3dcb       Branche sur la suite de la routine après le patch.
 
-$3dce       [inst_new]
+$3dce       [futur_new]
             %CODE,MS_BASIC(NEW)
             Instruction BASIC : NEW
 
@@ -9370,10 +9346,7 @@ $3dce       [inst_new]
             S'il n'y a pas de paramètre, on branche directement vers le reset de la mémoire.
             S'il y a un paramètre et que c'est un numéro de ligne, on efface à partir de ce numéro de ligne.
 
-            La routine est entièrement déplacée par rapport à la ROM 1.0.
-            En ROM 1.0, l'instruction se trouve en `$2ed8`.
-            La table d'instruction a été patchée en ce sens.
-            La version ROM 1.1 ajoute la possibilité d'un `NEW` avec un numéro de ligne.
+            La routine est entièrement déplacée par rapport à la ROM 1.0 ???
             
 $3dce       Branche vers l'effacement du chaînage à partir de la première ligne si l'instruction n'est suivi par aucun argument.
 $3dd1       Sinon, récupère un numéro de ligne.
@@ -9391,13 +9364,6 @@ $3de6-$3de8 Sinon, HL vient d'atteindre la fin du buffer de travail, un 'bip' es
 
 $3de9       [ind_inchl]
 $3de9       Saut intermédiaire pour aller incrémenter HL et poursuivre l'acquisition de la ligne BASIC.
-
-$3dec       [prompt_1]
-            Code patché de la ROM 1.1 pour la routine d'`INPUT`.
-
-$3dec-$3df1 Signal le fait que l'on est dans une instruction `INPUT` (bit 5 de `picflg`)
-$3df4       Affiche le curseur.
-$3df8       Branche sur la suite de l'initialisation de l'invite d'acquisition.
 
 $3dfb       [acq_key_4]
             Suite du traitement de l'entrée de caractère.
