@@ -721,15 +721,15 @@ $02a7       [kbscan_impl]
 
 $02a7       Prépare C avec le premier port à scanner ($87) et B avec le nombre de ports (7).
 $02aa       [kb_row_loop]
-            lecture de l'entrée
+$02aa       Lecture de l'entrée depuis un des ports de $87 à $81
 $02ac-$02ad La ligne est à l'état haut lorsque la touche n'est pas pressée.
             En prenant son complément, un résultat à 0 signifie qu'aucune touche de la rangée n'est pressée.
 $02ae       Branche si une touche est pressée sur cette ligne.
 $02b0       Vise le port précédent.
-$02b1       Boucle sur le nombre de ports (7).
-$02b3       Quel est le port ici ???
-$02b5       Du coup, on prend le complément de quoi ???
-$02b6       Masque avec b10111011 de la dernière ligne lue.
+$02b1       Boucle sur le nombre de ports.
+$02b3       Lecture de l'entrée depuis le port $80
+$02b5       Complément de l'entrée, comme pour la boucle précédente.
+$02b6       Masque le rang $80 avec b10111011. Cela filtre la touches `CTRL` ainsi qu'une entrée de la matrice non utilisée.
 $02b8       [key_pressed]
 $02b8       Branche si aucune touche n'est pressée.
 $02ba       Initialise le compteur de nombre de rang du clavier.
@@ -1260,7 +1260,7 @@ $05a5       [a_to_fac]
 $05a5-$05a7 BCDE est préparé avec les valeurs $80,xx,$00,$00. A prendra la place de xx.
 $05aa       [bade_to_fac]
             Place BADE sous format de nombre flottant dans FAC.
-$05aa       Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro de ligne ???
+$05aa       HL pointe sur FAC.
 $05ad       Place la partie manquante de BCDE.
 $05ae       Place l'exposant dans FAC.
 $05af       Initialise B comme VLSB, à 0, pour donner CDEB.
@@ -1401,8 +1401,7 @@ $0635       [fp_to_int]
             Entrées :
             - A contient l'exposant du nombre.
             - HL pointe sur FAC
-$0635-$0638 Initialise B, C, D et E avec l'exposant.
-$0639-$063a Si l'exposant est nul, retourne immédiatemet (avec BCDE à zéro par la méme occasion)
+$0635-$063a Si l'exposant est nul, retourne immédiatemet (avec BCDE à zéro par la méme occasion)
 $063b       Sauvegarde de HL qui pointe sur FAC
 $063c       BCDE prend la valeur de FAC.
 $063f       Sortie des signes des nombres et mise en place des 1 de mantisse explicite.
@@ -1432,12 +1431,12 @@ $0660       [inst_int]
 $0660       Faite pointer HL vers l'exposant de FAC.
 $0663       Charge l'exposant dans A.
 $0664       Comparaison avec l'exposant maximal intéressant pour une partie décimale ($80 + 24). Au delà, on est assuré que le nombre est un entier.
-$0666       Il semble que l'appel par la fonction 'exp' ait besoin du LSB de FAC ???
+$0666       L'appel à cette routine par `inst_exp` a besoin du LSB de FAC dans A.
 $0669       Si le nombre est déjà un entier, on retourne immédiatement.
 $066a       Prend à nouveau l'exposant.
 $066b       Transforme FAC en nombre entier dans CDE.
 $066e       Puisque le nombre entier est complètement à droite de la mantisse, l'exposant est à $98. Le nombre se fera normaliser par la suite.
-$0670-$0671 Mise sur la pile de l'octet le plus bas du nombre entier résultat (pour 'exp' probablement encore ???)
+$0670-$0671 Mise sur la pile de l'octet le plus bas du nombre entier résultat, pour `inst_exp`.
 $0672       Octet de poids fort de l'entier dans A.
 $0673       Récupération du signe dans Carry
 $0674       Normalisation du nombre.
@@ -1661,7 +1660,7 @@ $0769       [is_in_range]
 $0769       Arrivé ici, la partie entière de FAC est sur 6 chiffres.
             Le compteur sur la pile contient l'inverse la puissance de 10 qu'il a fallu appliquer.
             Ajoute 0.5 à FAC pour arrondire.
-$076c       Que contient A ???
+$076c       Incrémente l'exposant.
 $076d       Ramène FAC dans un entier dans BCDE
 $0770       Remonte BCDE dans FAC
 $0773       Initialise des bornes
@@ -1797,7 +1796,7 @@ $0826       [fp_bcde_pow]
 $0826-$0827 Récupère le nombre sur la pile dans BCDE.
 $0828       Prend le signe de FAC (ne s'intéresse qu'aux drapeaux, puisque A est écrasé juste après)
 $0829       A prend l'exposant de BCDE.
-$082a       Si la puissance est 0, branche vers l'instruction `EXP`. (??? pour donner 1)
+$082a       Si la puissance est 0, branche vers l'instruction `EXP`, ce qui donne 1 pour résultat.
 $082c       Branche si la puissance est positive.
 $082f-$0830 Erreur si on tente de prendre une puissance négative de 0.
 $0833       [pos_pow]
@@ -1818,10 +1817,10 @@ $084d       Dépile le signe de la base
 $084e-$084f Pousse la puissance sur la pile
 $0850       Prend la valeur entière de la puissance
 $0853-$0854 Récupère la puissance dans BCDE
-$0855       Sauve AF, A contient le MSB de la base (pourquoi ???)
+$0855       Sauve AF, A contient l'exposant entier.
 $0856       Compare la puissance et sa valeur entière
 $0859-$085a Récupère A sans toucher aux drapeaux
-$085b       Récupère un drapeau dans A (résultat de la comparaison ???)
+$085b       Exposant pair (0) ou impair (1) dans Carry.
 $085c       [pos_base]
 $085c-$0861 Montre le nombre dans la pile dans FAC
 $0864       En fonction de la comparaison, prend l'opposé dans FAC (??? perdu le fil...)
@@ -1937,10 +1936,10 @@ $091a       Pointe vers la seed à nouveau
 $091d       Retour si l'argument est 0, on renvoit le dernier nombre généré (qui est dans le FAC)
 $091e       On ajoute la seed avec le contenu de A (qui est à 1 car le sign est positif)
 $091f       ... uniquement les 3 premiers bits (0 à 7)
-$0921       Pourquoi ???
+$0921       Prépare BC, offset de la table, avec B = 0
 $0923       On sauve la seed
 $0924       Avance dans la table des coefficients
-$0925-$0927 Offset dans la table des coefficients (seed * 4, B étant à zéro)
+$0925-$0927 Calcule BC est l'offset dans la table des coefficients (seed * 4, B étant à zéro)
 $0928       On pointe vers la table des coefficients
 $0929       Charge le coefficient en tant que FP dans BCDE
 $092c       Multiplication du nombre en FAC avec le coefficient
@@ -2410,8 +2409,7 @@ $0ce8       [wait_34s]
 $0ce8       5 states
 $0ce9       [wait_29s]
 $0ce9       11 states (+ `call` 18 states)
-$0cea       [some_data]
-$0cea       ??? (en code, `dec b`, `reti`)
+$0cea       Trois octets inutilisés (en code, `dec b`, `reti`)
 
 $0ced       [inst_sete]
             %CODE
@@ -2569,7 +2567,7 @@ $0dfd       Sauvegarde la valeur de A, qui contient le paramètre mis par les di
 $0dfe       Mis à 1 les 3 bits de poids faibles, ce qui signifie que la couleur d'affichage est b111.
 $0e00       Place la valeur dans le registre `attcar`.
 $0e03       Récupère la valeur de A initiale et les drapeaux lors de l'appel de la routine.
-$0e04       Si Z était à 1, cela signifie qu'il n'y avait pas de paramètre (vérifier ???). Retour immédiat.
+$0e04       Si Z était à 1, cela signifie qu'il n'y avait pas de paramètre. Retour immédiat.
 $0e05       Récupère le premier paramètre dans A, entier 8 bits qui contient la couleur d'écriture sur 3 bits.
 $0e08       Sauve la valeur
 $0e09       N'en garde que les 3 bits de poids faible.
@@ -2660,7 +2658,7 @@ $0e74       Garde les 3 bits de poids faible du premier paramètre (couleur de f
 $0e76       Sauve le résultat dans L
 $0e77-$0e7a Décale la couleur de 4 vers la gauche, pour la positionner dans la couleur de fond graphique.
 $0e7b       Ajoute la couleur de fond texte.
-$0e7c       Le bit 7 de `attbak` doit être à 1. (??? pourquoi ?)
+$0e7c       Le bit 7 de `attbak` doit être à 1 pour le format code court/40 colonnes du VDP.
 $0e7e       [init_end]
 $0e7e       Efface l'écran avec la nouvelle couleur de fond.
 $0e81       Restaure le pointer de texte BASIC.
@@ -3043,11 +3041,8 @@ $1014       DE pointe sur l'octet suivant
 $1015       Branche si le deux octets comparés étaient différent.
 $1017       Sinon, on boucle selon le compteur BC.
 
-$101a       L'instruction partielle suivante ne sert à rien d'autre qu'à gagner un peu
-            d'espace lorsque BC == 0 et que la boucle est terminée.
-            Le contenu de A est écrasé un peu plus loin.
+$101a       HL a bouclé vers $0000. Saute par dessus le `dec hl` qui suit.
 $101a       %DATASKIP
-$101a       Cet octet semble inutilisé. ???
 
 $101b       [mem_differs]
             Après avoir initialisé le pointeur de pile, la seconde
@@ -3085,15 +3080,17 @@ $1042-$1048 Étrangement, le hook de l'interruption non masquable, lors du boot,
 
 $104b       IX prend la valeur $47FA qui est la base de la zone de données graphiques.
 
-            Attention, la valeur de IX doit rester constante. Le système considère que IX
-            est en tout temps égal à $47FA et référence certaines variables par index par rapport à IX.
+            Attention, la valeur de IX doit rester constante. Le système
+            considère que IX est en tout temps égal à $47FA et référence
+            certaines variables par index par rapport à IX.
 
-            Si IX doit changer, il faut veiller à désactiver l'IRQ (ou faire en sorte d'en sortir juste
-            après le hook `inthk`) et ne rien appeler qui concerne l'affichage sans avoir restauré IX.
+            Si IX doit changer, il faut veiller à désactiver l'IRQ (ou faire en
+            sorte d'en sortir juste après le hook `inthk`) et ne rien appeler
+            qui concerne l'affichage sans avoir restauré IX.
             
-            Cette troisième phase initialise le processeur graphique EF9345. Pour commencer,
-            une séquence est envoyée au périphérique, puis quelques variables en RAM sont
-            initialisées.
+            Cette troisième phase initialise le processeur graphique EF9345.
+            Pour commencer, une séquence est envoyée au périphérique, puis
+            quelques variables en RAM sont initialisées.
             
             La séquence, envoyée par `regst`, est détaillée au label correspondant.
 
@@ -3105,8 +3102,11 @@ $105d       Initialisation du registre `fklock` : utilisation des majuscules à 
 $1061       Passage du Z80 en Mode 1.
 
 $1063       Réactivation de l'IRQ.
-$1064-$1067 Numéro de départ d'un listing avec la touche HOME (???)
-$106a       Initialisation du registre `cursor` (couleur du pourtout et aspect du curseur ???)
+$1064-$1067 Numéro de départ d'un listing à l'écran.
+$106a       Initialisation du registre `cursor` (registre MAT du VDP)
+            Couleur de marge (activée) Cyan.
+            Curseur affiché plein clignotant.
+            Simple hauteur.
 $106e       Réinitialisation des paramètres de l'écran
 $1071-$107a Recopie une série de valeurs en RAM pour initialiser des registres à partir de `ramlow`.
 
@@ -3115,7 +3115,8 @@ $1071-$107a Recopie une série de valeurs en RAM pour initialiser des registres 
 
             Le dernier registre initialisé est `octsav`.
 
-$107c-$107f Envoi 0 sur le port $EF, censé être non utilisé (à vérifier ???) et sur $AF, pour la son/k7.
+$107c-$107f Envoi 0 sur le port $ef (non utilisé) et sur $AF, pour la son/k7.
+            Le port $ef est censé être non utilisé. Cela active la branche \Y7 du décodeur 7807, qui n'est pas branchée.
 $1081-$1084 Modification de l'adresse du hook "nmihk" pour brancher vers `test_reset` qui traite le redémarrage utilisateur (Ctrl+Delta)
 $1087       Initialise les registres BASIC et l'imprimante.
 $108a       Retour à la ligne.
@@ -3182,10 +3183,13 @@ $1122       [warm_boot]
 $1122       Le haut de la pile pointe vers la fin du buffer de travail BASIC.
 $1125-$1126 Sortie son à 0.
 $1128       L'entrée des programmes se fait par le clavier (et non par la cassette)
-$112b-$112c Mise à 1 du port $10 ???
+$112b-$112c Activation de l'imprimante en mettant le port ($10) à 1.
 $112e       Activation de l'IRQ
-$112f-$1132 La première ligne avec la touche HOME (???) est 1.
-$1135       Initialisation du registre `cursor` (expliquer la valeur ???)
+$112f-$1132 La première ligne du listing à l'écran est 1.
+$1135       Initialisation du registre `cursor` (registre MAT du VDP)
+            Couleur de marge (activée) Cyan.
+            Curseur affiché plein clignotant.
+            Simple hauteur.
 $1139       Initialisation de l'écran
 $113c       Initialisation des registres (dont la pile)
 $113f       [after_check]
