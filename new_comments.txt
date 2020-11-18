@@ -3183,7 +3183,7 @@ $1122       [warm_boot]
 $1122       Le haut de la pile pointe vers la fin du buffer de travail BASIC.
 $1125-$1126 Sortie son à 0.
 $1128       L'entrée des programmes se fait par le clavier (et non par la cassette)
-$112b-$112c Activation de l'imprimante en mettant le port ($10) à 1.
+$112b-$112c Remise à l'état haut du signal imprimante.
 $112e       Activation de l'IRQ
 $112f-$1132 La première ligne du listing à l'écran est 1.
 $1135       Initialisation du registre `cursor` (registre MAT du VDP)
@@ -3404,7 +3404,7 @@ $19cc-$19cf Affiche "Mauvais fichier"
 $19d2       [load_nerr]
 $19d2-$19d5 Affiche le message "Pause..."
 $19d8-$19d9 Annule la commande AUTO
-$19dc-$19dd Met $ff dans `getflg` indiquant que l'entrée se fait par k7 (a tracer ???)
+$19dc-$19dd Met $ff dans (`getflg`) pour indiquer que l'entrée de la boucle BASIC se fera depuis le buffer rempli par LOAD.
 $19e0       Revient à l'interpréteur BASIC.
 
 $19e3       [pause_msg]
@@ -3464,8 +3464,8 @@ $1a4e       Efface A
 $1a50       [cload_vrfy]
 $1a50       Complémente A, ce qui donne $FF, car A est à 0 depuis la soustraction qui a causé le branchement ici.
 $1a51       Avance d'un octet dans le buffer de texte BASIC.
-$1a52       Ce qui donne A = $FF et Carry à 1 pour `CLOAD?`, A = $00 et Carry à 0 dans les autres cas. (??? non... à vérifier)
-$1a54       On pousse sur la pile A ainsi que les drapeaux de la comparaison avec $01 ???
+$1a52       Ce qui donne A = $FF et Carry à 0 pour `CLOAD?`, A = $00 et Carry à 1 dans les autres cas.
+$1a54       On pousse sur la pile A ainsi que les drapeaux de la comparaison avec $01.
 $1a55-$1a5a Efface les erreurs systèmes k7 de la variable `cascom`
 $1a5d       Copie le paramètre potentiel nom de fichier dans le descripteur de fichier.
 $1a60       Lit le potentiel second paramètre.
@@ -3488,7 +3488,7 @@ $1a91       Lance une nouvelle calibration
 $1a94       Branche en cas d'erreur ou d'interruption de commande.
 
 $1a96       [sync_silenc]
-$1a96       Cherche 10 octets à 0 ???
+$1a96       Cherche 10 octets à 0 entre les deux enregistrements.
 
 $1a98       [read_zero]
 $1a98       Lit un octet depuis la k7
@@ -3525,14 +3525,15 @@ $1adc       Arrête le moteur k7.
 $1adf       Pointe HL vers la variable du contrôle et erreurs de k7.
 $1ae2       Branche en cas d'erreur de lecture ou d'interruption de commande.
 $1ae4       Branche en cas de mémoire pleine.
-$1ae6-$1ae7 Place les drapeaux en fonction du contenu de C (qui contient quoi ???)
+$1ae6-$1ae7 C est $00 pour un chargement et $ff pour une vérification (CLOAD?)
 $1ae8       Charge le contenu de `cascom` dans A
-$1ae9       Branche si C était égal à zéro.
-$1aeb-$1aed Branche si `cascom` a signalé une erreur.
+$1ae9       En cas de chargement, finalise l'opération.
+$1aeb-$1aed Sinon, en vérification, branche si `cascom` a signalé une erreur.
 
 $1aef       [ok_clear]
-            Affiche le message d'invite "Ok!" et réinitialise le chaînage (???) et les variables.
+            Affiche le message d'invite "Ok!" et réinitalise les variables internes du BASIC.
 $1aef-$1af2 Affiche la chaîne "Ok!"
+$1af5       Branche pour réinitaliser les variables et boucler sur le moniteur.
 
 $1af8       [mem_out_k7]
             Indique une erreur de fichier trop grand dans `cascom` et affiche une erreur de dépassement de mémoire.
@@ -3559,8 +3560,8 @@ $1b2a       [bad_file]
             Sortie :
             - HL pointe sur le texte dans la bonne langue.
 
-$1b36       [load_adjust]
-            ???
+$1b36       [load_contnt]
+            Finalise le chargement.
 
 $1b36-$1b38 Branche si l'utilisateur a activé le mode `return if error`.
 $1b3a-$1b3c Branche s'il y a une erreur système.
@@ -3576,12 +3577,12 @@ $1b4a-$1b4c Branche s'il y a une erreur signalée.
 $1b4e       Construit le chaînage du listing BASIC chargé.
 $1b51       À la fin du chaînage, HL pointe à la fin du listing, qui devient donc l'adresse pour les variables, mis dans `(vartab)`.
 
-$1b54       [mem_adjust]
-            ???
-$1b54       État de l'exécution BASIC
-$1b57-$1b58 Branche si `(allflg)` est différent de 0, ce qui signifie que le moniteur BASIC ne doit pas tourner (??? pas sur, ça a l'air de servir comme variable temporaire pendant le chargement)
+$1b54       [load_in_mem]
+            Finalise le chargement de fichier binaire (type M).
+
+$1b54-$1b58 Branche si le moniteur BASIC est désactivé (à cause de l'octet de protection)
 $1b5a       Pointe vers le buffer de travail.
-$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul (mais que contient-il ?)
+$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul (mais que contient-il ???)
 $1b61       %CHAR
 $1b61-$1b63 Branche si le premier octet du buffer de travail est `0`.
 $1b65       Branche dans les autres cas (??? lesquels).
@@ -3758,7 +3759,7 @@ $1c3d       Cherche la ligne suivante.
 $1c3f       [k7_advance]
 $1c3f       Incrémente HL, pointeur vers le texte BASIC.
 $1c40       Initialise le compteur B à 3.
-$1c42       C'est un patch de la ROM 1.0, branche plus loin (??? vérifier)
+$1c42       Branche sur la suite de la routine.
 
 $1c45       [init_ft]
             Initialise le descripteur de fichier
@@ -4263,7 +4264,7 @@ $1f29       Sauve AF, le paramètre de vérification. ???
 $1f2a       Calibre la lecture.
 $1f2d       Retour (avec nettoyage de la pile) en cas d'erreur ou d'interruption de commande.
 $1f30       Charge l'indicateur de protection dans le descripteur de fichier lu (qui est toujours décalé)
-$1f33-$1f37 Ajuste la possibilité d'exécuter le moniteur BASIC (si `allflg` est à 1, on ne reviendra pas sur l'invite de commande du BASIC)
+$1f33-$1f37 L'octet de protection du jeu contrôle la possibilité pour le moniteur BASIC de s'exécuter.
 $1f38-$1f39 Récupère le paramètre de vérification (???) et l'adresse de destination.
 $1f3a       Copie A, le masque de comparaison ou lecture, dans D
 $1f3b       [read_ct]
@@ -4300,6 +4301,7 @@ $1f83       Pointe vers l'octet suivant.
 $1f84       Décrémente le nombre d'octets à charger.
 $1f85-$1f87 Boucle s'il reste des octets à charger.
 $1f89       Récupère dans C le sélecteur de chargement ou vérification.
+            $ff pour une vérification, $00 pour un chargement.
 $1f8a       Sauve HL
 $1f8b       Charge la somme de contrôle calculée dans HL.
 $1f8e       Charge dans DE la somme de contrôle lue depuis la k7.
@@ -4521,7 +4523,7 @@ $22ab       Affiche le caractère espace puis continue dans la boucle BASIC.
 $22ad       [out_loop]
 $22ad       Affiche le caractère qui est dans A puis continue dans la boucle BASIC. Le caractère est soit $20 soit $a0.
 
-$22ae       [stoploop]
+$22ae       [main_loop]
             Boucle de traitement du BASIC
 $22ae       Acquisition d'une ligne de commande BASIC.
 $22b1       Lorsque l'acquisition sort avec Carry à 1, une annulation a été demandée. On boucle alors sur l'acquisition d'une nouvelle ligne.
@@ -4635,7 +4637,7 @@ $2347       [line_search]
             Sorties :
             - `(prelin)` contient le pointeur vers la ligne précédente à celle recherchée ou 0 s'il n'existe pas de ligne précédente.
             - Carry à 1 si la ligne a été trouvée, 0 dans le cas contraire.
-            - Z à 0 si la fin du listing est atteinte ???
+            - Z à 0 si la fin du listing a été atteinte sans trouver le numéro de ligne cherché.
             - BC pointe vers les données de la ligne cherchée. Sur les données de la ligne qui a dépassé sinon.
             - HL pointe vers les données de la ligne suivante si la ligne est trouvée. Contient le numéro de ligne qui a dépassé sinon.
             - DE contient toujours le numéro de la ligne BASIC à chercher.
@@ -4891,7 +4893,7 @@ $247a-$247c Indique que la recherche/création de variable se fait pour une comm
 $247f       Juste après le `FOR` se trouve une assignation de variable. Au retour, DE pointe sur la variable.
 $2482       Retire l'adresse de retour de l'instruction `LET` ($24ea)
 $2483       Sauve le pointeur vers le texte BASIC qui pointe à présent après l'assignation de variable.
-$2484       Cherche le début de l'instruction suivante. (est-ce que c'est ce qui provoque l'erreur de syntaxe en mode direct ???)
+$2484       Cherche le début de l'instruction suivante.
 $2487       Sauve le pointeur vers l'instruction suivant le `FOR`
 $248a-$248d Pointe 2 octets au-dessus de la pile, c'est-à-dire après le pointeur vers le texte BASIC que l'on vient d'y pousser.
 
@@ -5284,7 +5286,8 @@ $2657       [let_numeric]
 
 $2657       Sauve le pointeur vers la variable.
 $2658       Copie le contenu de FAC vers la variable.
-$265b       Restaure l'adresse de la variable dans DE (pour quelle raison ???)
+$265b       Restaure l'adresse de la variable dans DE.
+            Cela permet à l'instruction `FOR` de récupèrer la variable d'iteration.
 $265c       Restaure le pointeur vers le texte BASIC.
 
 $265e       [inst_on]
@@ -5351,7 +5354,7 @@ $26ad       %CHAR
 $26ad-$26af Branche si le caractère est ','
 $26b1       %CHAR
 $26b1-$26b3 Branche si le caractère est ';'
-$26b6       Récupération du pointeur vers le texte BASIC (ne sert pas ???)
+$26b6       Jette le pointeur vers le texte BASIC qui sera sauvé après la lecture de l'expression.
 $26b7       Lecture de l'expression pointée par HL.
 $26ba       Sauve le pointeur vers le texte BASIC.
 $26bb-$26bf Branche si l'expression est de type chaine.
@@ -5421,7 +5424,7 @@ $272e       Initialise A avec la colonne à l'écran.
 
 $2731       [print_spc]
 $2731-$2732 Pour SPC(), A = argument de SPC() - 0
-            Pour TAB(), A = argument de SPC() - colonne actuelle ( - 1 ???)
+            Pour TAB(), A = argument de SPC() - colonne actuelle - 1
 $2733       Continue à la suite si TAB() était inférieur à la colonne actuelle.
 
 $2735       [output_spc]
@@ -6189,7 +6192,7 @@ $2ad4       [acq_key]
             - Quelques touches spéciales n'ont pas l'air d'être traitées et sont alors renvoyées dans A. Lesquelles ???
 
 $2ad4-$2ad6 Sauve BC, DE et HL sur la pile.
-$2ad7-$2adc Branche si la ligne n'est pas entrée depuis le BASIC. (depuis un INPUT ???)
+$2ad7-$2adc Branche si une ligne a été validée par le moniteur (que ce soit en direct ou dans une instruction `INPUT`).
 $2adf       Attente d'une interruption
 $2ae0       Décode une touche du clavier.
 $2ae3-$2ae4 Branche si aucun caractère n'a été validé.
@@ -6198,7 +6201,7 @@ $2ae7       Bascule sur les registres alternatifs.
 $2ae8-$2aeb Configure le son émis lors de l'appuie d'un caractère.
 $2aee       Pendant une durée très courte.
 $2af1       Émet le son.
-$2af4-$2afb Indique qu'un caractère a été entré depuis une interaction en BASIC.
+$2af4-$2afb Active la continuité des lignes logiques.
             Les deux `NOPs` sont un patch de la ROM 1.0 qui désactivait le défilement de l'écran.
 $2afe       Restaure AF
 $2aff       Branche si la touche validée était une touche de fonction.
@@ -6210,7 +6213,7 @@ $2b07       [acq_key_3]
 
 $2b07-$2b09 Branche pour traiter la touche Déplacement vers le haut.
 $2b0c-$2b0e Branche pour traiter la touche Saut de ligne.
-$2b11-$2b13 Branche pour traiter la touche Saut de page. ???
+$2b11-$2b13 Branche pour traiter la touche `LIST`.
 $2b16       Poursuit le traitement de l'acquisition d'une touche appuyée.
 
 $2b19       Octet inutilisé du au patch de la ROM 1.1
@@ -6233,13 +6236,13 @@ $2b2d       [key_nul_ret]
             soit est annulée car la touche n'a pas d'effet (dans une commande INPUT par exemple).
 
 $2b2e       [key_acq_end]
-$2b2e-$2b31 Restaure les registres. D'où viennent les branchements directs ici ??? Toujours d'un traitement de touche ?
+$2b2e-$2b31 Restaure les registres en fin de traitement d'acquisition d'une touche de clavier.
 
 $2b32       [bufferstart]
-            Avant l'acquisition d'une touche de clavier, si une ligne a été validée, cette routine est exécutée.
+            Une ligne vient d'être validée par le moniteur BASIC, que ce soit en direct ou dans une instruction `INPUT`.
 
             À l'air de se positionner sur le premier caractère interessant à décoder ???
-$2b32       Coordoonées de la ligne BASIC à décoder. H contient la ligne à l'écran, L est à 0.
+$2b32       Coordonnées de la ligne BASIC à décoder. H contient la ligne à l'écran, L est à 0.
 $2b35       Copie du numéro de ligne dans A.
 $2b36-$2b38 Branche si le numéro de ligne est 24 ou plus (la dernière ligne de l'écran)
 $2b3a       Sauve les coordonnées de la ligne.
@@ -6249,22 +6252,22 @@ $2b42       Branche si le curseur sur une ligne logique continuée.
 $2b44       [if_line_24]
 $2b44-$2b47 Branche si la colonne est 40 ou plus (la colonne la plus à droite est 39)
 $2b49       [if_cnt_line]
-$2b49       Sauve les drapeaux ???
+$2b49       Sauve les drapeaux de comparaison. Z si le curseur est sur une ligne logique continuée
 $2b4a-$2b4d Branche si la colonne est 38 ou moins.
 $2b4f-$2b50 Coordonnées sur la ligne suivante, première colonne.
 
 $2b52       [if_less_39]
 $2b52       Avance d'une colonne (la colonne 0 n'est pas utilisée par l'éditeur)
-$2b53       Enregiste les nouvelles coordonnées.
+$2b53       Enregistre les nouvelles coordonnées.
 $2b56       Et les sauve sur la pile.
 $2b57-$2b5a B contient le caractère aux nouvelles coordonnées.
 $2b5b       DE contient les nouvelles coordoonées.
-$2b5c       Récupère les drapeaux de comparaison (de quoi ???)
+$2b5c       Récupère les drapeaux de comparaison.
 $2b5d       A contient le caractère lu aux coordonnées.
-$2b5e       Branche si quoi ???
+$2b5e       Dans quel cas est-ce que le Carry peut-être à 0 ???
 $2b60       %CHAR
 $2b60-$2b62 Branche si ce n'est pas un espace.
-$2b64       [loop2B64]
+$2b64       [srch_char]
 $2b64       Incrémente la colonne.
 $2b65       Place la colonne dans A.
 $2b66-$2b68 Branche si la colonne est 40 ou plus.
@@ -6273,7 +6276,7 @@ $2b6d       %CHAR
 $2b6c-$2b6f Boucle si le caractère est un espace.
 $2b71       %CHAR
 $2b71       Sinon, on pointe sur un caractère qui n'est pas un espace. Place un espace dans A
-$2b73       Et continue vers ???
+$2b73       Et continue vers l'acquisition de la ligne.
 
 $2b75       [if_col_40]
 $2b75-$2b7a Remet l'indicateur de ligne entrée en BASIC à 0 .
@@ -6299,7 +6302,7 @@ $2b9f       Deux octets inutilisés du au patch de la ROM 1.1
 
 $2ba1       [not_digit]
 $2ba1       Place le curseur après le bloc de ligne logique.
-$2ba4-$2ba6 Émission d'une autorisation de visualisation ???
+$2ba4-$2ba6 Émission du caractère d'effacement d'écran de la ligne du curseur jusqu'en bas de l'écran.
 
 $2ba7       [acquired_cr]
 $2ba7-$2ba9 Retour en ayant acquis un retour chariot.
@@ -6412,7 +6415,7 @@ $2c4b       Lecture du caratère aux coordonnées curseur actuelle.
 
 $2c4e       [record_char]
 $2c4e       Enregistre le premier caractère lu de la ligne logique (ou début d'`INPUT`) dans `(entstt)`.
-$2c51-$2c56 Met le drapeau `ligne entrée en BASIC` à 1.
+$2c51-$2c56 Met le drapeau `ligne entrée en BASIC` à 1 pour indiquer qu'une ligne vient d'être validée en entrée.
 $2c59-$2c5d Placement des coordonnées sur le caractère en colonne précédente.
             Donc 0 pour une ligne logique, et avant l'entrée en cas d'`INPUT` (???)
 
@@ -6449,8 +6452,8 @@ $2ca7       Une ligne a été trouvée, mise à jour du listing dynamique.
 $2caa       [do_down]
 $2caa-$2cac Pour les lignes inférieures à 24, ne traite pas le déplacement vers le bas et délègue le `line feed` à `outdo`.
 
-$2caf       [ifformf]
-            Saut de page, ou bien plutôt `HOME` ???
+$2caf       [if_list]
+            Traitement de la touche `LIST`
 $2caf-$2cb4 Ignore la touche si on est dans un traitement de `INPUT`.
 $2cb7       Place le Carry à 1 pour la mise à jour de la liste dynamique. (qu'est-ce que cela indique ???)
 $2cb8       Branche vers la mise à jour du listing dynamique.
@@ -6489,7 +6492,7 @@ $2cf9       Boucle sur la ligne suivante si le curseur n'a pas atteind la ligne 
 
 $2cfb       [list_end]
 $2cfb       Récupère les drapeaux.
-$2cfc       Branche si l'on vient du traitement de `HOME` (???)
+$2cfc       Branche si l'on vient du traitement de `LIST` (???)
 $2cfe       Sinon, récupère les coordonnées du curseur du début de routine.
 
 $2d01       [cur_reset]
@@ -7248,7 +7251,7 @@ $320d-$3210 Comparaison avec la borne supérieur pour les numéros de lignes du 
 $3211       Resteur le pointeur vers les données de la ligne.
 $3212       Inverse le résultat de comparaison.
 $3213       Retour si le numéro de la ligne lue est supérieur à la borne supérieure du listing demandé.
-$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `HOME` (???)
+$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `LIST` (???)
 $3219       Sauve le pointeur vers les données de la ligne.
 $321a-$321b Émet le numéro de la ligne lue sur le périphérique sélectionné.
 $321e       %CHAR
@@ -7488,7 +7491,7 @@ $3380       %CODE
 $3383       %CODE
             CHR$(11) -> aucune action
 $3386       %CODE
-            CHR$(12) -> HOME
+            CHR$(12) -> LIST 
 $3389       %CODE
             CHR$(13) -> RET
 $338c       %CODE
@@ -7528,7 +7531,7 @@ $33bc       %CODE
 $33bf       %CODE
 $33bf       Charge les attributs de fond utilisés par `INIT`.
 $33c2       Efface l'écran.
-            CHR$(31) -> Efface l'écran + HOME
+            CHR$(31) -> Efface l'écran + Touche LIST
 
 $33c5       [send_back]
             %CODE
@@ -7825,7 +7828,7 @@ $3598       [iinsl_0]
 $3598-$359b Efface le contenu de la ligne du curseur.
 
 $359f       [sd_effe]
-            Traitement de `EFFE` (par le caractère 31)
+            Traitement de l'effacement bas de l'écran (par le caractère 30)
             
             Efface toutes les lignes à partir de la ligne courante du curseur jusqu'en bas de l'écran.
 
@@ -9246,6 +9249,7 @@ $3cb5       [keyloop]
             Traitement du moniteur pour une entrée par le clavier.
 $3cb5       Traitement de l'appuie d'une touche, qui est éventuellement traitée.
 $3cb8-$3cb9 Branche si une touche validée nécessite un traitement. La plupart des touches sont traitées directement et A est alors à 0. Quelles touchent sortent-elles avec A != 0 ??? STOP par exemple.
+            $0d est laissée (car décodée juste après).
 $3cbb-$3cbe Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
 $3cc0       La combinaison d'interruption de commande (SHIFT+STOP) a été détectée. Carry est à 1 et on termine l'acquisition des touches. Le retour se fait en $22b1
 
