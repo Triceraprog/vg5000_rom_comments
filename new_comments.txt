@@ -4253,8 +4253,6 @@ $1f25       Boucle 10 fois.
 $1f28       [read_contnt]
             Charge les données du fichier sur la K7 vers la zone mémoire pointée par HL.
 
-            (ou vérifie ???)
-
             Entrée :
             - HL contient l'adresse mémoire où charger les données chargées.
             - A est à 0 si on effectue un chargement, et à $FF si on effectue une vérification de fichier.
@@ -4529,9 +4527,7 @@ $22ae       Acquisition d'une ligne de commande BASIC.
 $22b1       Lorsque l'acquisition sort avec Carry à 1, une annulation a été demandée. On boucle alors sur l'acquisition d'une nouvelle ligne.
 
 $22b3       Lorsqu'on arrive ici, la touche Entrée a été appuyée, la ligne est donc validée.
-            HL pointe sur l'adresse précédente le buffer qui a été rempli par l'acqusition des touches, et qui se termine par un $00.
-
-            Pour une entrée normale, le buffer est `(buf)`, existe-t-il un autre cas ? (avec `LOAD` ???)
+            HL pointe sur l'adresse précédente le buffer qui a été rempli (`buf`) par l'acqusition des touches ou par `LOAD`, et qui se termine par un $00.
 $22b4-$22b5 Afin de tester si A est égal à zéro sans toucher au Carry, utilise une paire `INC`/`DEC` qui touche à Z mais pas à Carry.
 $22b6       Le premier caractère entrée était $00, ce qui signifie que la ligne est vide, on boucle sur la moniteur.
 $22b8       Sauve le drapeau Carry.
@@ -4556,8 +4552,8 @@ $22d9-$22da Préparation et sauvegarde du test de caractère nul.
 $22db       Recherche du numéro de ligne (depuis DE)
 $22de       Branche si le numéro de ligne a été trouvé.
 $22e0-$22e1 Sinon, récupère le résultat du test de caractère nul précédent ainsi que le caractère lu, en gardant la valeur sur la pile.
-$22e2       Retourne au moniteur si le buffer était vide (mais pourquoi avoir testé le numéro de ligne entre temps ???)
-$22e5       Pourquoi refaire un "or a,a" ici ??? Il y a besoin que Carry soit à 0, mais il devrait l'être à cause de $22d9
+$22e2       Retourne au moniteur si le buffer était vide.
+$22e5       Passe le Carry à 0, pour indiquer que la ligne n'a pas été trouvée.
 
 $22e6       [prev_found]
 $22e6       BC contient l'adresse de la ligne trouvée si elle l'a été, ou de la ligne suivante sinon.
@@ -4682,7 +4678,7 @@ $236b       [tokenize]
             - A est égal à 0
             
 $236b-$236c Mise à 0 de `(dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
-$236f       Taille initial du buffer de sortie (pourquoi 5 ???)
+$236f       Taille initial du buffer de sortie. Commence à 5 pour prévoir les 2 octets de numéro de ligne, 2 octets de chaînage, et le 0 final.
 $2371       DE pointe sur le buffer de tokenisation
 $2374       [analyze]
 $2374       Récupération dans A du caractère à traiter
@@ -4756,7 +4752,7 @@ $23ed       [kw_found]
 $23ed       Sauvegarde dans C du numéro de token.
 $23ee       L'adresse du début de mot sur la pile est nettoyée.
 $23ef       L'adresse de retour en cas d'échec de recherche est dépilée.
-$23f0       A prends le numéro de token (pourquoi ne pas avoir fait directement LD A,B à ce niveau ???)
+$23f0       A prends le numéro de token (pourquoi ne pas avoir fait directement `ld a, b` ici?)
 $23f1-$23f3 Branche si le token est $88 (`GOTO`)
 $23f5-$23f7 Branche si le token est $8c (`GOSUB`)
 $23f9-$23fb Branche si le token est $8b (`RESTORE`)
