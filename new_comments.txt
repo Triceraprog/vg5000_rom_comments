@@ -6369,7 +6369,7 @@ $2c07-$2c09 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne couran
 $2c0a       Et la touche acquise sera validée comme étant un retour chariot ($0d).
 
 $2c0d       [find_cont]
-            Traitement lors d'une continuité trouvée au début de la ligne ???
+            Recherche les coordonnées du début de la ligne logique.
 $2c0d       Place les coordonnées modifiées du curseur sur la colonne 1.
 $2c0f       [find_start]
 $2c0f       Enregistre la coordonnées modifiée comme la coordonnées actuelle de ligne envoyée au BASIC.
@@ -6377,7 +6377,7 @@ $2c12       Sauve ces coordonnées sur la pile.
 $2c13-$2c14 Lecture du caractère en colonne 0 de la ligne courante.
 $2c17-$2c18 Branche si ce caractère n'est pas le marqueur de continuité de ligne logique ($84).
 $2c1a       Monte les coordonnées d'une ligne.
-$2c1b       Branche si la ligne est au-dessus de la ligne 0.
+$2c1b       Branche si la ligne est au-dessus de la ligne 0 sans traitement supplémentaire.
 $2c1e       Boucle pour trouver le début de la ligne logique, ou bien le début de l'écran.
 
 $2c20       [found_start]
@@ -6413,7 +6413,7 @@ $2c4e       [record_char]
 $2c4e       Enregistre le premier caractère lu de la ligne logique (ou début d'`INPUT`) dans `(entstt)`.
 $2c51-$2c56 Met le drapeau `ligne entrée en BASIC` à 1 pour indiquer qu'une ligne vient d'être validée en entrée.
 $2c59-$2c5d Placement des coordonnées sur le caractère en colonne précédente.
-            Donc 0 pour une ligne logique, et avant l'entrée en cas d'`INPUT` (???)
+            Donc 0 pour une ligne logique, et une colonne avant l'entrée utilisateur en cas d'`INPUT`.
 
 $2c60       [screenstart]
 $2c60       La fonction sortira avec pour valeur acquise `NUL`. Le traitement a été effectué.
@@ -6451,7 +6451,7 @@ $2caa-$2cac Pour les lignes inférieures à 24, ne traite pas le déplacement ve
 $2caf       [if_list]
             Traitement de la touche `LIST`
 $2caf-$2cb4 Ignore la touche si on est dans un traitement de `INPUT`.
-$2cb7       Place le Carry à 1 pour la mise à jour de la liste dynamique. (qu'est-ce que cela indique ???)
+$2cb7       Place le Carry à 1 afin d'indiquer à la mise à jour du listing à l'écran qu'il faudra placer le curseur en haut de l'écran.
 $2cb8       Branche vers la mise à jour du listing dynamique.
 
 $2cba       [update_list]
@@ -6462,15 +6462,13 @@ $2cba       [update_list]
 $2cba-$2cbb BC pointe vers le numéro de ligne.
 $2cbc-$2cc0 DE = numéro de la ligne.
 $2cc1       Mise à jour du numéro de ligne de la première ligne du listing à l'écran.
-$2cc5       Mise à 0 du Carry (pour différentier d'une arrivée en $2cca avec Carry à 1)
+$2cc5       Mise à 0 du Carry (pour différencier d'une arrivée depuis le traitement de la touche `LIST`.
 $2cc6       HL = coordonnées du curseur.
 $2cc9       Sauve les coordonnées du curseur.
 
-$2cca       [list_home]
-            Vérifier l'adéquation du nom de ce label. ???
-
-$2cca       Sauve A et les drapeaux sur la pile.
-$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et caractère de continuité lors d'un passage à la ligne (??? pour la continuité)
+$2cca       [list_key]
+$2cca       Sauve le Carry sur la pile, pour la différence entre la mise à jour du listing et l'appuie sur la touche `LIST`.
+$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et gestion du caractère de continuité lors des déplacements du curseur.
 $2cd0       Délai de rafraichissement de l'écran à $40, pour avoir le temps de mettre à jour tout le listing.
 $2cd4       `(attcar)` à 0.
 $2cd8-$2cdb Place le curseur en colonne 0, ligne 1
@@ -6483,12 +6481,12 @@ $2cea       Écrit la ligne courante à l'écran.
 $2ced       Branche si le listing doit s'arrêter (fin de listing, ou bas de l'écran)
 $2cef-$2cf2 Compare la ligne du curseur avec 24.
 $2cf4       Prépare l'écriture du caractère de continuité.
-$2cf6       Envoie le caractère de continuité si la ligne est inférieure à 24 ??? (du coup, il y a de la continuité sur tout l'écran ???)
-$2cf9       Boucle sur la ligne suivante si le curseur n'a pas atteind la ligne 24.
+$2cf6       Envoie un retour chariot si la ligne courante est inférience à 24.
+$2cf9       Boucle sur la ligne suivante si le curseur n'a pas atteint la ligne 24.
 
 $2cfb       [list_end]
-$2cfb       Récupère les drapeaux.
-$2cfc       Branche si l'on vient du traitement de `LIST` (???)
+$2cfb       Récupère le Carry.
+$2cfc       Branche si l'on vient du traitement de la touche `LIST`, afin de placer le curseur en haut de l'écran.
 $2cfe       Sinon, récupère les coordonnées du curseur du début de routine.
 
 $2d01       [cur_reset]
@@ -6642,8 +6640,8 @@ $2ec4       [mem_verify]
             - HL, le pointeur à vérifier
             
 $2ec4       Sauve le pointeur HL fourni.
-$2ec5-$2ecc Ajoute 96 en soustrayant $ffa0 à HL.
-$2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL (ajusté avec les niveaux) et le haut de la mémoire ($FFFF).
+$2ec5-$2ecc HL <- $ffa0 - HL, donc l'espace disponible entre HL et la fin de la mémoire adressable moins un espace réservé.
+$2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL et le haut de la mémoire ($FFFF).
             Branche sur une erreur.
 $2ecf       Ajoute HL
 $2ed0       Restore dans HL le pointeur d'exécution
