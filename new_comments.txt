@@ -6639,13 +6639,13 @@ $2ec4       [mem_verify]
             Entrée :
             - HL, le pointeur à vérifier
             
-$2ec4       Sauve le pointeur HL fourni.
+$2ec4       Sauve le pointeur HL fourni
 $2ec5-$2ecc HL <- $ffa0 - HL, donc l'espace disponible entre HL et la fin de la mémoire adressable moins un espace réservé.
 $2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL et le haut de la mémoire ($FFFF).
             Branche sur une erreur.
 $2ecf       Ajoute HL
-$2ed0       Restore dans HL le pointeur d'exécution
-$2ed1       Retour si HL + SP provoque une retenue, il y a assez d'espace. ???
+$2ed0       Restaure le pointeur fourni
+$2ed1       Retour si HL + SP provoque une retenue, c'est que le pointeur fourni est assez loin du haut de la mémoire. C'est ok.
 
 $2ed2       [out_of_mem]
 $2ed2-$2ed5 Message d'erreur "Out of Memory"
@@ -6704,10 +6704,8 @@ $2f19       Remet l'adresse de retour sur la pile avant le RET
 
 $2f1a       [do_again]
             %MS_BASIC(DOAGN)
-            A tracer depuis le reset qui précède et depuis INPUT (???)
-            
-$2f1a       HL est chargé avec la valeur de `temp`, qui contient l'adresse d'exécution d'une commande.
-            Qu'est-ce qu'il y a au boot ???
+$2f1a       HL est chargé avec la valeur de `temp`.
+            Pendant `INPUT`, `hl` pointe vers le début de l'instruction `INPUT` a relancé en cas de mauvais type de donnée.
 
 $2f1e       [inst_restore]
             %CODE,%MS_BASIC(RESTOR)
@@ -6787,19 +6785,19 @@ $2f7a-$2f7e Sinon, place le numéro de la ligne d'arrêt dans `(curlin)`. Avec l
 
 $2f83       [myst_inst]
             %CODE
+            Cette instruction, qui branche vers une instruction illégale, ne semble pas être appelée.
 
-            Est-ce une instruction illégale ??? D'où est-ce appelé ?
 
-$2f86       [mystere]
+$2f86       [mysterious]
             %CODE
+            Cette routine ne semble pas être appelée.
 
-            Est-ce vraiment une instruction appelée ???
-            La routine n'a pas vraiment de sens, mais n'est pas non plus complètement absurde.
+            Elle ne semble pas non plus avoir beaucoup de sens.
 
 $2f86-$2f88 Prépare la demande d'un tableau.
 $2f8b       Récupère un tableau tel que pointé par HL sur du texte BASIC.
 $2f8e       Sauve le pointeur de texte BASIC.
-$2f8f       Que prend `(subflg)` ???
+$2f8f       Est-ce que cela a du sens ?
 $2f92-$2f93 HL = BC
 $2f94-$2f97 Recule le pointeur BC de 4 octets.
 
@@ -7245,7 +7243,7 @@ $320d-$3210 Comparaison avec la borne supérieur pour les numéros de lignes du 
 $3211       Resteur le pointeur vers les données de la ligne.
 $3212       Inverse le résultat de comparaison.
 $3213       Retour si le numéro de la ligne lue est supérieur à la borne supérieure du listing demandé.
-$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `LIST` (???)
+$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `LIST`.
 $3219       Sauve le pointeur vers les données de la ligne.
 $321a-$321b Émet le numéro de la ligne lue sur le périphérique sélectionné.
 $321e       %CHAR
