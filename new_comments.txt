@@ -600,12 +600,12 @@ $01fc       [delim_wrt]
             Peut provoquer un défilement de l'écran.
 
             Entrée :
-            - le caractère à afficher
+            - A contient le caractère à afficher
 
 $01fc       Récupère la valeur de `extenf`, qui indique l'utilisation des caractères ROM ou RAM.
 $01ff       Récupère les coordonnées actuelles du curseur.
 $0202       Sauve les coordonnées du curseur.
-$0203       Sauve la valeur de `extenf`.
+$0203       Sauve le caractère à afficher.
 $0204       Calcul de l'adresse écran en RAM pour la position du curseur dans HL.
 $0207       Restaure la valeur de `extenf`.
 $0208       Met cette valeur dans le premier octet de la paire caractère/attribut dans la zone de l'écran.
@@ -7253,7 +7253,7 @@ $3221       Sauve le pointeur vers les données de la ligne dans `(retadr)` temp
 $3224       Émet l'espace vers le périphérique sélectionné.
 $3225       Restaure le pointeur vers les données de la ligne.
             Note : vu que `(retadr)` est écrasé juste après, pourquoi n'avoir pas laissé la valeur sur la pile ?
-$3228       Sauve le pointeur vers la ligne suivante dans `(retadr)` (pourquoi ???)
+$3228       Sauve le pointeur vers les données de la ligne.
 $322c       Évite l'émission de caractère qui suit.
 
 $322d       [emit_char]
@@ -7400,21 +7400,24 @@ $3317       Place les drapeaux en fonction de A.
 $3318       Revient sur les registres initiaux.
 
 $331a       [sendchar_t2]
-            Routine à tracer pour mieux la comprendre ???
+            Traite un caractère à destination de l'écran.
+
+            Entrée :
+            - A contient le caractère à traiter.
 
 $331a       Passe sur les registres généraux annexes.
-$331b       Sauve AF sur la pile.
-$331c-$331f Place l'adresse de retour sur la pile.
-$3320-$3322 Branche si le caractère dans A est inférieur strictement à 128.
-$3324-$3326 Branche si le caractère dans A est égal ou supérieur à 160.
+$331b       Sauve le caractère à traiter sur la pile.
+$331c-$331f Place l'adresse de retour sur la pile vers la fin de la routine.
+$3320-$3322 Branche si le caractère est inférieur strictement à 128.
+$3324-$3326 Branche si le caractère est égal ou supérieur à 160.
 $3328       A est compris entre 128 et 159. La mise à 0 du bit 7 revient à soustraire 128, ce qui amène A entre 0 et 31.
 $332a       Branche plus loin.
 
 $332c       [sdchar_bl80]
             A est inférieur strictement à 128.
-$332c-$332e Branche si A est égale à 32 ou supérieur (donc entre 32 et 127 inclus)
+$332c-$332e Branche si A est égale à 32 ou supérieur (donc entre 32 et 127 inclus). Le caractère est envoyé tel quel.
 $3330-$3334 Branche si les caractères utilisateurs (modifiables en RAM du VDP) son actifs.
-$3336-$333a Sinon, branche si c'est un caractère graphique (et ROM).
+$3336-$333a Sinon, branche si c'est un caractère graphique (et ROM). Le caractère est envoyé tel quel.
 
 $333c       [sdchar_spec]
             Arrivée ici si le caractère était
@@ -7439,22 +7442,22 @@ $3349       [sd_a_ff]
             Les 6 labels suivants chargent A avec une certaine valeur puis exécutent une série de `ld hl,xxxx` avec des valeurs inutiles.
 
             Pour finalement arriver sur 'sdchar_pass'
-$3349       A = $ff (???)
+$3349       A = $ff (signe DISK)
 $334c       [sd_a_0d]
-$334c       A = $0d (RET)
+$334c       A = $0d
 $334f       [sd_a_08]
-$334f       A = $08 (Déplacement à gauche)
+$334f       A = $08
 $3352       [sd_a_04]
-$3352       A = $04 (EFFL)
+$3352       A = $04
 $3355       [sd_a_1f]
-$3355       A = $1f (EFFE)
+$3355       A = $1f
 $3358       [sd_a_03]
-$3358       A = $03 (RET) (quelle différence entre $03 et $0d ???)
+$3358       A = $03
 
 $335a       [sdchar_pass]
 $335a       Jette la valeur en haut de la pile.
 $335b-$335e Adresse de retour pour le prochain `ret` qui termine la routine avec une demande de rafraichissement du buffer écran et nettoyage de lapile.
-$335f       Provoque l'affichage dans le buffer écran du caractère avec ses attributs (???).
+$335f       Affiche le caractère présent dans A avec les attributs actuels.
 
 $3362       [sdchar_ind]
             Suite de saut pour traitement des 31 premiers caractères.
@@ -7483,7 +7486,7 @@ $3380       %CODE
 $3383       %CODE
             CHR$(11) -> aucune action
 $3386       %CODE
-            CHR$(12) -> LIST 
+            CHR$(12) -> Curseur en haut de l'écran.
 $3389       %CODE
             CHR$(13) -> RET
 $338c       %CODE
@@ -7491,33 +7494,33 @@ $338c       %CODE
 $338f       %CODE
             CHR$(15) -> Réinitialise le terminal.
 $3392       %CODE
-            CHR$(16) -> Transforme en $ff (???)
+            CHR$(16) -> Transforme en $ff (caractère DISK)
 $3395       %CODE
-            CHR$(17) -> Transforme en $0d (???)
+            CHR$(17) -> Transforme en $0d
 $3398       %CODE
-            CHR$(18) -> Envoie le caractère tel quel (???)
+            CHR$(18) -> Envoie le caractère tel quel
 $339b       %CODE
-            CHR$(19) -> Transforme en $08 (???)
+            CHR$(19) -> Transforme en $08
 $339e       %CODE
-            CHR$(20) -> Envoie le caractère tel quel (???)
+            CHR$(20) -> Envoie le caractère tel quel
 $33a1       %CODE
-            CHR$(21) -> Envoie le caractère tel quel (???)
+            CHR$(21) -> Envoie le caractère tel quel
 $33a4       %CODE
-            CHR$(22) -> Envoie le caractère tel quel (???)
+            CHR$(22) -> Envoie le caractère tel quel
 $33a7       %CODE
-            CHR$(23) -> Envoie le caractère tel quel (???)
+            CHR$(23) -> Envoie le caractère tel quel
 $33aa       %CODE
-            CHR$(24) -> Transforme en $04 (???)
+            CHR$(24) -> Transforme en $04
 $33ad       %CODE
-            CHR$(25) -> Envoie le caractère tel quel (???)
+            CHR$(25) -> Envoie le caractère tel quel
 $33b0       %CODE
-            CHR$(26) -> Transforme en $1f (???)
+            CHR$(26) -> Transforme en $1f
 $33b3       %CODE
-            CHR$(27) -> Envoie le caractère tel quel (???)
+            CHR$(27) -> Envoie le caractère tel quel
 $33b6       %CODE
-            CHR$(28) -> Transforme en $03 (???)
+            CHR$(28) -> Transforme en $03
 $33b9       %CODE
-            CHR$(29) -> Envoie le caractère tel quel (???)
+            CHR$(29) -> Envoie le caractère tel quel
 $33bc       %CODE
             CHR$(30) -> Efface l'écran du curseur jusqu'en bas.
 $33bf       %CODE
