@@ -6337,7 +6337,7 @@ $2bd3       [skip_block]
 
             Est utilisé pour amener le curseur après une ligne logique sur plusieurs lignes physiques, après ce bloc.
 
-$2bd3-$2bd5 Envoie d'un retour à la ligne ($03 à la même effet que $0d ???)
+$2bd3-$2bd5 Envoie d'un retour à la ligne ($03)
 $2bd6       Charge les coordonnées du curseur dans HL
 $2bd9       Colonne précédente.
 $2bda       Récupère le caractère.
@@ -7737,7 +7737,8 @@ $3501       Branche si le mode activé est celui des caractères graphiques et q
 
 $3503       [insc_txt]
 $3503       %CHAR
-$3503-$3505 Branche si le caractère texte est l'espace.
+$3503-$3505 Branche si le caractère texte de la dernière ligne du bloc logique est l'espace.
+            Il n'y aura pas besoin d'insérer une nouvelle ligne.
 
 $3508       [insc_gr]
 $3508-$350b Charge les coordonnées du curseur dans HL et décrémente le numéro de ligne.
@@ -7747,21 +7748,19 @@ $350f       [insc_2]
             Retour après le patch de la ROM 1.1
 $350f       Sauve les coordonnées modifiées du curseur (ligne précédente)
 $3510-$3516 Place le curseur sur la ligne après la dernière ligne logique et émet `INSL`, afin de faire de la place pour la ligne logique.
-$3519       Où est le curseur maintenant ???
-$351c       Colonne 0.
+$3519-$351c Récupère les coordonnées du curseur sur la dernière ligne du bloc logique, colonne 0.
 $351e       HL pointe sur l'adresse du buffer d'écran BASIC à ces coordonnées.
 $3521-$3523 Y place un marqueur de continuité.
-$3524       Récupère les coordonnées du curseur de la ligne précédente (???)
-$3525       Rétablie les coordonnées du curseur (???)
+$3524-$3525 Récupère et rétablie les coordonnées du curseur initial.
 $3528       [insc_blank]
 $3528       Charge les coordonnées du curseur dans HL.
-$352b       Récupère les coordonnées (lesquelles ???)
+$352b       Récupère les coordonnées de la première ligne logique, en colonne 0.
 $352c-$352e Branche si les deux coordonnées ont les mêmes lignes.
 $3531-$3532 Copie de DE vers HL.
-$3533       Décrémente la ligne des coordonnées DE.
+$3533       Décrémente la ligne des coordonnées DE (la ligne traitée)
 $3534       Sauve ces nouvelles coordonnées dans la pile.
 $3535       HL pointe vers le buffer écran du BASIC aux coordonnées HL.
-$3538-$353c Pointe 77 octets plus loin. (??? bien dérouler tout ce passage)
+$3538-$353c Pointe 76+1 octets plus loin.
 $353d-$353e Copie HL dans DE.
 $353f-$3540 DE pointe 79 octets plus loin que les coordonnées précédentes dans HL.
 $3541       Copie 76 octets de `(de)` vers `(hl)`
@@ -7770,6 +7769,7 @@ $3546       Prend l'octet pointé.
 $3547-$354a Avance HL de 4 octets
 $354b       Y place l'octet.
 $354c       Boucle sur l'insertion d'un espace sur le reste de la ligne logique.
+            Cette boucle copie chaque ligne du bloc entre la fin et le curseur vers la ligne suivante, de bas en haut.
 
 $354f       [insc_same]
 $354f       Charge les coordonnées du curseur dans HL.
