@@ -3121,11 +3121,11 @@ $1081-$1084 Modification de l'adresse du hook "nmihk" pour brancher vers `test_r
 $1087       Initialise les registres BASIC et l'imprimante.
 $108a       Retour à la ligne.
 $108d       Marque la fin du buffer de travail du BASIC.
-$1090       Initialise le début de la RAM (??? juste avant txttab initial ???)
+$1090       Place le 0 obligatoire un octet avant `(txttab)`.
 
 $1093       Calcul des bornes de pile, memsize et place disponible
 $1096       HL pointe deux octets avant SP.
-$1097-$109b Branche vers une erreur de mémoire si HL est inférieur à $03e8 (comment serait-ce possible ???)
+$1097-$109b Branche vers une erreur de mémoire si HL est inférieur à $03e8. Comment serait-ce possible ???
 $109e       DE = -50
 $10a1       `memsiz` prend la valeur de HL (deux octets avec `(stktop)`)
 $10a4       Soustrait 50 de HL
