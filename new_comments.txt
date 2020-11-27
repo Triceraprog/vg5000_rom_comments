@@ -7995,7 +7995,6 @@ $3663       Sauve cette adresse sur la pile.
 $3664-$3665 Place la longueur de la chaine de caractères dans le descripteur.
 
 $3666       [de_in_hl]
-            Place le contenu de DE vers ce que pointe HL.
 $3666-$3669 Place DE dans les deux octets pointés par HL et HL + 1.
             Dans le cas d'une chaine de caractères, c'est le pointeur vers son contenu.
 $366a       Restaure HL.
@@ -8047,12 +8046,12 @@ $3688       Créé un descripteur temporaire sur cette chaîne de caractères.
 
 $368b       [cpy_to_pool]
 $368b       DE pointe sur l'espace temporaire utilisé pour le descripteur.
-$368e       HL pointe vers l'espace temporaire pour le traitement de chaine de caractères.
+$368e       HL pointe vers l'espace temporaire `tempst` pour le traitement de chaine de caractères, à un emplacement libre.
 $3691       Cette adresse est sauvée dans FAC.
 $3694-$3696 La valeur courante est une chaîne de caractères.
 $3699       Copie les 4 premiers octets de `dsctmp` vers `(hl)`.
-            Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
-$369c       Comme `dsctmp` est situé après le buffer `tempst`, comparer `de` et `hl` permet de savoir si le buffer temporaire a été entièrement rempli.
+            Autrement dit, copie la description de chaine temporaire dans le pool de chaine `tempst`.
+$369c       Vérifie si 'de' et 'hl' sont identiques. Cela signifie que le buffer de chaine `tempst` est plein.
 $369d       Mise à jour du pointeur vers le buffer temporaire `tempst`.
 $36a0       Récupère le pointeur vers la fin des données de la chaine de caractères.
 $36a1       Lecture du prochain caractère à destination de l'appelant.
@@ -8257,16 +8256,16 @@ $3793-$3796 Sauve l'adresse de la seconde chaine de caractères.
 $3797       Ajoute la longueur de la seconde chaine à la longueur de la première.
 $3798-$379b Sors avec "String too long" si la somme de deux longueurs est supérieur à 255.
 $379e       Alloue une chaine de caractères de la longueur de la future chaîne de caractères.
-$37a1       DE pointe vers la seconde chaîne.
-$37a2       Récupère la chaîne pointée par DE (où ???).
-$37a5       HL pointe sur la première chaîne.
-$37a6       Récupère la chaîne pointée par HL (où ???).
-$37a9       Sauve la première chaîne (???)
-$37aa-$37ad DE pointe sur ???
+$37a1       DE pointe vers le descripteur de la seconde chaîne.
+$37a2       Récupère la chaîne pointée par DE.
+$37a5       HL qui pointe sur la première chaîne est mis en haut de la pile. Récupère le descripteur de la première chaine.
+$37a6       Récupère la chaîne pointée par HL.
+$37a9       Sauve le descripteur sur la première chaîne.
+$37aa-$37ad DE pointe sur la zone mémoire allouée pour le résultat.
 $37ae       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères.
-$37b1       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères.
+$37b1       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères. Ce qui effectue la concatenation.
 $37b4-$37b8 Place l'adresse de retour vers `eval_1b` sous l'adresse de retour actuelle.
-$37b9       Copie la chaine vers ???
+$37b9       Copie le descripteur de chaine vers le buffer temporaire et FAC.
 
 $37bc       [to_str_area]
             Copie la chaine désignée par le pointeur de descripteur en deuxième place dans la pile vers l'adresse pointée par DE.
@@ -8291,8 +8290,12 @@ $37ce       [get_string]
             %MS_BASIC(GETSTR)
             Vérifie le type courant comme étant un chaine, puis enchaîne sur la récupération de la chaine de caractères courante.
 
+            Entrée :
+            - Suivant l'entrée, le descripteur de chaine à récupérer est soit dans FAC, soit dans HL, soit dans DE.
+
             Sortie :
-            - HL pointe sur un descripteur de chaine de caractères.
+            - HL pointe sur le descripteur de chaine de caractères en entrée.
+            - DE pointe un caractère avant le contenu de la chaine.
             
 $37ce       Vérifie que le type de donnée évaluée est de type chaine.
 
@@ -8304,21 +8307,21 @@ $37d4       [get_str_1]
 $37d4       Sauve HL dans DE.
 
 $37d5       [get_str_2]
-$37d5       Que fait ça ???
+$37d5       Récupère le descripteur de chaine le plus récent. BC pointera sur le contenu de la chaine.
 $37d8       Récupère HL depuis DE.
-$37d9       Sort en fonction du résultat du call précédent ???
-$37da       Sauve DE qui contient ???
-$37db-$37dc DE prend l'adresse BC, l'adresse de la chaine de caractères (le descripteur ou les données ???)
+$37d9       Sort si la chaine cherchée (initialement HL) n'était pas la plus récente.
+$37da       Sauve DE qui contient le descripteur de chaine.
+$37db-$37dc DE pointe sur le contenu de la chaine.
 $37dd       Pointe sur l'octet qui précède.
 $37de       C contient la taille de la chaine de caractères
-$37df       Compare DE (l'adresse de la chaine) avec HL (l'adresse la plus basse de l'espace de chaine).
+$37df       Compare DE (le contenu de la chaine) avec HL (l'adresse la plus basse de l'espace de chaine).
 $37e2-$37e3 Branche si ce n'est pas la dernière chaine (la plus basse) de l'espace de chaine.
-$37e5       B = 0 (car A = 0), donc BC est la longueur de la chaine de carractères.
-$37e6-$37e7 Efface la chaine de l'espace de nom.
+$37e5       B = 0 (car A = 0), donc BC est la longueur de la chaine de caractères.
+$37e6-$37e7 Efface la chaine de l'espace de nom par ajustement du pointeur de l'espace de chaine.
 $37ea       [gstr_end]
-$37ea       Restaure ???
+$37ea       Restaure le descripteur de la chaine.
 
-$37ec       [get_tmp]
+$37ec       [pop_tmp]
             Retourne dans BC le contenu de la chaine la plus en haut (la plus récente) de la pile des descripteurs de chaine temporaire.
 
             Si DE pointe sur le descripteur le plus récent, le laisse dans la pile de chaines.
@@ -8328,7 +8331,7 @@ $37ec       [get_tmp]
             - DE pointe sur un descripteur de chaine.
 
             Sortie :
-            - BC pointe sur le 
+            - BC pointe sur le contenu de la chaine de carractères. 
            
 $37ec       HL pointe sur sur le haut du buffer de descripteurs de chaines temporaires.
 $37ef-$37f4 BC pointe sur les données de la chaine décrite sur le haut du buffer.
@@ -8379,7 +8382,7 @@ $3821-$3824 Injecte le résultat de l'évaluation dans la chaine.
 $3825       [to_pool]
 $3825       Jette l'adresse de retour vers le traitement de la valeur de la fonction.
             L'évaluation d'une chaine est transmise par FAC.
-$3826       Monte la chaine dans ???
+$3826       Monte le descripteur de chaine dans le buffer temporaire et FAC.
 
 $3829       [inst_left]
             %CODE,MS_BASIC(LEFT)
@@ -8413,8 +8416,7 @@ $384d       Copie la longueur de la chaine dans L.
 $384e       Copie la chaine pointée par `BC` vers l'espace pointée vers `DE` sur une longueur `L`.
 $3851       Restaure le pointeur vers le descripteur source dans DE.
 $3852       ???
-$3855       Continue en plaçant le résultat dans le buffer de chaines temporaires ???
-            Comment est-ce que le résultat se retrouve-t-il dans FAC ???
+$3855       Copie le descripteur résultat dans le buffer résultat et FAC.
 
 $3858       [inst_right]
             %CODE,MS_BASIC(RIGHT)
