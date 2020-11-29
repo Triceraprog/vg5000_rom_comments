@@ -4919,7 +4919,9 @@ $24a6       Incrémente C pour une raison inconnue... La valeur est écrasée ju
 
 $24a7       [no_for]
 $24a7       Restaure le pointeur vers le texte BASIC
-$24a8       DE = pas utilisé ???, HL = pointeur vers le texte BASIC
+$24a8       HL = pointeur vers le texte BASIC
+            DE ne semble pas être utilisé, un `pop hl` aurait suffit ?
+
 $24a9-$24ab Vérifie qu'il y a de la place pour 8 niveaux de la pile.
 $24ae       Sauve le pointeur vers le texte BASIC
 $24af       HL pointe sur l'instruction suivant le FOR.
@@ -7908,18 +7910,20 @@ $3609       [str_cmp]
             == DEBUT DE SECTION BISTRS (BASIC string handler) ==
             Comparaison entre deux chaînes de caractères.
 
-$3609       Sauve le nom de la chaîne sur la pile.
-$360a       Récupère la chaîne. (d'où ???)
+$3609       Sauve le descripteur de la première chaine sur la pile.
+$360a       Récupère le descripteur de la seconde chaîne depuis FAC.
 $360d       A = longueur de la chaîne.
 $360e-$3610 Se place sur l'adresse de la chaîne.
 $3611-$3612 BC = adresse de la chaîne.
-$3613       Restaure le nom de la chaîne (???).
-$3614       Sauve l'adresse de la chaîne sur la pile.
+$3613       Restaure le descripteur de la première chaîne.
+$3614       Sauve l'adresse du contenu de la seconde chaîne sur la pile.
 $3615       De même que sa longueur.
-$3616       Récupère la seconde chaîne (à partir d'où ???)
-$3619       Récupère l'adresse de la seconde chaîne.
+$3616       Récupère le descripteur de la première chaîne pointée par DE.
+$3619       Le descripteur est chargé dans BCDE.
+            E contient la longueur de la chargé.
+            BC pointe vers le contenu de la première chaîne.
 $361c-$361d Met la longueur de la première chaine dans D.
-$361e       HL pointe sur la première chaine.
+$361e       HL pointe sur le contenu de la seconde chaine.
 
 $361f       [cmp_str_lp]
 $361f-$3621 Retour (avec Z à 1) si D et E sont égaux à 0.
@@ -7928,8 +7932,9 @@ $3622-$3623 Réduit la longueur restante de 1.
 $3625       Retour (avec Z à 0 et Carry à 1) si la longueur est devenu négative.
             La première chaine est terminée, mais pas la seconde.
 $3626-$3627 Compare E avec 0.
-$3628       ???
-$3629       Retour sur la taille de la seconde chaine a été consommée ???
+$3628       A = 1
+$3629       Retour si la taille de la seconde chaine a été consommée.
+            Le test se fait sur Carry car ce drapeau n'est pas touché par `inc a`.
 $362a       Diminue le compteur de taille restante de la première chaine.
 $362b       Diminue le compteur de taille restante de la seconde chaine.
 $362c-$3630 Boucle si les deux octets deux deux chaines sont identiques.
@@ -7944,8 +7949,8 @@ $3636       [inst_str]
 $3636       Le paramètre doit être de type numérique.
 $3639       Transforme le nombre en chaine de caractère.
 $363c       Créé une entrée de chaine avec le résultat.
-$363f       Récupère la chaine (depuis où ???)
-$3642-$3645 Place l'adresse de retour pour aller vers (???)
+$363f       Récupère le descripteur de chaine depuis FAC.
+$3642-$3645 Place l'adresse de retour pour monter la chaine vers le buffer temporaire et FAC.
 
 $3646       [save_str]
 $3646       A = longueur de la chaine source
@@ -8001,7 +8006,7 @@ $366a       Restaure HL.
 
 $366c       [out_str_prc]
             %MS_BASIC(CRTST)
-            Création d'une chaine de caractères depuis la source pointée par HL (dans le pool de string ???)
+            Création d'une chaine de caractères depuis la source pointée par HL dans le buffer `tempst`
 
             Une chaine se termine lorsqu'elle atteint le caractère nul.
             Une chaine a une taille de 255 caractères maximum.
@@ -8082,7 +8087,7 @@ $36ad       [out_str1]
 
             Entrée :
             - FAC pointe vers un descripteur de chaîne de caractères.
-$36ad       Lit le descripteur de chaîne. HL pointe sur le descripteur. ???
+$36ad       Lit le descripteur de chaîne courante. HL pointe sur le descripteur.
 $36b0       Copie le descripteur dans BCDE.
 $36b3       Prépare la boucle suivante, E étant la longeur de la chaîne de caractères.
 
@@ -8101,6 +8106,9 @@ $36bb       [alloc_stmem]
 
             Lance le GC (Garbage Collector / Ramasse Miettes) si nécessaire.
 
+            Z est d'abord mis à 0, et plus tard mis à 1 s'il n'y a pas assez de mémoire et que le ramasse miettes est lancé.
+            Si au deuxième passage il n'y a toujours pas assez de mémoire, alors une erreur est lancée.
+            
             Entrée :
             - A contient la longueur de la chaîne demandée.
 
@@ -8108,9 +8116,6 @@ $36bb       [alloc_stmem]
             - DE pointe vers l'espace alloué.
             - `(fretop)` est ajusté en conséquence.
 
-            Dans ces implémentations, Z (ou Carry???) est d'abord reset, mais plus tard Set avec un bouclage après GC.
-            Si au deuxième passage il n'y a toujours pas assez de mémoire, alors l'erreur est lancée.
-            
 $36bb       Met Z à 0 pour indiquer qu'il faudra lancer le GC.
             En effet, la longueur de la chaîne n'est pas nul.
 $36bc       Passe par dessus le `pop af` qui suit.
@@ -8503,7 +8508,7 @@ $38b1       [inst_fre]
 $38b1-$38b4 DE contient l'adresse `(strend)`
 $38b5-$38b8 HL contient l'adresse de la pile.
 $38b9-$38bd Branche si l'argument est numérique sur le calcul de la différence (HL - DE).
-$38c0       Récupère la chaine courante (pour ne pas créer une chaine vide ???)
+$38c0       Récupère le descripteur de la chaine courante depuis FAC.
 $38c3       Lance le ramasse miette.
 $38c6       HL contient `(fretop)`, la plus haute mémoire accessible par le BASIC.
 $38ca       DE contient `(stktop)`, l'adresse la plus haute de la pile (donc le bas de la pile).
