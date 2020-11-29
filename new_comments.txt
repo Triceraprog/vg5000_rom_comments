@@ -8168,7 +8168,7 @@ $36fc       Le descripteur étudié n'était pas le dernier.
 $36ff       Sinon, la recherche dans les descripteurs temporaire est terminée, la recherche se fait à présent dans les variables.
             HL pointe vers le début de la zone des variables.
 $3702       [srch_var]
-$3702       DE pointe vers... ???
+$3702       DE pointe vers le début de la zone des tableaux, donc à la fin de la zone des variables.
 $3706       Compare le pointeur de variables avec le début de la zone des variables.
 $3707       Branche si les deux pointeurs sont égaux : la recherche est terminée pour la zone des variables.
 $3709-$370c Si le nom de la variable désigne une chaine de caractères, le drapeau P sera à 0.
@@ -8176,7 +8176,8 @@ $370d       Vérifie si cette variable référence une chaine de caractères.
 $3710       Boucle sur la variable précédente.
 
 $3712       [next_ary]
-$3712       Jette 
+$3712       Jette la valeur sur la pile (??? qui est ???)
+
 $3713       [srch_ary]
             Recherche les références de chaines dans les tableaux.
 
@@ -8204,7 +8205,7 @@ $373a       Place l'adresse de retour.
 $373b       Prépare le type chaine pour la routine suivante.
 
 $373d       [str_in_pool]
-            Vérifie si ... ???
+            Vérifie si le descripteur de chaine pointé vers HL correspond à la chaîne pointée par `(freetop)`
 $373d       A = longueur de la chaine de caractères.
 $373e-$3743 DE pointe sur les données de la chaine de caractères.
 $3744       Retour si la variable n'est pas de type chaine.
@@ -8212,14 +8213,15 @@ $3744       Retour si la variable n'est pas de type chaine.
             Le retour est en fait un branchement vers la boucle actuelle.
 $3745-$3746 Retour si la longueur de la chaine est 0.
 $3747-$3748 Sauve HL dans BC
-$3749-$374c Compare ... avec ...
-$374d-$374e Restaure HL depuis BC. Qui est ???
-$374f       Du coup, retour lorsque ???
-$3750-$3751 Récupère l'adresse sous l'adresse de retour
-$3752       Compare avec ???
+$3749-$374c Compare l'adresse de contenu de chaine avec le pointeur de donnée trouvée dans le descripteur.
+$374d-$374e Restaure HL depuis BC. HL pointe après le descripteur analysé.
+$374f       Retour si HL est inférieur à DE, cela signifie que les données sont après `(fretop)`.
+$3750-$3751 Récupère l'adresse sous l'adresse de retour, qui pointe vers `(strend)` ???
+$3752       Compare `(strend)` avec l'adresse des données dans DE.
 $3753-$3754 Remet la pile en ordre.
-$3755-$3756 Récupère ???
-$3757       Retour, on est hors de la zone des chaines de caractères.
+$3755-$3756 Récupère le pointeur après le descripteur analysé.
+$3757       Retour si DE (les données) est inférieur à `(strend)`.
+            Après ces deux conditions de retour, DE est situé entre `(strend)` et `(fretop)`.
 $3758       Préserve l'adresse de retour dans BC
 $3759-$375a Jette les deux valeurs suivantes.
 $375b       Place le pointeur de la variable ???
