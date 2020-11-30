@@ -8173,32 +8173,35 @@ $3706       Compare le pointeur de variables avec le début de la zone des varia
 $3707       Branche si les deux pointeurs sont égaux : la recherche est terminée pour la zone des variables.
 $3709-$370c Si le nom de la variable désigne une chaine de caractères, le drapeau P sera à 0.
 $370d       Vérifie si cette variable référence une chaine de caractères.
-$3710       Boucle sur la variable précédente.
+$3710       Boucle sur la variable suivante.
 
 $3712       [next_ary]
-$3712       Jette la valeur sur la pile (??? qui est ???)
+$3712       Jette le pointeur vers le nombre de dimension du tableau précédent.
 
 $3713       [srch_ary]
             Recherche les références de chaines dans les tableaux.
 
 $3713       `DE` pointe sur la derniere adresse allouée pour les tableaux.
-$3717       Compare avec HL qui pointe sur... toujours `(vartab)` ??? (HL devrait pointer sur `(arytab)`.
-$3718       La zone des tableaux est terminée (et on reparse les variables du coup ???)
-$371b       Récupère le ??? du tableau dans BCDE.
+$3717       Compare avec HL qui pointe sur un début de tableau ou sur `(strend)`
+$3718       La zone des tableaux est terminée.
+$371b       Récupère l'identifiant du tableau dans BCDE.
+            ED est l'identifiant.
+            BC est la taille des données du tableau.
 $371e       Récupère le type du tableau.
-$371f       Sauve ??? sur la pile.
+$371f       Sauve HL sur la pile, qui pointe vers le nombre de dimensions du tableau.
 $3720       HL pointe sur le tableau suivant.
 $3721-$3722 Branche si le type du tableau est numérique.
 $3725       Sauve l'adresse du tableau suivant.
-$3728       Récupère ???.
+$3728       Récupère le pointeur vers le nombre de dimensions du tableau.
 $3729-$372a BC est le nombre de dimensions du tableau.
 $372c-$372e Pointe au delà des dimensions (2 octets par dimensions).
 $372f       [ary_lp]
-$372f       Place le pointeur sur DE.
+$372f       Place le pointeur dans DE.
 $3730       Récupère l'adresse du tableau suivant.
 $3733-$3734 Compare l'adresse actuelle dans le tableau avec celle du tableau suivant.
 $3735       Ce tableau est terminé, branche sur le suivant.
-$3737       Prépare l'adresse de retour vers la boucle de recherche dans les tableaux.
+$3737       Prépare l'adresse de retour vers la boucle de recherche dans le tableau actuel.
+            Enchaîne pour vérifier si l'identifiant contenu dans le tableau pointe vers le donnée chaîne actuelle.
 
 $373a       [st_pool]
 $373a       Place l'adresse de retour.
@@ -8216,7 +8219,7 @@ $3747-$3748 Sauve HL dans BC
 $3749-$374c Compare l'adresse de contenu de chaine avec le pointeur de donnée trouvée dans le descripteur.
 $374d-$374e Restaure HL depuis BC. HL pointe après le descripteur analysé.
 $374f       Retour si HL est inférieur à DE, cela signifie que les données sont après `(fretop)`.
-$3750-$3751 Récupère l'adresse sous l'adresse de retour, qui pointe vers `(strend)` ???
+$3750-$3751 Récupère l'adresse sous l'adresse de retour, qui pointe vers `(strend)`
 $3752       Compare `(strend)` avec l'adresse des données dans DE.
 $3753-$3754 Remet la pile en ordre.
 $3755-$3756 Récupère le pointeur après le descripteur analysé.
@@ -8224,26 +8227,26 @@ $3757       Retour si DE (les données) est inférieur à `(strend)`.
             Après ces deux conditions de retour, DE est situé entre `(strend)` et `(fretop)`.
 $3758       Préserve l'adresse de retour dans BC
 $3759-$375a Jette les deux valeurs suivantes.
-$375b       Place le pointeur de la variable ???
-$375c       Place ???
+$375b       Place le pointeur après la variable à nettoyer.
+$375c       Place la zone des données de chaines associée.
 $375d       Replace l'adresse de retour sur la pile.
 
 $375f       [gc_end]
-$375f       Récupère...
-$3760       ... des addresses ???
-$3761-$3763 Retour si l'adresse (de quoi ???) est nulle.
-$3764-$3767 Récupère une adresse ??? dans BC
-$3768       Sauve HL sur la pile ???
-$3769-$376a Revient en arrière de deux octets.
+$375f       Récupère le pointeur vers les données de chaine.
+$3760       Récupère le pointeur après le descripteur trouvé (ou 0).
+$3761-$3763 Retour si HL est nul, il n'y a rien à faire.
+$3764-$3767 Récupère le pointeur vers les données de chaine depuis le descripteur.
+$3768       Sauve le pointeur vers la partie adresse du descripteur.
+$3769-$376a Revient en arrière de deux octets pour pointer sur la longueur de la chaine.
 $376b-$376c HL = longueur de la chaine.
-$376e       HL pointe vers le début de la chaine suivante.
-$376f-$3770 DE pointe sur le début de la chaine.
+$376e       HL pointe vers le début des données de chaine suivante.
+$376f-$3770 DE pointe sur le début des données de la chaine.
 $3771-$3773 BC pointe sur le dernier octet de la chaine.
 $3774       HL pointe vers la première adresse disponible dans l'espace de chaine.
 $3777       Déplace la chaine pour compacter l'espace des chaine de caractères.
 $377a       Récupère l'adresse du descripteur de la chaine.
 $377b-$377d Met à jour le descripteur avec la nouvelle adresse des données de chaine.
-$377e-$3780 HL pointe vers... ???
+$377e-$3780 HL pointe vers la valeur ajustée pour `(fretop)` qui sera mise à jour à la prochaine boucle.
 $3781       Boucle vers la prochaine chaine.
 
 $3784       [str_concat]
