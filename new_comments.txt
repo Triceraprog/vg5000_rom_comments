@@ -5652,9 +5652,6 @@ $2861       [read_expr]
             - une adresse de retour (eval_2) qui sera utilisée par le `ret` de l'opérateur.
             - le premier paramètre de l'opérateur sous forme BCDE.
             - l'adresse d'exécution de l'opérateur.
-
-            Lorsqu'un opérateur de plus faible priorité est trouvé (ou à la fin ???), le `ret nc` permet de faire un saut vers l'adresse d'exécution de l'opérateur.
-            L'opérateur trouvera son paramètre sur la pile, suivi de l'adresse de retour.
             
 $2861       Recalage du pointeur de texte BASIC.
 $2862       La priorité actuelle d'opérateur est dans D.
@@ -5693,9 +5690,9 @@ $289f       Récupère la priorité de l'opérateur.
 $28a0       Compare les priorités.
 $28a1       Si la nouvelle priorité est plus petite, le `ret` provoque le retour vers l'exécution de l'opérateur précédent.
 $28a2       Sinon, HL pointe sur l'adresse de l'opérateur.
-$28a3       Vérifie que le type est numérique (encore ???)
+$28a3       Vérifie que le type est numérique.
 $28a6       [op_stack]
-$28a6       Sauve la priorité (B) et C ???
+$28a6       Sauve la priorité actuelle B.
 $28a7-$28aa Sauvegarde de l'adresse de retour pour l'exécution de cet opérateur.
 $28ab-$28ac Sauve le token (E) ainsi que sa priorité (D) dans BC
 $28ad       Pousse la valeur de FAC sur la pile pour continuer la construction du bloc pour l'opérateur.
@@ -5779,7 +5776,7 @@ $2913       [inst_minus]
             - HL pointe vers la suite de l'expression.
 
 $2913       Charge la priorité de l'opérateur unaire '-' dans D.
-$2915       Puis évalue l'expression. Le retour se fera lorsqu'un opérateur de moins forte priorité sera trouvé (ou une fin d'expression ???).
+$2915       Puis évalue l'expression. Le retour se fera lorsqu'un opérateur de moins forte priorité sera trouvé (ou en fin d'expression).
 $2918       Recupère le pointeur sur le texte BASIC.
 $291b       Sauvegarde de ce pointeur sur la pile.
 $291c       Prends l'opposé de FAC dans FAC.
@@ -5819,27 +5816,28 @@ $2935       [function]
 
 $2935       Prépare l'index dans le tableau des fonctions.
 $2937       Double l'index de la fonction.
-$2938       BC = index de la fonction multiplié par 2.
-$2939       Sauvegarde de l'index dans le tableau.
+$2938       BC = index de la fonction multiplié par 2, ce qui donne son offset.
+$2939       Sauvegarde de l'offset dans le tableau.
 $293a       Permet de se placer au niveau de la parenthèse après le nom de la fonction.
             Cela permet d'utiliser l'évaluation d'une expression entre parenthèses pour évaluer l'argument de la fonction.
-$293b-$293e Branche si la fonction est après `CHR$`, qui sont les fonctions de traitement de chaînes de caractères qui ont plusieurs paramètres.
+$293b-$293e Branche si la fonction est `CHR$` ou avant.
+            Les fonctions qui suivent sont les fonctions de traitement de chaînes de caractères qui ont plusieurs paramètres.
+            Toutes les fonctions qui les précèdent ont un seul paramètre.
 $2940       Sinon, c'est une fonction alphanumérique avec plusieurs paramètres. Évaluation du premier paramètre.
 $2943       Vérification que le caractère suivant est ','
 $2944       %DATASKIP
 $2945       Le premier paramètre doit être alphanumérique.
 $2948       Sauve le pointeur vers le texte BASIC.
-$2949       HL = adresse de la chaîne évaluée en premier paramètre.
-$294c-$294d Que l'on place sous l'index doublé dans la pile.
+$2949       HL = adresse du descripteur de la chaîne évaluée en premier paramètre.
+$294c-$294d Que l'on place sous l'offset de la fonction dans la pile.
 $294e       Restaure le pointeur vers le texte BASIC.
 $294f       Évaluation du second paramètre, de type entier sur 8 bits.
 $2952       DE = pointeur vers le texte BASIC, HL = entier évalué en second paramètre.
-$2953       HL = index doublé, Haut de la pile = second paramètre.
+$2953       HL = offset de la fonction doublé, Haut de la pile = second paramètre.
 $2954       Branche sur l'exécution de la fonction.
             Sur la pile se trouve :
             - la valeur du second paramètre.
-            - le pointeur vers la chaîne de premier paramètre.
-            - l'index doublé de la fonction à exécuter.
+            - le pointeur vers le descripteur de la chaîne en premier paramètre.
 
 $2956       [eval_func]
 $2956       Évaluation du premier et seul paramètre de la fonction.
@@ -7958,7 +7956,7 @@ $3647-$3649 Sauve l'adresse du contenu de la chaine sur la pile.
 $364a       Allocation de l'espace nécessaire dans l'espace des chaines de caractères.
 $364d-$3650 BC = adresse du contenu de la chaine source.
 $3651       Création d'un descripteur temporaire de chaine.
-$3654       Sauve l'adresse de ce descripteur temporaire. sur la pile
+$3654       Sauve l'adresse de ce descripteur temporaire, sur la pile
 $3655-$3656 Copie L octets de BC (source) vers DE (destination), ce qui copie la chaine dans l'espace des chaines de caractères.
 $3659       DE pointe sur le decripteur de chaine temporaire.
 $365a       En venant de la fonction `STR()`, branche vers `to_pool`.
@@ -8108,13 +8106,15 @@ $36bb       [alloc_stmem]
 
             Z est d'abord mis à 0, et plus tard mis à 1 s'il n'y a pas assez de mémoire et que le ramasse miettes est lancé.
             Si au deuxième passage il n'y a toujours pas assez de mémoire, alors une erreur est lancée.
-            
+
             Entrée :
             - A contient la longueur de la chaîne demandée.
 
             Sortie :
             - DE pointe vers l'espace alloué.
             - `(fretop)` est ajusté en conséquence.
+
+            [ArticleGarbageCollect]
 
 $36bb       Met Z à 0 pour indiquer qu'il faudra lancer le GC.
             En effet, la longueur de la chaîne n'est pas nul.
@@ -8201,7 +8201,7 @@ $3730       Récupère l'adresse du tableau suivant.
 $3733-$3734 Compare l'adresse actuelle dans le tableau avec celle du tableau suivant.
 $3735       Ce tableau est terminé, branche sur le suivant.
 $3737       Prépare l'adresse de retour vers la boucle de recherche dans le tableau actuel.
-            Enchaîne pour vérifier si l'identifiant contenu dans le tableau pointe vers le donnée chaîne actuelle.
+            Enchaîne pour vérifier si l'identifiant contenu dans le tableau pointe vers la donnée chaîne actuelle.
 
 $373a       [st_pool]
 $373a       Place l'adresse de retour.
@@ -8398,13 +8398,15 @@ $3829       [inst_left]
             %CODE,MS_BASIC(LEFT)
             Fonction BASIC : `LEFT`
 
-            Les fonctions évaluent systématiquement leur premier argument avant d'arriver dans la routine ???
-            Où est-ce que c'est placé, dans la pile ??? Et HL ???
+            En arrivant dans les fonctions de traitement de chaines à plusieurs paramètres, la pile contient :
+            - la valeur du second paramètre.
+            - le pointeur vers le descripteur de la chaîne en premier paramètre.
 
-$3829       Récupère l'argument numérique de `LEFT`.
+$3829       Dépile l'argument numérique de `LEFT` dans B.
 $382c       A = 0
 $382d       [from_right]
-$382d       Récupère le pointeur vers le descripteur de chaine. Haut de la pile = ???
+$382d       Récupère le pointeur vers le descripteur de la chaine.
+            Haut de la pile = pointeur vers le texte BASIC.
 $382e       Copie A, l'index de début de la chaine à extraire, dans C.
 $382f       [from_mid]
 $382f       Sauve le pointeur vers le descripteur de chaine sur la pile.
@@ -8413,7 +8415,7 @@ $3834       Sinon, copie la taille voulue dans A.
 $3835       Saute par dessus le 'ld c,$00' qui suit.
 $3836       [small_str]
 $3836       L'index de départ est 0, car la chaine initiale est plus petite que la chaine à extraire.
-$3838       Sauve BC sur la pile.
+$3838       Sauve BC sur la pile, taille de la chaine résultante, sur la pile.
 $3839       Alloue une chaine de taille A. DE pointe sur la zone allouée.
 $383c       Restaure BC. C = index de départ.
 $383d       Restaure HL, le pointeur vers le descripteur de la chaine source.
@@ -8425,7 +8427,7 @@ $384a       Créé un descripteur de chaine temporaire vers DE
 $384d       Copie la longueur de la chaine dans L.
 $384e       Copie la chaine pointée par `BC` vers l'espace pointée vers `DE` sur une longueur `L`.
 $3851       Restaure le pointeur vers le descripteur source dans DE.
-$3852       ???
+$3852       Récupère le descripteur de chaine temporaire.
 $3855       Copie le descripteur résultat dans le buffer résultat et FAC.
 
 $3858       [inst_right]
