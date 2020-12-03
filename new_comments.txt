@@ -3447,7 +3447,7 @@ $1a37       Restaure HL le pointeur vers le buffer de texte BASIC.
 $1a39       [inst_cload]
             %CODE
 $1a39       Compare le caractère paramètre avec le token pour '*'
-$1a3b       Sauve le caractère paramètre potention dans la version du descripteur de fichier.
+$1a3b       Sauve le caractère paramètre potentiel dans la version du descripteur de fichier.
 $1a3e       Branche si le caractère n'était pas '*'
 $1a40       Si c'était '*', alors avance d'un caractère dans le buffer de texte BASIC.
 $1a41       [not_star]
@@ -3579,13 +3579,15 @@ $1b51       À la fin du chaînage, HL pointe à la fin du listing, qui devient 
 
 $1b54       [load_in_mem]
             Finalise le chargement de fichier binaire (type M).
+            Les données sont déjà en mémoire.
 
 $1b54-$1b58 Branche si le moniteur BASIC est désactivé (à cause de l'octet de protection)
 $1b5a       Pointe vers le buffer de travail.
-$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul (mais que contient-il ???)
+$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul.
+            Le buffer contient le numéro de ligne sur lequel démarrer le programme BASIC après le chargement. Ou nul.
 $1b61       %CHAR
 $1b61-$1b63 Branche si le premier octet du buffer de travail est `0`.
-$1b65       Branche dans les autres cas (??? lesquels).
+$1b65       Il y a un numéro de ligne spécifié. Place le pointeur vers le texte BASIC dessus et branche indirectement vers l'instruction `RUN`.
 
 $1b67       [run_or_end]
 $1b67       Lecture du descripteur de fichier en décalé, donc numéro de ligne de départ (en ASCII)
@@ -3593,7 +3595,7 @@ $1b6a-$1b6c Branche si le premier octet n'est pas nul, il y a un numéro de lign
 
 $1b6e       [end_rd_file]
 $1b71       %CHAR
-$1b6e-$1b73 Branche si le type de fichier lu est `M` (placement de HL de `(contxt)` et retour).
+$1b6e-$1b73 Si le type de fichier lu est `M`, branche vers la restauration du pointeur vers le texte BASIC et termine la routine.
 $1b75       Branche vers le moniteur BASIC.
 
 $1b78       [run_k7_at]
@@ -3609,12 +3611,11 @@ $1b7b       [cp_line_nb]
 $1b7b-$1b7f Copie des 5 octets du descripteur de fichier vers le buffer pointé par HL (un buffer temporaire)
 $1b81       Restaure HL.
 $1b82       [k7_run]
-$1b82       Décrémente A pour quelles valeurs ???
+$1b82       Pour quelle raison décrémenter A ?
 $1b83       Branche sur l'instruction RUN.
 
 $1b86       [hl_contxt]
-$1b86       HL contient l'adresse dans `(contxt)`, (probablement la variable ou le tableau lu ???)
-
+$1b86       Restaure le pointeur vers le texte BASIC.
 
 $1b8a       [get_bauds]
             Récupère le paramètre optionnel de vitesse sur les opérations K7, et place le flag correspondant dans `cascom`.
@@ -3768,7 +3769,7 @@ $1c45       [init_ft]
             - numéro de version
             - numéro de ligne de départ
             - octet de protection
-            - position de checksum (??? vérifier comment est utilisée cette information)
+            - position de checksum
 
             Les champs initialisés sont :
             - octet de protection avec la valeur de `(allflg)`
@@ -3894,7 +3895,7 @@ $1ce8       Et avance le pointeur
 $1ce9       Boucle selon le compteur B, 5 chiffres maximum.
 
 $1ceb       [prm_end]
-$1ceb       Sauve HL, qui pointe sur le buffer de texte BASIC, dans `(contxt)` ???
+$1ceb       Sauve HL, qui pointe sur le buffer de texte BASIC, dans `(contxt)`. Sera récupéré en fin de routine au besoin.
 $1cee-$1cef Met dans la version du descripteur de fichier -1 s'il y a un paramètre alphanumérique, 1 s'il y a un paramètre tableau et 0 sinon.
 
 $1cf3       [r_varname]
@@ -3944,7 +3945,7 @@ $1d2d       `CLOAD`, le chargement se fera vers `(txttab)`, c'est-à-dire à la 
 $1d31       [bin_format]
             %CHAR
 $1d31-$1d33 Branche si le type n'est pas `M`
-$1d35       Format de 'CSAVEM`, binaire, le chargement se fera vers l'adresse dans `(high)` (??? comment est-elle arrivée là ?)
+$1d35       Format de 'CSAVEM`, binaire, le chargement se fera vers l'adresse dans `(high)` qui est l'emplacement décalé de l'adresse cible pour le descripteur de fichier.
 
 $1d39       [scr_format]
             %CHAR
