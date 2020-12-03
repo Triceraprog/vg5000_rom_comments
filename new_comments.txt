@@ -3988,7 +3988,7 @@ $1d79       [fetch_dim]
             - HL pointe vers le texte BASIC
 
             Sorties :
-            - DE pointe sur la zone mémoire contenant le descripteur du tableau (???)
+            - BC pointe sur la zone mémoire contenant le descripteur du tableau
             - HL pointe vers le texte BASIC avec le descripteur de tableau
 
 $1d79-$1d7b Mise à 1 de `subflg` pour demander la recherche d'un tableau
@@ -8567,9 +8567,10 @@ $38da       [getvar]
             - HL pointe sur le texte BASIC au niveau du nom.
 
             Sorties:
-            - DE pointe sur la valeur de la variable correspondant au nom en entrée, ou à la donnée indexée dans le tableau.
+            - DE pointe sur la valeur de la variable correspondant au nom en entrée pour une variable simple, ou la valeur indexée dans un tableau.
+            - BC, en cas de recherche explicite d'un tableau (`(subflg) à 1), pointe sur le nombre de dimensions du tableau (début des données). Dans ce cas, DE contient la taille du tableau.
             - HL pointe sur le texte BASIC à la suite du référencement de la variable (incluant l'indice du tableau).
-            - FAC ???
+
 $38da       En arrivant ici, `(dimflg)` aura pour valeur 0.
 $38db       Initialisation de `(dimflg)`. En venant de `DIM`, avec $af, sinon avec $00.
 $38de       C est le premier caractère du nom de la variable.
@@ -8691,7 +8692,7 @@ $39a8       Saute par dessus les deux `push` qui suivent.
 
 $39a9       [aryvar]
 $39a9       Sauve le pointeur sur le texte BASIC.
-$39aa       Sauve A = 0 et Z à 1
+$39aa       Sauve A = 0 et Z à 1. Nombre de dimensions restantes ???
 $39ab       HL pointe sur le début de la zone mémoire des tableaux.
 $39ae       Saute par dessus le 'add' qui suit.
 
@@ -8706,11 +8707,12 @@ $39bc-$39bd Comparaison des seconds caractères des noms pour préparer le test 
 $39be       [dim_neq]
 $39be-$39c2 Lecture vers DE de la taille mémoire du contenu du tableau.
 $39c3       Boucle vers le prochain tableau en mémoire si le nom cherché et le nom pointé sont différents.
-$39c5       Sinon, A récupère l'action voulue (création ou lecture).
+$39c5       Sinon, A récupère l'action voulue (création ou accès).
 $39c8-$39c9 Branche vers une erreur de redimensionnement si `(dimflg)` est différent de zéro (création de tableau).
-$39cc       Sinon, c'est une lecture. A prend le nombre de dimensions indiqués par le texte BASIC.
+$39cc       Sinon, c'est un accès. A prend le nombre de dimensions indiqués par le texte BASIC.
 $39cd-$39ce BC pointe vers les dimensions du tableau trouvé.
-$39cf       Branche en fonction des drapeaux que l'on vient de récupérer. Quels sont les cas ???
+$39cf       Branche en fonction des drapeaux que l'on vient de récupérer.
+            Ces valeurs ont été poussées en $39aa. ???
 $39d2-$39d3 Branche si les dimensions sont égales.
 
 $39d6       [out_range]
