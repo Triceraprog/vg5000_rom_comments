@@ -6236,8 +6236,6 @@ $2b2e-$2b31 Restaure les registres en fin de traitement d'acquisition d'une touc
 
 $2b32       [bufferstart]
             Une ligne vient d'être validée par le moniteur BASIC, que ce soit en direct ou dans une instruction `INPUT`.
-
-            À l'air de se positionner sur le premier caractère interessant à décoder ???
 $2b32       Coordonnées de la ligne BASIC à décoder. H contient la ligne à l'écran, L est à 0.
 $2b35       Copie du numéro de ligne dans A.
 $2b36-$2b38 Branche si le numéro de ligne est 24 ou plus (la dernière ligne de l'écran)
@@ -9257,18 +9255,20 @@ $3cb3       Sinon, la fin du buffer a été atteinte, et on branche pour finalis
 $3cb5       [keyloop]
             Traitement du moniteur pour une entrée par le clavier.
 $3cb5       Traitement de l'appuie d'une touche, qui est éventuellement traitée.
-$3cb8-$3cb9 Branche si une touche validée nécessite un traitement. La plupart des touches sont traitées directement et A est alors à 0. Quelles touchent sortent-elles avec A != 0 ??? STOP par exemple.
+$3cb8-$3cb9 L'acquisition de touche a deux sorties possibles.
+            Si A est à 0, alors une touche a été acquise mais ne demande pas de traitement particulier (ou a déjà été traitée).
+            Si A est différent de 0, alors c'est qu'une boucle a été initiéé et que l'acquisition de touche va envoyer chacun des caractères de la ligne validée pour décodage.
+Branche si une touche validée nécessite un traitement. La plupart des touches sont traitées directement et A est alors à 0. Quelles touchent sortent-elles avec A != 0 ??? STOP par exemple.
             $0d est laissée (car décodée juste après).
 $3cbb-$3cbe Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
 $3cc0       La combinaison d'interruption de commande (SHIFT+STOP) a été détectée. Carry est à 1 et on termine l'acquisition des touches. Le retour se fait en $22b1
 
 $3cc1       [decodebasic]
-            Fonction : décode la ligne en BASIC ???
+            Traitement d'une ligne BASIC validée.
+
 $3cc1-$3cc3 Branche si le dernier caractère acquis était un retour chariot.
-$3cc5-$3cc7 Sinon, replace le caractère dans le buffer en effaçant le bit de poids fort.
-$3cc8-$3ccb Compare le pointeur vers le texte entré avec la fin du buffer de travail.
-            Mais comment est-ce que HL pourrait déborder ??? Pas en entrée direct on dirait...
-            Il est possible qu'on n'arrive là que via la lecture k7 ???
+$3cc5-$3cc7 Sinon, place le caractère dans le buffer de travail BASIC en effaçant le bit de poids fort.
+$3cc8-$3ccb Vérifie que le pointeur dans le buffer de travail n'a pas atteint la fin du buffer.
 $3ccc       Branche vers la suite.
 
 $3ccf       [hl_incbuf]
