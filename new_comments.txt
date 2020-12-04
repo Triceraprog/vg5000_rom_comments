@@ -4016,8 +4016,6 @@ $1d97       [sd_char_k7]
             Envoie vers le buffer d'écriture de la k7 un octet ASCII sur 7 bits.
             Utilisé par `SAVE` à travers `outdo` ainsi qu'en direct pour envoyer l'octet de terminaison.
 
-            ??? À vérifier, cela copie des morceaux de (txttab) ???
-
             Entrée :
             - A contient le caractère à écrire. Seuls les 7 bits de poids faible sont pris en compte.
             - (ft_addr) contient l'adresse de destination pour le caractère.
@@ -4032,8 +4030,12 @@ $1da3-$1da4 Sélectionne l'écran comme périphérique de sortie.
 $1da7       Vérifie la mémoire restante entre HL et la pile.
 $1daa-$1dac Sélectionne la k7 comme périphérique de sortie.
 $1daf       Sauve DE
-$1db0       Récupère l'adresse de la ligne exécutée en BASIC dans DE.
-$1db4-$1db6 Branche si la ligne actuellement exécutée en BASIC est 0 (donc, mode direct).
+$1db0       Récupère l'adresse de la prochaine ligne à exécuter dans DE.
+            Cette variable est positionnée lorsque le pointeur de texte BASIC est positionné au début d'une ligne.
+            Elle contient alors un pointeur vers la ligne suivante.
+$1db4-$1db6 Branche si la ligne actuellement exécutée en BASIC est 0. Ce qui signifie que l'on n'est pas au début d'une ligne.
+            Dans le cas contraire, le code qui suit va décaler le contenu du listing pour s'assurer d'avoir de la place.
+            C'est pour cela que le listing est détruit lors de la sauvegarde.
 $1db8       Efface les drapeaux pour la soustraction qui suit.
 $1db9       HL contient la différence de mémoire entre la ligne exécutée et le buffer de travail pour la sauvegarde.
 $1dbb       Sauve cette valeur sur la pile.
@@ -4051,7 +4053,7 @@ $1dd2       Récupère dans HL l'adresse de destination.
 $1dd3       [sd_direct]
 $1dd3       Restaure le DE initial.
 $1dd4       [sd_char_end]
-$1dd4       Sauve HL dans `(ft_addr)`, pointeur vers le prochain caractère à traiter.
+$1dd4       Sauve HL dans `(ft_addr)`, pointeur vers la prochaine position du buffer de traitement.
 $1dd7       Se replace sur le dernier caractère ayant été traité.
 $1dd8-$1ddd Met à jour la somme de controle par XOR successifs des octets écrits.
 $1dde       Restaure HL.
