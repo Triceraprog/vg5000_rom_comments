@@ -4037,19 +4037,18 @@ $1db4-$1db6 Branche si la ligne actuellement exécutée en BASIC est 0. Ce qui s
             Dans le cas contraire, le code qui suit va décaler le contenu du listing pour s'assurer d'avoir de la place.
             C'est pour cela que le listing est détruit lors de la sauvegarde.
 $1db8       Efface les drapeaux pour la soustraction qui suit.
-$1db9       HL contient la différence de mémoire entre la ligne exécutée et le buffer de travail pour la sauvegarde.
+$1db9       HL contient la différence de mémoire entre les prochaines données de ligne à sauver et le buffer de travail pour la sauvegarde.
 $1dbb       Sauve cette valeur sur la pile.
-$1dbc-$1dbf Place l'adresse de la ligne exécutée en BASIC comme étant la première du listing BASIC.
-$1dc2       Place HL (début de listing) dans DE, HL prend la valeur de la ligne exécutée du BASIC.
+$1dbc-$1dbf Réinitialise `(retadr)` avec la valeur de `(txttab)`, début du listing.
+$1dc2       Place HL (début de listing) dans DE, HL pointe vers les prochaines données à sauver.
 $1dc3       Récupère la différence calculée dans BC.
-$1dc4       Copie un bloc d'octets de (HL) vers (DE) de taille BC.
-$1dc6       Sauve DE, l'adresse de destination.
-$1dc7       Différence entre les adresses de destination et de source.
-$1dc9       Sauve cette différence dans DE.
-$1dca       Récupère l'adresse de la zone des variables dans HL (??? qu'est-ce que ça signifie exactement ?)
-$1dcd       Soustrait la différence précédente de l'adresse de la zone des variables.
-$1dcf       Et déclare cette adresse comme la nouvelle zone des variables.
-$1dd2       Récupère dans HL l'adresse de destination.
+$1dc4       Déplace les données restantes du listing vers `(txttab)`.
+$1dc6       Sauve DE, qui pointe après les données qui ont été deplacées.
+$1dc7       Différence entre la fin du buffer de travaill et la fin des données copiées.
+$1dc9       Sauve cette taille dans DE.
+$1dca-$1dcf Déplace l'adresse de début des variables de cette taille vers le début de la mémoire.
+            C'est le nouvel emplacement pour `(vartab)`, puisqu'un morceau du listing a été effacé.
+$1dd2       Récupère dans HL l'adresse de destination après la copie.
 $1dd3       [sd_direct]
 $1dd3       Restaure le DE initial.
 $1dd4       [sd_char_end]
