@@ -6178,27 +6178,33 @@ $2ad4       [acq_key]
             Décode une touche du clavier.
             
             Affiche sa valeur à l'écran en traitant les touches spéciale.
-            Dans le cas d'un traitement pour la commande INPUT, ignore certaines touches.
+            Dans le cas d'un traitement pour la commande INPUT, ignore certaines touches (haut, bas, LIST, EFFE,...)
 
-            Si une touche a été traitée, provoque un rafraichissement de l'écran.
+            Les touches haut et bas ont un traitement spécial lorsqu'une LIST est en train d'être éditée.
+
+            Les codes non filtrés sont envoyés à `outdo` pour traitement par le périphérique de sortie.
+
+            Si une touche a été traitée, provoque un rafraichissement de l'écran et renvoie 0 dans A.
 
             Sortie :
             - A est à 0 si aucune touche n'a été appuyée ou si elle a été traitée.
-            - Quelques touches spéciales n'ont pas l'air d'être traitées et sont alors renvoyées dans A. Lesquelles ???
+            - A est $0d si la touche ENTREE a été appuyée.
 
 $2ad4-$2ad6 Sauve BC, DE et HL sur la pile.
 $2ad7-$2adc Branche si une ligne a été validée par le moniteur (que ce soit en direct ou dans une instruction `INPUT`).
 $2adf       Attente d'une interruption
 $2ae0       Décode une touche du clavier.
 $2ae3-$2ae4 Branche si aucun caractère n'a été validé.
-$2ae6       Sauve AF
+            La routine ayant déjà fait `or a`, celui-ci semble inutile.
+$2ae6       A contient la touche appuyée, Z correspond à A et M est à 1 si la touche est une touche de fonction.
+            Pousse le tout sur la pile.
 $2ae7       Bascule sur les registres alternatifs.
 $2ae8-$2aeb Configure le son émis lors de l'appuie d'un caractère.
 $2aee       Pendant une durée très courte.
 $2af1       Émet le son.
 $2af4-$2afb Active la continuité des lignes logiques.
             Les deux `NOPs` sont un patch de la ROM 1.0 qui désactivait le défilement de l'écran.
-$2afe       Restaure AF
+$2afe       Restaure AF, touche appuyée et drapeaux.
 $2aff       Branche si la touche validée était une touche de fonction.
 $2b02       Comparaison de la touche appuyée avec la touche Entrée.
 $2b04       Il s'agit de code patché par rapport à la ROM 1.0, on branche donc plus loin avant de revenir juste après.
@@ -6574,7 +6580,7 @@ $2d8e       Puis le pointeur avancé dans la table.
 $2d8f       Boucle pour traiter l'octet suivant.
 
 $2d91       [ctrl_keys]
-            Traitement des touches de contrôle (des touches de contrôle ?)
+            Traitement des touches accentuées.
 $2d91-$2d94 DE contient l'index de la touche de contrôle appuyée.
 $2d96       HL pointe vers la table des touches de contrôles en RAM, initialisée depuis `i_contbl`. Ce sont les touches accentuées.
 $2d99-$2d9a A lit l'équivalence de la touche de contrôle dans la table.
@@ -9259,8 +9265,6 @@ $3cb5       Traitement de l'appuie d'une touche, qui est éventuellement traité
 $3cb8-$3cb9 L'acquisition de touche a deux sorties possibles.
             Si A est à 0, alors une touche a été acquise mais ne demande pas de traitement particulier (ou a déjà été traitée).
             Si A est différent de 0, alors c'est qu'une boucle a été initiéé et que l'acquisition de touche va envoyer chacun des caractères de la ligne validée pour décodage.
-Branche si une touche validée nécessite un traitement. La plupart des touches sont traitées directement et A est alors à 0. Quelles touchent sortent-elles avec A != 0 ??? STOP par exemple.
-            $0d est laissée (car décodée juste après).
 $3cbb-$3cbe Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
 $3cc0       La combinaison d'interruption de commande (SHIFT+STOP) a été détectée. Carry est à 1 et on termine l'acquisition des touches. Le retour se fait en $22b1
 
@@ -9499,7 +9503,7 @@ $3e2d       [acq_key_2]
 
 $3e2d       Branche si la touche appuyée est Entrée.
 $3e30       Sauve AF
-$3e31-$3e35 Branche si la boucle BASIC n'est pas active, pour éviter de traiter certaines touches d'édition.
+$3e31-$3e35 Branche si la boucle BASIC n'est pas active (octet de protection), pour éviter de traiter certaines touches d'édition de LISTING (haut, bas, LIST).
 $3e37       Restaure AF
 
 $3e3b       [skip_ctrl_k]
