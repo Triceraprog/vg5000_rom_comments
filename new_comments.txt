@@ -5883,9 +5883,6 @@ $2977       [fp_bcde_or]
             Appelé lors de l'évaluation d'une expression via la table de priorités.
             
 $2977       Marqueur pour le traitement de `OR`. A n'est pas 0.
-            En $2978 arrive le traitement de `AND` et dans ce cas, l'instruction est `xor a`, donc A = 0.
-
-            (La détection de l'instruction partielle ne fonctionne pas dans ce cas, pourquoi ???)
 $2978       [fp_bcde_and]
             %CODE,%MS_BASIC(PAND)
             Opérateur BASIC `AND`.
