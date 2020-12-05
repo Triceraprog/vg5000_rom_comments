@@ -4321,7 +4321,7 @@ $1f9c       [check_mem_2]
             - Carry est à 1 s'il reste de la place
 
 $1f9c       Préserve HL
-$1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). Mais si on n'a pas 64ko de RAM ???
+$1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). C'est un premier test avec la mémoire maximale adressable, qu'elle soit présente ou non. 
 $1fa5       Branche s'il y a eu retenue, et donc que HL est supérieur à la limie.
 $1fa7       On obtient l'adresse de la pile plus la différence entre HL et le haut de la mémoire, afin de placer Carry.
 $1fa8       Restaure HL
