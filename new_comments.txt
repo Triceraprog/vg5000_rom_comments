@@ -1014,6 +1014,8 @@ $0430       [logtab2_3]
 $0430       0.3535534143447876
 $0434       [inst_log]
             %CODE
+            Fonction BASIC : `LOG()`
+
 $0434-$0436 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
 $0439       Appel le calcul du log.
 $043c-$043f BCDE = ln(2)
@@ -1021,9 +1023,8 @@ $0442       Multiplie le résultat par ln(2)
 $0444       [log]
 $0444       L'argument de l'instruction log est ramenée dans BCDE.
 $0447-$0449 Initialise l'exposant de FAC avec $80 (c'est-à-dire exposant 0)
-$044c       Opération sur l'exposant de FAC pour en retirer la valeur entière, qui sera utilisée plus loin.
-            Note : le bit 7 de l'exposant, inversé, se retrouvera dans le bit de signe du nombre monté dans FAC (???)
-$044d       Sauvegarde de AF
+$044c       Inverse le bit 7 de l'exposant du paramètre.
+$044d       Et sauvegarde le résultat sur la pile.
 $044e       Pousse FAC (l'argument du `log` avec son exposant à `$80`) sur la pile.
 $0451       Fait pointer HL vers la table de facteurs pour `log`.
 $0454       Calcule le polynome avec les facteurs de `logtab`.
@@ -1039,7 +1040,10 @@ $046c       Résultat de la division dans la pile.
 $046f       Placement du nombre dans A dans FAC (qui était la valeur de l'exposant)
 $0472-$0473 Récupération du résultat du calcul qui avait été mis sur la pile.
 $0474       Ajout avec FAC.
-$0477       Saute les deux `pop` suivant pour aller vers la multiplication.
+$0477       Un octet inutilisé.
+
+            Cet octet semble être un reliquat du BASIC utilisé.
+            Dans d'autres versions, la dernière multiplication de `LOG` est faite par enchaînement avec la routine suivante, et l'octet permet de sauter par dessus les deux `pop` qui suivent.
 
 $0478       [fp_stk_mul]
             %CODE
@@ -1173,7 +1177,7 @@ $0531       Restaure HL (qui était AF)
 $0532       Prépare les drapeaux pour l'arrondi.
 $0533       Branche vers l'arrondie.
 $0536       [div_2]
-$0536       Pour initialiser un flag ???
+$0536       Ramène le Carry, qui a servi au branchement conditionnel, à sa place.
 $0537-$0539 Décale E vers la gauche
 $053a-$053c Décale D vers la gauche (avec le bit sorti de E)
 $053d-$053f Décale C vers la gauche (avec le bit sorti de D)
