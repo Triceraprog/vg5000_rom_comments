@@ -5550,7 +5550,7 @@ $27f6       Sauve le pointeur sur la chaine de caractères lue.
 $27f7       Tout est prêt pour l'assignation de la variable alphanumérique. Le retour se fera à l'adresse juste spécifiée, partie commune avec la lecture d'une donnée numérique.
 
 $27fa       [num_data]
-$27fa       Lecture du premier caractère (??? amorce, ou ignore ?)
+$27fa       Lecture de la virgule et se positionne sur le premier caractère intéressant.
 $27fb       Lecture de la donnée sous forme d'un nombre.
 $27fe       HL = pointeur vers la variable, haut de la pile = pointeur vers les données.
 $27ff       Assigne la valeur lue dans FAC à la variable pointée par HL.
@@ -6737,8 +6737,6 @@ $2f39       Prépare le drapeau pour `STOP` ($c0)
 $2f3a       [inst_end]
             %CODE,MS_BASIC(PEND)
             Instruction BASIC : END
-
-            ??? Attention, le formateur ne créé par d'entrée ici !
 
 $2f3a       Pas d'effet s'il y a un argument. Cela provoquera une erreur de syntaxe en cherchant l'instruction suivante.
 $2f3b       Sauve l'endroit où l'arrête a eu lieu en cas de `STOP` ou de `END`
