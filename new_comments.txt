@@ -1793,7 +1793,7 @@ $081d       [inst_sqr]
 
             Calcul la racine carrée de FAC.
 $081d       Met FAC sur la pile
-$0820-$0823 Mais 0.5 dans FAC. Ce qui prépare à l'exponentiation qui suit.
+$0820-$0823 Mets 0.5 dans FAC. Ce qui prépare à l'exponentiation qui suit.
 $0826       [fp_bcde_pow]
             %MS_BASIC(POWER)
             Calcul la puissance FAC du nombre flottant sur la pile.
@@ -1826,16 +1826,15 @@ $0856       Compare la puissance et sa valeur entière
 $0859-$085a Récupère A sans toucher aux drapeaux
 $085b       Exposant pair (0) ou impair (1) dans Carry.
 $085c       [pos_base]
-$085c-$0861 Montre le nombre dans la pile dans FAC
-$0864       En fonction de la comparaison, prend l'opposé dans FAC (??? perdu le fil...)
-$0867       En fonction de la comparaison, inverse le signe de FAC (??? perdu le fil...)
+$085c-$0861 Monte le nombre argument (sur la pile) dans FAC.
+$0864       Si l'exposant est impair et que la base était négative, le résultat final passera par une opposition de signe.
+$0867       Si la base est négative, prend son opposée.
 $086a-$086b Sauve la puissance dans la pile
 $086c       Prend le `log` de FAC (la base)
 $086f-$0870 Restaure la puissance
 $0871       Multiplie FAC et BCDE (log(base) * power)
             Le fait d'enchaîner sur `inst_exp` va donner exp(log(base) * power),
-            c'est-à-dire base * exp(power).
-            ??? Il faut reprendre quelles sont les calculs, car tel quel, il manque des choses.
+            c'est-à-dire `base ^ power`.
 $0874       [inst_exp]
             %CODE
             Fonction BASIC `EXP()`
@@ -1866,7 +1865,7 @@ $08a6       Met FAC sur la pile
 $08a9       [exp_big2]
 $08a9       Prend l'exposant
 $08ac       Test l'exposant
-$08ad       Si l'exposant est positive, alors c'est un overflow
+$08ad       Si l'exposant est positif, alors c'est un overflow
 $08b0-$08b1 Restaure la pile
 $08b2       Le résultat est 0
 $08b5       [over_redir]
