@@ -8552,19 +8552,19 @@ $38da       [getvar]
             
             - Si le type de la variable est numérique, alors les deux caractères sont sur 7 bits avec les bits de poids fort à 0.
             - Si le type de la variable est alphanumérique, alors le second caractère a son bit de poids fort à 1.
-            - Si le type de la variable est une fonction, alors le premier caractère a son bit de poids fort à 1. (vérifier ???)
+            - Si le type de la variable est une fonction, alors le premier caractère a son bit de poids fort à 1.
 
             La valeur est stockée sur les quatre octets qui suivent.
             
             - Si le type de la variable est numérique, les 4 octets indiquent la valeur.
             - Si le type de la variable est alphanumérique, le premier octet est la longueur de la chaine, le second n'est pas utilisé, les deux derniers pointent vers les données de la chaine.
-            - Si le type de la variable est une fonction, ???
+            - Si le type de la variable est une fonction, les deux premiers octets pointent vers le texte BASIC de la fonction, les deux octets suivants forment l'identifiant de la variable locale.
 
             Entrée:
             - HL pointe sur le texte BASIC au niveau du nom.
 
             Sorties:
-            - DE pointe sur la valeur de la variable correspondant au nom en entrée pour une variable simple, ou la valeur indexée dans un tableau.
+            - DE pointe sur la valeur de la variable correspondant au nom en entrée pour une variable simple, ou la valeur indexée dans un tableau, ou le descripteur de la fonction.
             - BC, en cas de recherche explicite d'un tableau (`(subflg) à 1), pointe sur le nombre de dimensions du tableau (début des données). Dans ce cas, DE contient la taille du tableau.
             - HL pointe sur le texte BASIC à la suite du référencement de la variable (incluant l'indice du tableau).
 
@@ -8602,7 +8602,7 @@ $3912       %CHAR
 $3911-$3914 Branche si le caractère suivant est une parenthèse ouvrante.
 
 $3917       [var_no_ary]
-$3917-$3918 Le cas est celui d'une variable simple (pas un tableau).
+$3917-$3918 Le cas est celui d'une variable simple ou d'une fonction (pas un tableau).
 $391b       Sauve le pointeur vers le texte BASIC.
 $391c-$391d Copie le nom de la variable dans DE.
 $391e-$3921 Compare le nom du paramètre d'une fonction (HL) avec le nom cherché (DE).
@@ -8657,7 +8657,6 @@ $3971-$3974 Écriture du nom de la variable dans les deux premiers octets de la 
 $3975       [var_found]
 $3975       DE pointe sur la mémoire après le nom de la variable, c'est-à-dire sur sa valeur.
 $3976       HL pointe sur le texte BASIC.
-            Mais du coup, cmment est mis à jour FAC ???
 
 $3978       [ret_null]
 $3978-$397e Arrivé ici, A est à 0. La résultat monté dans FAC est donc une valeur qui est à la fois 0 en numérique et la chaîne vide en alphanumérique.
@@ -8722,9 +8721,6 @@ $39dc       [ary_at_end]
             Entrées :
             - HL est `(strend)`, pointeur vers le début de la mémoire inutilisée du BASIC.
             - BC est le nom de la variable/tableau
-
-            HL contient arytab
-            BC contient le nom de la variable (du tableau)
             
 $39dc       %NOT_LABEL
             DE est initalisé à 4, qui est la taille d'un élément de tableau.
