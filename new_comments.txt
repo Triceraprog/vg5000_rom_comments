@@ -2007,7 +2007,7 @@ $0989       Retourne avec FAC non touché si l'exposant est petit (inférieur à
 $098d       Récupèration du MSB dans A.
 $098e       Branche plus loin si c'est un nombre positif
 $0991       Comme sin(-a) = -sin(a), on rend le paramètre positif.
-$0993       On remote le MSB dans FAC
+$0993       On remonte le MSB dans FAC
 $0996-$0999 En retour de fonction, `ret` branchera vers la routine qui prendra l'opposée de FAC.
 $099a       [sin_pos]
 $099a-$09a3 Multiplie l'angle paramètre par 1/(2*pi) (BCDE) et pousse le résultat sur la pile.
@@ -2020,17 +2020,15 @@ $09b4-$09b7 Branche plus loin si le résultat est inférieur à 0.25, c'est-à-d
 $09ba-$09c0 Ajoute BCDE = -0.25 à FAC.
 $09c3-$09c9 Ajoute BCDE = -0.5 à FAC. Cela donne une soustraction globale de l'emplacement de 0.75.
 $09cc       Récupère le signe de FAC
-$09cd       S'il est positif (le nombre entre 0 et 1 était donc supérieur à 0.75), inverse le signe.
-$09d0-$09d3 BCDE = 0.25
-$09d6       Ajout de 0.25 à FAC
-$09d9       Inverse le signe
+$09cd       S'il est positif, cela signifie que l'angle se situait dans le quatrième quart.
+            La fonction sinus étant symétrique verticalement sur le cercle, la valeur est ramenée pour désigner le troisième quart dans l'autre sens, en opposant le signe.
+$09d0-$09d6 Rotation du cercle d'un quatre de cercle, avec ajout de BCDE = 0.25.
+$09d9       Inverse le signe de la position sur le cercle.
 $09dc       [min_quarter]
-$09dc       Prend le MSB de FAC
-$09df       Le test
+$09dc-$09df Prend le MSB de FAC afin d'en déterminer le signe.
 $09e0       Et pousse le résultat dans la pile.
 $09e1       S'il est positif, branche plus loin
-$09e4       Sinon, inverse le signe.
-$09e6       Et remonte la nouvelle valeur dans FAC.
+$09e4-$09e6 Sinon, inverse le signe afin d'opposer le nombre dans FAC.
 $09e9       [sin_pos_2]
 $09e9       Pointe vers la table des coefficients pour le sinus.
 $09ec       Calcul du polynome.
