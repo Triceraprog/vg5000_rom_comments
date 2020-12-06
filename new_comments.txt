@@ -773,10 +773,8 @@ $02ef       [regst_impl]
 $02ef       Lecture dans B de la longueur (nombre de paires) de la table.
 $02f0       Place HL sur l'octet suivant de la séquence.
 $02f1       [regst_loop]
-$02f4-$02dc Utilisation de `outi` pour enoyer les paires vers le VDP.
-            À chaque tour de boucle, le premier octet est envoyé vers le port `$8f`
-            et le second vers le port `$cf`. Chaque envoie est précédé d'une attente
-            d'état `prêt` du VDP.
+$02f4-$02fc Utilisation de `outi` pour enoyer les paires vers le VDP.
+            À chaque tour de boucle, le premier octet est envoyé vers le port `$8f` et le second vers le port `$cf`. Chaque envoie est précédé d'une attente d'état `prêt` du VDP.
 
 $02ff       [add_half]
             %SECTION(f4i),MSBASIC(ROUND)
@@ -3197,7 +3195,7 @@ $116d       [start_music]
 $1179       [init_ef_seq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 
-            VDP - $28/$81 -> TGS prend la valeur de R1
+            VDP - $28/$81 -> TGS prend la valeur de R1 (pourquoi executer cette commande alors qu'elle est à nouveau exécutée juste après ?)
             VDP - $29/$00 -> TGS = R1 = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
             VDP - $20/$82,$29/$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur(
             VDP - $20/$83,$29/$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, insert mode : Active Area, Flash ON, Format court pour le 40 colonnes)
@@ -3205,7 +3203,9 @@ $1179       [init_ef_seq]
             VDP - $20/$87,$29/$08 -> ROR = $08 (Z=0, Y=8)
             VDP - $26/$08 -> R6=$08
             VDP - $27/$00 -> R7=$00
-            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (R1 = $08, R2 = ???)
+            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (R1 = $08, R2 = $00 d'initialisation)
+$1179       Taille de la séquence
+$117a       [init_data]
 
 $1194       [i_ramlow]
             %CODE
@@ -4090,7 +4090,7 @@ $1e11       Dernier octet lu sur 7 bits. Lors de l'écriture, le format ASCII me
 $1e13       Placé dans la zone pointée par HL
 $1e14-$1e16 Branche si la valeur est 3, marqueur de fin du listing ($83 sur la k7)
 $1e18-$1e1d Change la couleur de la marge.
-$1e20       Envoi le changement de couleur au VDP (??? juste comme ça ? D'où vient la commande ?)
+$1e20       Envoi le changement de couleur au VDP. La commande actuelle est $82, placée par `margin_col`.
 $1e22-$1e25 Branche s'il n'y a plus de mémoire (Carry est à 0)
 $1e27       Sinon pointe un octet plus loin
 $1e28       Lit un octet
@@ -5510,7 +5510,8 @@ $27b0       Lecture d'un nom de variable. Retour dans DE.
 $27b3       HL = pointeur vers les données, haut de la pile = pointeur vers le texte BASIC.
 $27b4       Sauve le pointeur vers la variable sur la pile.
 $27b6       %CHAR
-$27b5-$27b8 Branche si le prochain caractère des données est ',' (c'est pour cela que l'INPUT est amorcé avec un ',' ???)
+$27b5-$27b8 Branche si le prochain caractère des données est ','.
+            C'est pour cela que le buffer pour INPUT est amorcé avec un ','.
 $27ba-$27be Branche pour l'instruction `READ`
 $27c1       %CHAR
 $27c1-$27c4 Il manque des données, lance une nouvelle acquisition de données.
