@@ -798,7 +798,7 @@ $0302       [fp_add_hl]
 $0302       Charge les quatre octetcs pointés par HL dans BCDE.
 $0305       Branche vers l'addition entre BCDE et FAC.
 $0307       [fp_sub_hl]
-            %MS_BASIC(SUBPHL)
+            %MS_BASIC(SUBPHL),CODE
             Soustraction flottante : (HL) - FAC
 
             Entrées :
@@ -808,11 +808,7 @@ $0307       [fp_sub_hl]
             Sortie :
             - FAC contient le résultat.
 
-            La suite se décode comme :
-            - call     hl_to_bcde ; (cd e0 05)
-            - ld       hl,$d1c1   ; (21 c1 d1)
-            La deuxième instructon saute par dessus les deux `pop` pour arriver directement sur
-            l'inversion de signe de `fp_bcde_sub`.
+$030a       Saute par dessus les deux `pop` qui suivent.
 
 $030b       [fp_stck_sub]
             %CODE,MS_BASIC(PSUB)
