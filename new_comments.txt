@@ -4096,13 +4096,14 @@ $1e27       Sinon pointe un octet plus loin
 $1e28       Lit un octet
 $1e2b       Retour si interruption ou erreur.
 $1e2c       Sauvegarde AF, A contient l'octet lu.
-$1e2d-$1e2f Branche si ce n'était pas $8d
-$1e31-$1e32 Sauvegarde HL (pointeur du buffer) et DE (début de la ligne) sur la pile
+$1e2d-$1e2f Branche si ce n'était pas $8d, afin de continuer à acquérir les caractères et calculer la sommme de contrôle.
+$1e31-$1e32 Sinon, une ligne entière vient d'être lue.
+            Sauvegarde HL (pointeur du buffer) et DE (début de la ligne) sur la pile
 $1e33       Ramène DE, qui pointe vers le début de ligne, dans HL.
 $1e34       Décodage d'un numéro de ligne.
 $1e37-$1e38 Le résultat, dans DE, est mis dans BC
-$1e39       Rétablie la valeure lue de A.
-$1e3b       Restaure DE, quite pointe un octet avec le nouveau début de ligne.
+$1e39       Rétablie la valeure lue de A afin de calculer la sommme de contrôle.
+$1e3b       Restaure DE, qui pointe un sur le début de la ligne qui vient d'être acquise.
 $1e3c       [xor_sumchk]
 $1e3c-$1e40 Ou exclusif de A avec le caractère pointé dans le buffer pour calculer le sumcheck.
 $1e41       Restaure HL
@@ -4110,14 +4111,14 @@ $1e42       Restaure AF
 $1e43       Boucle vers la prochaine partie à lire.
 $1e45       [vrfy_lines]
 $1e45-$1e47 Branche si BC, le numéro de la ligne courante, est 0
-$1e49       Préserve HL
+$1e49       Préserve HL, qui pointe sur la fin de la ligne acquise.
 $1e4a       A à 0
-$1e4b       Charge le dernier numéro de ligne de l'interval.
+$1e4b       Charge le dernier numéro de ligne de l'intervalle.
 $1e4e-$1e50 Branche si la ligne est supérieure à la dernière ligne.
 $1e52       Charge le premier numéro de ligne de l'interval.
 $1e55-$1e59 Branche si le numéro de ligne courant est supérieur au premier numéro de l'interval.
 $1e5b       [ignore_line]
-$1e5b       Tout ce calcul est pour le moment mysterieux ???
+$1e5b       Restaure le pointeur vers la fin de la ligne acquise.
 $1e5c       [commit_line]
 $1e5c-$1e5d Suivant le chemin d'arrivée, la ligne précédente est avancée au pointeur du buffer (la ligne est donc gardée) ou bien le pointeur actuel et remis en début de ligne (la ligne est donc ignorée, car elle sera écrasée).
 $1e5e       BC, le numéro de ligne courant, à 0
@@ -4139,16 +4140,16 @@ $1e6f       Interruption ou erreur, retour.
 $1e70       [check_sum]
 $1e70       Lecture d'un octet
 $1e73       Retour si interruption ou erreur
-$1e74       Préserve HL
-$1e75-$1e78 Soustrait le caractère lu de celui dans `low`
+$1e74       Fin des données. Préserve HL, qui pointe vers le buffer d'acquisition.
+$1e75-$1e78 Soustrait le caractère lu de celui dans `low` qui contient la sommme de contrôle.
 $1e79       Signal une erreur de somme de contrôle si le résultat n'est pas 0.
-$1e7c       Restaure HL
+$1e7c       Restaure HL, pointeur vers le buffer d'acquisition.
 $1e7d-$1e80 Branche s'il n'y a plus de mémoire
-$1e82       A à 0 et donc Z est levé.
+$1e82       A à 0 et donc Z est à 1.
 
 $1e84       [chk_no_mem]
 $1e84       Echange DE et HL
-$1e85-$1e87 Place $03 dans le caractère pointé par HL (qui est ???)
+$1e85-$1e87 Place $03 dans le caractère pointé par HL, le buffer d'aquisition, afin de forcer un marqueur de fin de données en cas de manque de mémoire.
 
 $1e89       [fetch_next]
             Récupère un octet lu avec `LOAD` depuis l'adresse stockée en `(high)`.
