@@ -4255,12 +4255,12 @@ $1f28       [read_contnt]
             - A est à 0 si on effectue un chargement, et à $FF si on effectue une vérification de fichier.
 
 $1f28       Sauve HL, l'adresse de destination.
-$1f29       Sauve AF, le paramètre de vérification. ???
+$1f29       Sauve AF, le paramètre chargement/vérification.
 $1f2a       Calibre la lecture.
 $1f2d       Retour (avec nettoyage de la pile) en cas d'erreur ou d'interruption de commande.
 $1f30       Charge l'indicateur de protection dans le descripteur de fichier lu (qui est toujours décalé)
 $1f33-$1f37 L'octet de protection du jeu contrôle la possibilité pour le moniteur BASIC de s'exécuter.
-$1f38-$1f39 Récupère le paramètre de vérification (???) et l'adresse de destination.
+$1f38-$1f39 Récupère le paramètre de chargement/vérification  et l'adresse de destination.
 $1f3a       Copie A, le masque de comparaison ou lecture, dans D
 $1f3b       [read_ct]
 $1f3b       Initialise la lecture de 10 octets d'entete.
@@ -4757,12 +4757,12 @@ $23fd-$23ff Branche si le token n'est pas $b6 (`THEN`)
 $2401       [test_number]
             Vérifie s'il y a un paramètre nombre derrière l'instruction
 $2401       Sauve HL, pointeur vers le buffer d'entrée.
-$2402       Lit le caractère dans le buffer d'entrée.
+$2402       Lit le prochain caractère intéressant depuis le buffer d'entrée.
 $2403       Restaure à nouveau HL, qui pointe au début de la partie à vérifier.
 $2404       Si Carry est à 0, le caractère n'était pas un nombre, il n'y a pas donc pas de paramètre numérique.
-$2406       Sauvegarde de HL, pointer vers le buffer d'entrée, dans DE.
+$2406       Sauvegarde de HL, pointeur vers le buffer d'entrée, dans DE.
 $2407       Récupération dans Y du compteur C initialement mis à 5.
-$2409       Récupération dans HL du pointeur vers le buffer en entrée.
+$2409       Récupération dans HL du pointeur vers le buffer de travail.
 
 $240a       [dec_number]
 $240a       Le token est placé dans le buffer de travail lors de la première arrivé. Ensuite, c'est la virgule de séparation préparée plus loin qui sera copiée.
@@ -4786,7 +4786,9 @@ $2423-$2426 Récupération dans C de la seconde partie du numéro de ligne
 $2427-$242b La taille du buffer de travail est augmentée de 3 (pour le token, le marqueur et la première partie du nombre)
 $242d       [miss_line]
 $242d       Comparaison de DE, buffer d'entrée, et de HL, buffer de travail.
-$242e       DE doit toujours être plus loin que HL. Sinon, branche vers l'erreur Opérande manquante. pourquoi ???
+$242e       DE doit toujours être plus loin que HL.
+            Si HL rattrappe DE, branche vers l'erreur Opérande manquante.
+            C'est le cas par exemple si on entre `10 ONIGOTO1,2,3,4`.
 $2431       HL contient le buffer en entrée, DE le buffer de travail.
 $2432       Sauvegarde du buffer d'entrée.
 $2433       Lecture du caractère suivant.
