@@ -4886,6 +4886,7 @@ $247a       [inst_for]
             %CODE
 $247a-$247c Indique que la recherche/création de variable se fait pour une commande `FOR`.
 $247f       Juste après le `FOR` se trouve une assignation de variable. Au retour, DE pointe sur la variable.
+            S'il y a une erreur de syntaxe après l'assignation, celle-ci à tout de même lieu.
 $2482       Retire l'adresse de retour de l'instruction `LET` ($24ea)
 $2483       Sauve le pointeur vers le texte BASIC qui pointe à présent après l'assignation de variable.
 $2484       Cherche le début de l'instruction suivante.
@@ -4893,7 +4894,7 @@ $2487       Sauve le pointeur vers l'instruction suivant le `FOR`
 $248a-$248d Pointe 2 octets au-dessus de la pile, c'est-à-dire après le pointeur vers le texte BASIC que l'on vient d'y pousser.
 
 $248e       [search_for]
-$248e       Cherche le bloc `FOR` associé à la variable pointée par DE. (que se passe-t-il s'il est trouvé ? Et si un autre FOR est trouvé ???)
+$248e       Cherche le bloc `FOR` associé à la variable pointée par DE.
 $2491       Branche si un bloc `FOR` correspondant n'est pas trouvé.
 $2493       Sinon, fait pointer vers la pile après le bloc `FOR` trouvé.
 $2494       Sauve l'adresse de la variable associée.
@@ -6261,7 +6262,7 @@ $2b57-$2b5a B contient le caractère aux nouvelles coordonnées.
 $2b5b       DE contient les nouvelles coordoonées.
 $2b5c       Récupère les drapeaux de comparaison.
 $2b5d       A contient le caractère lu aux coordonnées.
-$2b5e       Dans quel cas est-ce que le Carry peut-être à 0 ???
+$2b5e       Branche si ce n'est pas la dernière ligne physique de la ligne logique.
 $2b60       %CHAR
 $2b60-$2b62 Branche si ce n'est pas un espace.
 $2b64       [srch_char]
@@ -6277,7 +6278,7 @@ $2b73       Et continue vers l'acquisition de la ligne.
 
 $2b75       [if_col_40]
 $2b75-$2b7a Remet l'indicateur de ligne entrée en BASIC à 0 .
-$2b7d-$2b82 Branche si le bit 8 de `(entstt)` est à 1. ???
+$2b7d-$2b82 Branche si le bit 7 de `(entstt)`, premier caractère de la ligne logique, est à 1.
 $2b84       %CHAR
 $2b84-$2b86 Branche si `(entstt)` est un espace.
 $2b88       %CHAR
@@ -6305,7 +6306,15 @@ $2ba7       [acquired_cr]
 $2ba7-$2ba9 Retour en ayant acquis un retour chariot.
 
 $2bac       [special_acq]
-            Traitement des caractères spéciaux lors de la validation d'une ligne. ???
+            Traitement des caractères spéciaux lors de la validation d'une ligne.
+
+            Table de correspondance :
+            $ff -> $10
+            $0d -> $11
+            $08 -> $13
+            $04 -> $18
+            $1f -> $1a
+            $03 -> $1c
 
 $2bac-$2bae Branche si le caractère n'est pas $ff.
 $2bb0       Sinon, transforme $ff en $10.
