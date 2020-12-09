@@ -8737,8 +8737,7 @@ $39dc       [ary_at_end]
 $39dc       %NOT_LABEL
             DE est initalisé à 4, qui est la taille d'un élément de tableau.
 $39df       Récupère la dimension dans A.
-            Z est forcément à 1 ???
-$39e0       Branche si Z était à 0 vers une erreur d'appel illégal. (dans quel cas ???)
+$39e0       Branche vers une erreur si le tableau a zero dimension.
 $39e3-$39e6 Inscrit le nom de la variable/tableau dans les deux premiers octets de l'entrée pointée.
 $39e7       Place le nombre de dimensions dans C.
 $39e8       Vérifie qu'il y a assez de place sur la pile pour 2 * le nombre de dimensions.
