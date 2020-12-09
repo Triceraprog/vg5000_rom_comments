@@ -8679,28 +8679,29 @@ $3983       Sauve le pointeur vers le texte BASIC.
 $3984-$3987 HL = pointeur vers le texte BASIC, Haut de la pile : `(dimflg)` et `(valtyp)`.
 $3988       D = A = 0. A compte les dimensions.
 $3989       [loop_dim]
-$3989       Sauve le nombre de dimensions.
+$3989       Sauve le numéro de la dimension.
 $398a       Sauve le nom de la variable (et donc du tableau).
 $398b       Lit un entier sur 16 bits dans DE.
 $398e       Restaure le nom de la variable.
-$398f       Restaure le nombre de dimensions.
+$398f       Restaure le numéro de la dimension.
 $3990       Taille/Index du tableau dans HL.
 $3991-$3992 Place la taille/index sous `(dimflg)/(valtype)`
 $3993       HL pointe sur le texte BASIC, DE contient `(dimflag)/(valtyp)`.
-$3994       Augmente le nombre de dimensions.
+$3994       Augmente le numéro de la dimension.
 $3995       Et place le compte dans D.
 $3997       %CHAR
 $3996-$3999 Boucle si la taille est suivie par une virgule.
 $399c       Sinon, le caractère suivant doit être une parenthèse fermante.
 $399d       %DATASKIP
 $399e       Sauve HL, pointeur sur le texte BASIC, temporairement.
-$39a1-$39a2 Remise en place de la valeur `(dimflg)/(valtyp)` venant de la pile (a-t-elle pu être modifiée ???)
+$39a1-$39a2 Remise en place de la valeur `(dimflg)/(valtyp)` venant de la pile.
+            Cette valeur n'a pas été modifée depuis qu'elle a été lue. Cette instruction est étrange.
 $39a5-$39a7 D est le nombre de dimensions, E est à 0, le tout poussé sur la pile.
 $39a8       Saute par dessus les deux `push` qui suivent.
 
 $39a9       [aryvar]
 $39a9       Sauve le pointeur sur le texte BASIC.
-$39aa       Sauve A = 0 et Z à 1. Nombre de dimensions restantes ???
+$39aa       Sauve A = 0 et Z à 1, pour indiquer la recherche de l'adresse d'un tableau.
 $39ab       HL pointe sur le début de la zone mémoire des tableaux.
 $39ae       Saute par dessus le 'add' qui suit.
 
@@ -8719,8 +8720,7 @@ $39c5       Sinon, A récupère l'action voulue (création ou accès).
 $39c8-$39c9 Branche vers une erreur de redimensionnement si `(dimflg)` est différent de zéro (création de tableau).
 $39cc       Sinon, c'est un accès. A prend le nombre de dimensions indiqués par le texte BASIC.
 $39cd-$39ce BC pointe vers les dimensions du tableau trouvé.
-$39cf       Branche en fonction des drapeaux que l'on vient de récupérer.
-            Ces valeurs ont été poussées en $39aa. ???
+$39cf       Branche si le nombre de dimension était 0 (recherche d'une adresse de tableau)
 $39d2-$39d3 Branche si les dimensions sont égales.
 
 $39d6       [out_range]
