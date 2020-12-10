@@ -4062,7 +4062,7 @@ $1de5       Met (vartab) dans DE
 $1de9       Met A à 0, mais surtout passe le Carry à 0.
 $1dea       Différence entre HL, pointeur vers la fin du buffer de travail, et DE, le début.
 $1dec       Ce qui donne la taille du buffer, que l'on pousse sur la pile.
-$1ded       A = $FF pour le paramètre de l'appel suivant.
+$1ded       A = $ff pour le paramètre de l'appel suivant.
 $1dee       Démarre la k7 et envoie l'entête de synchronisation.
 $1df1       Récupère la taille du buffer.
 $1df2       Retour en cas d'erreur.
@@ -8860,7 +8860,13 @@ $3a7e       Restaure AF
 $3a7f       Permet l'IRQ
 
 $3a81       [save_sync]
-            ??? Mieux comprendre l'effet du paramètre A.
+            Écrit sur la k7 la partie synchronisation.
+
+            Il s'agit d'une séquence d'alternances 1/0 courts (cycles high/low) dont le nombre dépend de `(handler)` et de A.
+            
+            Entrée :
+            - A à $00 multiplie `(handler)` par 256 (cas de l'amorce initiale pour SAVE et de l'amorce d'en-être pour CSAVE).
+            - A à $ff multiplie `(handler)` par 1024 (cas de l'amorce du contenu pour un CSAVE).
 
 $3a81       Place les drapeaux en fonction de A.
 $3a82       Sauve les drapeaux sur la pile.
@@ -8869,15 +8875,18 @@ $3a8a       [sync_loop]
 $3a87-$3a8d Boucle d'attente le temps que HL boucle de $0000 à $0000
 $3a8f       Restaure les drapeaux.
 $3a90       [send_ones]
+$3a90       La valeur de `(handler)` vient des paramètres initialisés dans `k7_set_prms`.
 $3a93       Si le drapeau était à Z, on branche.
 $3a95-$3a96 Si Z n'était pas à 1 (dans A initialement pas à 0), A est multiplié par 4.
 $3a97       [not_mult]
 $3a97       La valeur est ensuite stockée dans B
-$3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à la valeur de handler * 1024 ou handler * 256 (suivant le drapeau Z)
+$3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à :
+            - `handler * 1024` si `A` en entrée était $ff
+            - `handler * 256` si `A` en entrée était $00
 $3a9a       Désactivation des interruptions.
 $3a9b       [send_one_lp]
 $3a9e       Attente de 29 états T
-$3aa1-$3aa4 Boucle tabt que BC n'atteint pas 0.
+$3aa1-$3aa4 Boucle tant que BC n'atteint pas 0.
 $3aa6       Pour terminer, branche sur la vérification de BREAK, d'anti copie et de reset des touches. Profitera du `ret` de la routine.
 
 $3aa9       [k7write]
