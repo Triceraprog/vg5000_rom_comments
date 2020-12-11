@@ -9269,9 +9269,8 @@ $3ca2       Appel au hook d'entrée de ligne.
 $3ca5       HL pointe vers le buffer de travail
 $3ca8       [get_line2]
 $3cab-$3cac Branche si le périphérique d'entrée actuel est le clavier.
-$3cae       Sinon, l'entrée est autre chose. Pour la ROM de base, c'est la k7, via la routine de chargement de `LOAD`. ???
-            L'adresse à lire est dans `(high)` et l'octet lu sera en retour dans A.
-            Le drapeau Z est à 1 si l'octet lu était le marqueur de fin de buffer, $03 et dans ce cas, A est à 0.
+$3cae       Sinon, l'entrée est autre chose qu'un clavier. Pour la ROM de base, c'est la k7, via la routine de chargement de `LOAD`.
+            L'adresse à lire est dans `(high)` et l'octet lu sera en retour dans A. Le drapeau Z est à 1 si l'octet lu était le marqueur de fin de buffer, $03 et dans ce cas, A est à 0.
 $3cb1       Branche si un octet a été lu depuis le buffer.
 $3cb3       Sinon, la fin du buffer a été atteinte, et on branche pour finaliser la ligne entrée.
 
@@ -9468,7 +9467,6 @@ $3de1       [decodenext]
 
 $3de1       Si HL pointe avant la fin du buffer de travail, le pointeur est incrémenté puis la routine l'acquisition continue.
 $3de3       Si HL n'est pas égal, c'est qu'il est supérieur à la fin du buffer de travail, l'acqusition continue sans toucher à HL.
-            Sinon, HL est sur la dernière position du buffer, on émet le caractere $0E (signification ???) puis on passe à l'incrémentation de HL. $0E semble donc être un marqueur de fin de buffer.
 $3de6-$3de8 Sinon, HL vient d'atteindre la fin du buffer de travail, un 'bip' est émit. Puis enchaîne sur l'incrémentation du pointeur et la suite de l'acquisition.
 
 $3de9       [ind_inchl]
