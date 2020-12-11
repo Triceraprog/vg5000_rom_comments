@@ -8938,7 +8938,11 @@ $3af1       Restaure AF
 $3af3       [calibrate]
             Calibre la lecture de la cassette.
 
-            ??? Vérifier les calculs.
+            Lit le « temps » nécessaire à un cycle 1/0.
+
+            La routine est un succès si elle peut lire 1111 fois un cycle 1/0 dont le temps reste assez stable.
+
+            La stabilité est jugée par un écart qui ne doit par dépasser un compte de 4.
 
 $3af3-$3af5 Démarre le moteur du lecteur k7 (si la prise remote est branchée).
 $3af7       Désactive l'IRQ
@@ -8946,30 +8950,31 @@ $3af7       Désactive l'IRQ
 $3af8       [cal_retry]
 $3af8       Compteur à $457 (1111)
 $3afb       [cal_adjust]
-$3afb       Mise dans D de la valeur précédente du compteur de cycle 0/1 (et à la première itération ???)
-$3afc       Lit un cycle 0/1
+$3afb       Mise dans D de la valeur précédente du compteur de cycle 1/0.
+            La valeur de D à la première itération n'a pas d'importance.
+$3afc       Lit un cycle 1/0
 $3aff       Si le Carry est levé, l'interruption de la commande a été demandée, retour immédiat.
-$3b00       Compteur de cycle 0/1 dans A
+$3b00       Compteur de cycle 1/0 dans A
 $3b01-$3b03 Boucle si le compteur est supérieur à 222
 $3b05-$3b07 Boucle si le compteur est inférieur à 5
 $3b09-$3b0a Le compteur est dans ses bornes. Branche plus loin si A était supérieur à D, la valeur précédente. A contient la différence entre la nouvelle et l'ancienne valeur.
 $3b0c-$3b0d Complément à 2 de A, pour prendre sa valeur opposée.
 
 $3b0e       [cycle_abs]
-$3b0e       A contient la valeur absolue de la différence entre les deux précédent compteur de cycle 0/1
+$3b0e       A contient la valeur absolue de la différence entre les deux précédent compteur de cycle 1/0
 $3b10       Boucle si cette différence est de 4 ou plus avec le compteur HL réinitialisé.
 $3b12       Décrémente HL
 $3b13-$3b15 Boucle si HL n'est pas nul pour lire une nouvelle valeur.
-$3b17       Force HL à 0 (il est déjà à 0 normalement ???)
+$3b17       Force HL à 0. Qui est déjà à $0000...
 $3b1a-$3b1b B et D à 0 aussi
 
 $3b1c       [read_256]
-$3b1c       Lecture d'un cycle 0/1
+$3b1c       Lecture d'un cycle 1/0
 $3b1f       Retour si l'interruption de la commande a été demandé.
-$3b20       Ajoute BC (donc C, car B est initialisé à 0) à l'accumulateur HL
+$3b20       Accumule dans HL les temps de cycle successivements lus.
 $3b21-$3b22 Boucle 256 fois (D initialement à 0)
-$3b25-$3b28 Un dernier ajoute de $5fa (1530) à l'accumulateur, pour l'arrondi ???
-$3b29       A contient la moyenne du compteur de 256 lectures de cycle 0/1 (à l'ajout de 5 prêt)
+$3b25-$3b28 Valeur d'ajustement à l'accumulation des temps de lectures (= 1530).
+$3b29       A contient la moyenne du compteur de 256 lectures de cycle 1/0 (à l'ajout de 5 prêt)
 $3b2a-$3b2b Moyenne divisée par 2
 $3b2d       Et mise dans D
 $3b2e       Double l'accumulateur de toutes les durées de lecture.
@@ -8978,6 +8983,7 @@ $3b30       Différence entre 2 fois la moyenne et la moitié de la moyenne.
 $3b31       Sauvegarde de la différence dans D
 $3b32       Soustraction de 5 à la différence (ajoutée précédemment à la somme)
 $3b34       Enregistrement de la différence entre la moitiée et le double de la moyenne.
+            C'est la longueur de la phase haute de cycle 1/0.
 $3b37-$3b38 Doublement de la différence
 $3b39       Initialise B pour calculer A / 3.
 $3b3b       [lim_div_3]
@@ -9014,20 +9020,19 @@ $3b63       B prend la période de la lecture de 0.
 $3b64       Lecture d'un demi cycle à 1, avec calcul de la période.
 $3b67       Retour si demande d'interruption de commande.
 $3b68-$3b69 Ajout du total des deux périodes.
-$3b6a       Si la somme dépasse 255 (en cas d'échec de lecture), nouvelle tentative.
-            À chaque fois, la somme calculée est celle des deux demi-périodes du cycle lues.
-$3b6c-$3b6d Nouvelle tentative si la période du cycle complet est plus petite que `lowlim` actuellement dans D.
+$3b6a       Si la somme dépasse 255 (en cas d'échec de lecture), nouvelle tentative. À chaque fois, la somme calculée est celle des deux demi-périodes du cycle lues.
+$3b6c-$3b6d Nouvelle tentative si la période du cycle complet est plus petite que `(lowlim)` actuellement dans D.
 $3b6f       L compte les 8 bits à lire.
 
 $3b71       [rd_nxt_byte]
 $3b71       Lecture pendant la durée d'une fenêtre.
-$3b74-$3b77 Retour s'il y a eu plus de 4 changements de signal pendant la période avec le Carry à 1.
-$3b78-$3b7a Si le nombre de changements est inférieur strictement à 2, le Carry est à 0, sinon (donc pour 2, 3 ou 4 changements), le Carry est à 1.
+$3b74-$3b77 Retour s'il y a eu 4 changements de signal ou plus pendant la période avec le Carry à 1.
+$3b78-$3b7a Si le nombre de changements est inférieur strictement à 2, le Carry est à 0, sinon (donc pour 2 ou 3 changements), le Carry est à 1.
             Normalement, on s'attend à avoir 3 changements (bit à 1) ou 1 changement (bit à 0). Le Carry porte donc la valeur du bit.
 $3b7b       Construction progressive de l'octet lu par rotation et valeur lue en bit 7.
-$3b7d       A = C, mais n'étaient-ils pas déja égaux ???
-$3b7e-$3b7f En cas d'un nombre de changement impaire, on attent le prochain changement pour se recaler.
-$3b82       Puis attente d'un nouveau changement de signal. Ce qui fait qu'on a toujours un nombre de changement impaire ???
+$3b7d       Copie la valeur de C dans A... Mais ceux-ci sont déjà égaux et non modifiés depuis l'appel à `read_window`.
+$3b7e-$3b7f En cas d'un nombre de changement paire (0 ou 2), on attent le prochain changement pour se recaler sur 1 ou 3.
+$3b82       Puis attente d'un nouveau changement de signal. Ce qui fait qu'on a toujours un nombre de changements pair (2 ou 4)
 $3b85-$3b86 Boucle 8 fois.
 $3b89       Vérifie l'interruption de commande.
 $3b8c       Résultat de l'octet lu de l'opération dans A.
@@ -9086,7 +9091,9 @@ $3bbd       [wait_timout]
 $3bbd       Ramène C à $ff
 
 $3bbf       [read_cycle]
-            Lit depuis la k7 un cycle 0/1 et renvoie dans C le temps total.
+            Lit depuis la k7 un cycle 1/0 et renvoie dans C le temps total.
+
+            La routine commence par attendre le passage au signal haut.
 
             Sortie :
             - C, compteur total pour le cycle 0/1, ou 255 en cas d'échec.
