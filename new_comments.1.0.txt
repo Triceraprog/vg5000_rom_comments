@@ -600,12 +600,12 @@ $01fc       [delim_wrt]
             Peut provoquer un défilement de l'écran.
 
             Entrée :
-            - le caractère à afficher
+            - A contient le caractère à afficher
 
 $01fc       Récupère la valeur de `extenf`, qui indique l'utilisation des caractères ROM ou RAM.
 $01ff       Récupère les coordonnées actuelles du curseur.
 $0202       Sauve les coordonnées du curseur.
-$0203       Sauve la valeur de `extenf`.
+$0203       Sauve le caractère à afficher.
 $0204       Calcul de l'adresse écran en RAM pour la position du curseur dans HL.
 $0207       Restaure la valeur de `extenf`.
 $0208       Met cette valeur dans le premier octet de la paire caractère/attribut dans la zone de l'écran.
@@ -721,15 +721,15 @@ $02a7       [kbscan_impl]
 
 $02a7       Prépare C avec le premier port à scanner ($87) et B avec le nombre de ports (7).
 $02aa       [kb_row_loop]
-            lecture de l'entrée
+$02aa       Lecture de l'entrée depuis un des ports de $87 à $81
 $02ac-$02ad La ligne est à l'état haut lorsque la touche n'est pas pressée.
             En prenant son complément, un résultat à 0 signifie qu'aucune touche de la rangée n'est pressée.
 $02ae       Branche si une touche est pressée sur cette ligne.
 $02b0       Vise le port précédent.
-$02b1       Boucle sur le nombre de ports (7).
-$02b3       Quel est le port ici ???
-$02b5       Du coup, on prend le complément de quoi ???
-$02b6       Masque avec b10111011 de la dernière ligne lue.
+$02b1       Boucle sur le nombre de ports.
+$02b3       Lecture de l'entrée depuis le port $80
+$02b5       Complément de l'entrée, comme pour la boucle précédente.
+$02b6       Masque le rang $80 avec b10111011. Cela filtre la touches `CTRL` ainsi qu'une entrée de la matrice non utilisée.
 $02b8       [key_pressed]
 $02b8       Branche si aucune touche n'est pressée.
 $02ba       Initialise le compteur de nombre de rang du clavier.
@@ -773,10 +773,8 @@ $02ef       [regst_impl]
 $02ef       Lecture dans B de la longueur (nombre de paires) de la table.
 $02f0       Place HL sur l'octet suivant de la séquence.
 $02f1       [regst_loop]
-$02f4-$02dc Utilisation de `outi` pour enoyer les paires vers le VDP.
-            À chaque tour de boucle, le premier octet est envoyé vers le port `$8f`
-            et le second vers le port `$cf`. Chaque envoie est précédé d'une attente
-            d'état `prêt` du VDP.
+$02f4-$02fc Utilisation de `outi` pour enoyer les paires vers le VDP.
+            À chaque tour de boucle, le premier octet est envoyé vers le port `$8f` et le second vers le port `$cf`. Chaque envoie est précédé d'une attente d'état `prêt` du VDP.
 
 $02ff       [add_half]
             %SECTION(f4i),MSBASIC(ROUND)
@@ -798,7 +796,7 @@ $0302       [fp_add_hl]
 $0302       Charge les quatre octetcs pointés par HL dans BCDE.
 $0305       Branche vers l'addition entre BCDE et FAC.
 $0307       [fp_sub_hl]
-            %MS_BASIC(SUBPHL)
+            %MS_BASIC(SUBPHL),CODE
             Soustraction flottante : (HL) - FAC
 
             Entrées :
@@ -808,11 +806,7 @@ $0307       [fp_sub_hl]
             Sortie :
             - FAC contient le résultat.
 
-            La suite se décode comme :
-            - call     hl_to_bcde ; (cd e0 05)
-            - ld       hl,$d1c1   ; (21 c1 d1)
-            La deuxième instructon saute par dessus les deux `pop` pour arriver directement sur
-            l'inversion de signe de `fp_bcde_sub`.
+$030a       Saute par dessus les deux `pop` qui suivent.
 
 $030b       [fp_stck_sub]
             %CODE,MS_BASIC(PSUB)
@@ -1014,6 +1008,8 @@ $0430       [logtab2_3]
 $0430       0.3535534143447876
 $0434       [inst_log]
             %CODE
+            Fonction BASIC : `LOG()`
+
 $0434-$0436 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
 $0439       Appel le calcul du log.
 $043c-$043f BCDE = ln(2)
@@ -1021,9 +1017,8 @@ $0442       Multiplie le résultat par ln(2)
 $0444       [log]
 $0444       L'argument de l'instruction log est ramenée dans BCDE.
 $0447-$0449 Initialise l'exposant de FAC avec $80 (c'est-à-dire exposant 0)
-$044c       Opération sur l'exposant de FAC pour en retirer la valeur entière, qui sera utilisée plus loin.
-            Note : le bit 7 de l'exposant, inversé, se retrouvera dans le bit de signe du nombre monté dans FAC (???)
-$044d       Sauvegarde de AF
+$044c       Inverse le bit 7 de l'exposant du paramètre.
+$044d       Et sauvegarde le résultat sur la pile.
 $044e       Pousse FAC (l'argument du `log` avec son exposant à `$80`) sur la pile.
 $0451       Fait pointer HL vers la table de facteurs pour `log`.
 $0454       Calcule le polynome avec les facteurs de `logtab`.
@@ -1039,7 +1034,10 @@ $046c       Résultat de la division dans la pile.
 $046f       Placement du nombre dans A dans FAC (qui était la valeur de l'exposant)
 $0472-$0473 Récupération du résultat du calcul qui avait été mis sur la pile.
 $0474       Ajout avec FAC.
-$0477       Saute les deux `pop` suivant pour aller vers la multiplication.
+$0477       Un octet inutilisé.
+
+            Cet octet semble être un reliquat du BASIC utilisé.
+            Dans d'autres versions, la dernière multiplication de `LOG` est faite par enchaînement avec la routine suivante, et l'octet permet de sauter par dessus les deux `pop` qui suivent.
 
 $0478       [fp_stk_mul]
             %CODE
@@ -1173,7 +1171,7 @@ $0531       Restaure HL (qui était AF)
 $0532       Prépare les drapeaux pour l'arrondi.
 $0533       Branche vers l'arrondie.
 $0536       [div_2]
-$0536       Pour initialiser un flag ???
+$0536       Ramène le Carry, qui a servi au branchement conditionnel, à sa place.
 $0537-$0539 Décale E vers la gauche
 $053a-$053c Décale D vers la gauche (avec le bit sorti de E)
 $053d-$053f Décale C vers la gauche (avec le bit sorti de D)
@@ -1260,7 +1258,7 @@ $05a5       [a_to_fac]
 $05a5-$05a7 BCDE est préparé avec les valeurs $80,xx,$00,$00. A prendra la place de xx.
 $05aa       [bade_to_fac]
             Place BADE sous format de nombre flottant dans FAC.
-$05aa       Appelé depuis le traitement d'auto ($072e), A = 0, B = $98, DE = numéro de ligne ???
+$05aa       HL pointe sur FAC.
 $05ad       Place la partie manquante de BCDE.
 $05ae       Place l'exposant dans FAC.
 $05af       Initialise B comme VLSB, à 0, pour donner CDEB.
@@ -1401,8 +1399,7 @@ $0635       [fp_to_int]
             Entrées :
             - A contient l'exposant du nombre.
             - HL pointe sur FAC
-$0635-$0638 Initialise B, C, D et E avec l'exposant.
-$0639-$063a Si l'exposant est nul, retourne immédiatemet (avec BCDE à zéro par la méme occasion)
+$0635-$063a Si l'exposant est nul, retourne immédiatemet (avec BCDE à zéro par la méme occasion)
 $063b       Sauvegarde de HL qui pointe sur FAC
 $063c       BCDE prend la valeur de FAC.
 $063f       Sortie des signes des nombres et mise en place des 1 de mantisse explicite.
@@ -1432,12 +1429,12 @@ $0660       [inst_int]
 $0660       Faite pointer HL vers l'exposant de FAC.
 $0663       Charge l'exposant dans A.
 $0664       Comparaison avec l'exposant maximal intéressant pour une partie décimale ($80 + 24). Au delà, on est assuré que le nombre est un entier.
-$0666       Il semble que l'appel par la fonction 'exp' ait besoin du LSB de FAC ???
+$0666       L'appel à cette routine par `inst_exp` a besoin du LSB de FAC dans A.
 $0669       Si le nombre est déjà un entier, on retourne immédiatement.
 $066a       Prend à nouveau l'exposant.
 $066b       Transforme FAC en nombre entier dans CDE.
 $066e       Puisque le nombre entier est complètement à droite de la mantisse, l'exposant est à $98. Le nombre se fera normaliser par la suite.
-$0670-$0671 Mise sur la pile de l'octet le plus bas du nombre entier résultat (pour 'exp' probablement encore ???)
+$0670-$0671 Mise sur la pile de l'octet le plus bas du nombre entier résultat, pour `inst_exp`.
 $0672       Octet de poids fort de l'entier dans A.
 $0673       Récupération du signe dans Carry
 $0674       Normalisation du nombre.
@@ -1661,7 +1658,7 @@ $0769       [is_in_range]
 $0769       Arrivé ici, la partie entière de FAC est sur 6 chiffres.
             Le compteur sur la pile contient l'inverse la puissance de 10 qu'il a fallu appliquer.
             Ajoute 0.5 à FAC pour arrondire.
-$076c       Que contient A ???
+$076c       Incrémente l'exposant.
 $076d       Ramène FAC dans un entier dans BCDE
 $0770       Remonte BCDE dans FAC
 $0773       Initialise des bornes
@@ -1790,14 +1787,14 @@ $081d       [inst_sqr]
 
             Calcul la racine carrée de FAC.
 $081d       Met FAC sur la pile
-$0820-$0823 Mais 0.5 dans FAC. Ce qui prépare à l'exponentiation qui suit.
+$0820-$0823 Mets 0.5 dans FAC. Ce qui prépare à l'exponentiation qui suit.
 $0826       [fp_bcde_pow]
             %MS_BASIC(POWER)
             Calcul la puissance FAC du nombre flottant sur la pile.
 $0826-$0827 Récupère le nombre sur la pile dans BCDE.
 $0828       Prend le signe de FAC (ne s'intéresse qu'aux drapeaux, puisque A est écrasé juste après)
 $0829       A prend l'exposant de BCDE.
-$082a       Si la puissance est 0, branche vers l'instruction `EXP`. (??? pour donner 1)
+$082a       Si la puissance est 0, branche vers l'instruction `EXP`, ce qui donne 1 pour résultat.
 $082c       Branche si la puissance est positive.
 $082f-$0830 Erreur si on tente de prendre une puissance négative de 0.
 $0833       [pos_pow]
@@ -1818,21 +1815,20 @@ $084d       Dépile le signe de la base
 $084e-$084f Pousse la puissance sur la pile
 $0850       Prend la valeur entière de la puissance
 $0853-$0854 Récupère la puissance dans BCDE
-$0855       Sauve AF, A contient le MSB de la base (pourquoi ???)
+$0855       Sauve AF, A contient l'exposant entier.
 $0856       Compare la puissance et sa valeur entière
 $0859-$085a Récupère A sans toucher aux drapeaux
-$085b       Récupère un drapeau dans A (résultat de la comparaison ???)
+$085b       Exposant pair (0) ou impair (1) dans Carry.
 $085c       [pos_base]
-$085c-$0861 Montre le nombre dans la pile dans FAC
-$0864       En fonction de la comparaison, prend l'opposé dans FAC (??? perdu le fil...)
-$0867       En fonction de la comparaison, inverse le signe de FAC (??? perdu le fil...)
+$085c-$0861 Monte le nombre argument (sur la pile) dans FAC.
+$0864       Si l'exposant est impair et que la base était négative, le résultat final passera par une opposition de signe.
+$0867       Si la base est négative, prend son opposée.
 $086a-$086b Sauve la puissance dans la pile
 $086c       Prend le `log` de FAC (la base)
 $086f-$0870 Restaure la puissance
 $0871       Multiplie FAC et BCDE (log(base) * power)
             Le fait d'enchaîner sur `inst_exp` va donner exp(log(base) * power),
-            c'est-à-dire base * exp(power).
-            ??? Il faut reprendre quelles sont les calculs, car tel quel, il manque des choses.
+            c'est-à-dire `base ^ power`.
 $0874       [inst_exp]
             %CODE
             Fonction BASIC `EXP()`
@@ -1863,7 +1859,7 @@ $08a6       Met FAC sur la pile
 $08a9       [exp_big2]
 $08a9       Prend l'exposant
 $08ac       Test l'exposant
-$08ad       Si l'exposant est positive, alors c'est un overflow
+$08ad       Si l'exposant est positif, alors c'est un overflow
 $08b0-$08b1 Restaure la pile
 $08b2       Le résultat est 0
 $08b5       [over_redir]
@@ -1937,10 +1933,10 @@ $091a       Pointe vers la seed à nouveau
 $091d       Retour si l'argument est 0, on renvoit le dernier nombre généré (qui est dans le FAC)
 $091e       On ajoute la seed avec le contenu de A (qui est à 1 car le sign est positif)
 $091f       ... uniquement les 3 premiers bits (0 à 7)
-$0921       Pourquoi ???
+$0921       Prépare BC, offset de la table, avec B = 0
 $0923       On sauve la seed
 $0924       Avance dans la table des coefficients
-$0925-$0927 Offset dans la table des coefficients (seed * 4, B étant à zéro)
+$0925-$0927 Calcule BC est l'offset dans la table des coefficients (seed * 4, B étant à zéro)
 $0928       On pointe vers la table des coefficients
 $0929       Charge le coefficient en tant que FP dans BCDE
 $092c       Multiplication du nombre en FAC avec le coefficient
@@ -1998,41 +1994,35 @@ $0984       [inst_sin]
             Fonction BASIC `SIN()`
 
             Place le sinus de FAC dans FAC.
-$0987       Prends l'exposant de FAC.
-$0989       Le compare avec $77 ($80 - 9)
-$098a       Retourne avec FAC non touché si l'exposant est petit.
+$0984       Prends l'exposant de FAC.
+$0987       Le compare avec $77 ($80 - 9)
+$0989       Retourne avec FAC non touché si l'exposant est petit (inférieur à environ 0.0019)
             En effet, pour des petits nombres, x est une approximation de sin(x)
-$098d       Récupèration du MSB dans A.
+$098a-$098d Récupèration du MSB dans A.
 $098e       Branche plus loin si c'est un nombre positif
 $0991       Comme sin(-a) = -sin(a), on rend le paramètre positif.
-$0993       On remote le MSB dans FAC
+$0993       On remonte le MSB dans FAC
 $0996-$0999 En retour de fonction, `ret` branchera vers la routine qui prendra l'opposée de FAC.
 $099a       [sin_pos]
-$099a-$099d Presque pi/20... ???
-$09a0       ... multiplié au paramètre (l'angle)
-$09a3       Le résultat est sauvé sur la pile.
+$099a-$09a3 Multiplie l'angle paramètre par 1/(2*pi) (BCDE) et pousse le résultat sur la pile.
 $09a6       Et on prend la valeur entière de FAC.
 $09a9-$09aa On récupère le résultat de la multiplication dans BCDE
 $09ab       Afin d'en obtenir la partie décimale.
+            Ce qui donne un emplacement sur le cercle trigonométrique.
 $09ae-$09b1 BCDE = 0.25
-$09b4       Comparaison de 0.25 et le résultat dans FAC.
-$09b7       Si FAC est inférieur à 0.25, on branche plus loin.
-$09ba-$09bd BCDE = -0.25
-$09c0       Ajout de -0.25 à FAC
-$09c3-$09c6 BCDE = -0.5
-$09c9       Ajout de -0.5 à FAC. Pour un total de -.75
+$09b4-$09b7 Branche plus loin si le résultat est inférieur à 0.25, c'est-à-dire le premier quart du cercle trigonométrique.
+$09ba-$09c0 Ajoute BCDE = -0.25 à FAC.
+$09c3-$09c9 Ajoute BCDE = -0.5 à FAC. Cela donne une soustraction globale de l'emplacement de 0.75.
 $09cc       Récupère le signe de FAC
-$09cd       S'il est positif (le nombre entre 0 et 1 était donc supérieur à 0.75), inverse le signe.
-$09d0-$09d3 BCDE = 0.25
-$09d6       Ajout de 0.25 à FAC
-$09d9       Inverse le signe
+$09cd       S'il est positif, cela signifie que l'angle se situait dans le quatrième quart.
+            La fonction sinus étant symétrique verticalement sur le cercle, la valeur est ramenée pour désigner le troisième quart dans l'autre sens, en opposant le signe.
+$09d0-$09d6 Rotation du cercle d'un quatre de cercle, avec ajout de BCDE = 0.25.
+$09d9       Inverse le signe de la position sur le cercle.
 $09dc       [min_quarter]
-$09dc       Prend le MSB de FAC
-$09df       Le test
+$09dc-$09df Prend le MSB de FAC afin d'en déterminer le signe.
 $09e0       Et pousse le résultat dans la pile.
 $09e1       S'il est positif, branche plus loin
-$09e4       Sinon, inverse le signe.
-$09e6       Et remonte la nouvelle valeur dans FAC.
+$09e4-$09e6 Sinon, inverse le signe afin d'opposer le nombre dans FAC.
 $09e9       [sin_pos_2]
 $09e9       Pointe vers la table des coefficients pour le sinus.
 $09ec       Calcul du polynome.
@@ -2410,8 +2400,7 @@ $0ce8       [wait_34s]
 $0ce8       5 states
 $0ce9       [wait_29s]
 $0ce9       11 states (+ `call` 18 states)
-$0cea       [some_data]
-$0cea       ??? (en code, `dec b`, `reti`)
+$0cea       Trois octets inutilisés (en code, `dec b`, `reti`)
 
 $0ced       [inst_sete]
             %CODE
@@ -2569,7 +2558,7 @@ $0dfd       Sauvegarde la valeur de A, qui contient le paramètre mis par les di
 $0dfe       Mis à 1 les 3 bits de poids faibles, ce qui signifie que la couleur d'affichage est b111.
 $0e00       Place la valeur dans le registre `attcar`.
 $0e03       Récupère la valeur de A initiale et les drapeaux lors de l'appel de la routine.
-$0e04       Si Z était à 1, cela signifie qu'il n'y avait pas de paramètre (vérifier ???). Retour immédiat.
+$0e04       Si Z était à 1, cela signifie qu'il n'y avait pas de paramètre. Retour immédiat.
 $0e05       Récupère le premier paramètre dans A, entier 8 bits qui contient la couleur d'écriture sur 3 bits.
 $0e08       Sauve la valeur
 $0e09       N'en garde que les 3 bits de poids faible.
@@ -2660,7 +2649,7 @@ $0e74       Garde les 3 bits de poids faible du premier paramètre (couleur de f
 $0e76       Sauve le résultat dans L
 $0e77-$0e7a Décale la couleur de 4 vers la gauche, pour la positionner dans la couleur de fond graphique.
 $0e7b       Ajoute la couleur de fond texte.
-$0e7c       Le bit 7 de `attbak` doit être à 1. (??? pourquoi ?)
+$0e7c       Le bit 7 de `attbak` doit être à 1 pour le format code court/40 colonnes du VDP.
 $0e7e       [init_end]
 $0e7e       Efface l'écran avec la nouvelle couleur de fond.
 $0e81       Restaure le pointer de texte BASIC.
@@ -2855,8 +2844,8 @@ $0f2e       Prépare la valeur de retour.
 $0f30       Restreint le paramètre d'entrée entre 0 et 3.
 $0f32       Branche pour le cas 0.
 $0f34-$0f35 Branche pour le cas 1.
-$0f37-$0f39 Vérification de l'appuie de la touche ESPACE
-$0f3b       Branche vers la partie finale commune.
+$0f38-$0f3a Vérification de l'appuie de la touche ESPACE
+$0f3c       Branche vers la partie finale commune.
 
 $0f3d       [stka_joy0]
             Dans cette version ROM 1.0, ne prend en compte qu'un seul bouton.
@@ -3045,11 +3034,8 @@ $1014       DE pointe sur l'octet suivant
 $1015       Branche si le deux octets comparés étaient différent.
 $1017       Sinon, on boucle selon le compteur BC.
 
-$101a       L'instruction partielle suivante ne sert à rien d'autre qu'à gagner un peu
-            d'espace lorsque BC == 0 et que la boucle est terminée.
-            Le contenu de A est écrasé un peu plus loin.
+$101a       HL a bouclé vers $0000. Saute par dessus le `dec hl` qui suit.
 $101a       %DATASKIP
-$101a       Cet octet semble inutilisé. ???
 
 $101b       [mem_differs]
             Après avoir initialisé le pointeur de pile, la seconde
@@ -3087,15 +3073,17 @@ $1042-$1048 Étrangement, le hook de l'interruption non masquable, lors du boot,
 
 $104b       IX prend la valeur $47FA qui est la base de la zone de données graphiques.
 
-            Attention, la valeur de IX doit rester constante. Le système considère que IX
-            est en tout temps égal à $47FA et référence certaines variables par index par rapport à IX.
+            Attention, la valeur de IX doit rester constante. Le système
+            considère que IX est en tout temps égal à $47FA et référence
+            certaines variables par index par rapport à IX.
 
-            Si IX doit changer, il faut veiller à désactiver l'IRQ (ou faire en sorte d'en sortir juste
-            après le hook `inthk`) et ne rien appeler qui concerne l'affichage sans avoir restauré IX.
+            Si IX doit changer, il faut veiller à désactiver l'IRQ (ou faire en
+            sorte d'en sortir juste après le hook `inthk`) et ne rien appeler
+            qui concerne l'affichage sans avoir restauré IX.
             
-            Cette troisième phase initialise le processeur graphique EF9345. Pour commencer,
-            une séquence est envoyée au périphérique, puis quelques variables en RAM sont
-            initialisées.
+            Cette troisième phase initialise le processeur graphique EF9345.
+            Pour commencer, une séquence est envoyée au périphérique, puis
+            quelques variables en RAM sont initialisées.
             
             La séquence, envoyée par `regst`, est détaillée au label correspondant.
 
@@ -3107,8 +3095,11 @@ $105d       Initialisation du registre `fklock` : utilisation des majuscules à 
 $1061       Passage du Z80 en Mode 1.
 
 $1063       Réactivation de l'IRQ.
-$1064-$1067 Numéro de départ d'un listing avec la touche HOME (???)
-$106a       Initialisation du registre `cursor` (couleur du pourtout et aspect du curseur ???)
+$1064-$1067 Numéro de départ d'un listing à l'écran.
+$106a       Initialisation du registre `cursor` (registre MAT du VDP)
+            Couleur de marge (activée) Cyan.
+            Curseur affiché plein clignotant.
+            Simple hauteur.
 $106e       Réinitialisation des paramètres de l'écran
 $1071-$107a Recopie une série de valeurs en RAM pour initialiser des registres à partir de `ramlow`.
 
@@ -3117,16 +3108,18 @@ $1071-$107a Recopie une série de valeurs en RAM pour initialiser des registres 
 
             Le dernier registre initialisé est `octsav`.
 
-$107c-$107f Envoi 0 sur le port $EF, censé être non utilisé (à vérifier ???) et sur $AF, pour la son/k7.
+$107c-$107f Envoi 0 sur le port $ef (non utilisé) et sur $AF, pour la son/k7.
+            Le port $ef est censé être non utilisé. Cela active la branche \Y7 du décodeur 7807, qui n'est pas branchée.
 $1081-$1084 Modification de l'adresse du hook "nmihk" pour brancher vers `test_reset` qui traite le redémarrage utilisateur (Ctrl+Delta)
 $1087       Initialise les registres BASIC et l'imprimante.
 $108a       Retour à la ligne.
 $108d       Marque la fin du buffer de travail du BASIC.
-$1090       Initialise le début de la RAM (??? juste avant txttab initial ???)
+$1090       Place le 0 obligatoire un octet avant `(txttab)`.
 
 $1093       Calcul des bornes de pile, memsize et place disponible
 $1096       HL pointe deux octets avant SP.
-$1097-$109b Branche vers une erreur de mémoire si HL est inférieur à $03e8 (comment serait-ce possible ???)
+$1097-$109b Branche vers une erreur de mémoire si HL est inférieur à $03e8.
+            Cela signifierait que `SP` était à `$03ea`. Ce qui semble très bas pour un démarrage...
 $109e       DE = -50
 $10a1       `memsiz` prend la valeur de HL (deux octets avec `(stktop)`)
 $10a4       Soustrait 50 de HL
@@ -3184,10 +3177,13 @@ $1122       [warm_boot]
 $1122       Le haut de la pile pointe vers la fin du buffer de travail BASIC.
 $1125-$1126 Sortie son à 0.
 $1128       L'entrée des programmes se fait par le clavier (et non par la cassette)
-$112b-$112c Mise à 1 du port $10 ???
+$112b-$112c Remise à l'état haut du signal imprimante.
 $112e       Activation de l'IRQ
-$112f-$1132 La première ligne avec la touche HOME (???) est 1.
-$1135       Initialisation du registre `cursor` (expliquer la valeur ???)
+$112f-$1132 La première ligne du listing à l'écran est 1.
+$1135       Initialisation du registre `cursor` (registre MAT du VDP)
+            Couleur de marge (activée) Cyan.
+            Curseur affiché plein clignotant.
+            Simple hauteur.
 $1139       Initialisation de l'écran
 $113c       Initialisation des registres (dont la pile)
 $113f       [after_check]
@@ -3201,7 +3197,7 @@ $116d       [start_music]
 $1179       [init_ef_seq]
             Séquence d'intialisation de l'EF9345 au démarrage.
 
-            VDP - $28/$81 -> TGS prend la valeur de R1
+            VDP - $28/$81 -> TGS prend la valeur de R1 (pourquoi executer cette commande alors qu'elle est à nouveau exécutée juste après ?)
             VDP - $29/$00 -> TGS = R1 = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
             VDP - $20/$82,$29/$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur(
             VDP - $20/$83,$29/$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, insert mode : Active Area, Flash ON, Format court pour le 40 colonnes)
@@ -3209,7 +3205,9 @@ $1179       [init_ef_seq]
             VDP - $20/$87,$29/$08 -> ROR = $08 (Z=0, Y=8)
             VDP - $26/$08 -> R6=$08
             VDP - $27/$00 -> R7=$00
-            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (R1 = $08, R2 = ???)
+            VDP - $28/$02 -> KRG sans incrémentation avec MP=$0800 (R1 = $08, R2 = $00 d'initialisation)
+$1179       Taille de la séquence
+$117a       [init_data]
 
 $1194       [i_ramlow]
             %CODE
@@ -3402,7 +3400,7 @@ $19cc-$19cf Affiche "Mauvais fichier"
 $19d2       [load_nerr]
 $19d2-$19d5 Affiche le message "Pause..."
 $19d8-$19d9 Annule la commande AUTO
-$19dc-$19dd Met $ff dans `getflg` indiquant que l'entrée se fait par k7 (a tracer ???)
+$19dc-$19dd Met $ff dans (`getflg`) pour indiquer que l'entrée de la boucle BASIC se fera depuis le buffer rempli par LOAD.
 $19e0       Revient à l'interpréteur BASIC.
 
 $19e3       [pause_msg]
@@ -3445,7 +3443,7 @@ $1a37       Restaure HL le pointeur vers le buffer de texte BASIC.
 $1a39       [inst_cload]
             %CODE
 $1a39       Compare le caractère paramètre avec le token pour '*'
-$1a3b       Sauve le caractère paramètre potention dans la version du descripteur de fichier.
+$1a3b       Sauve le caractère paramètre potentiel dans la version du descripteur de fichier.
 $1a3e       Branche si le caractère n'était pas '*'
 $1a40       Si c'était '*', alors avance d'un caractère dans le buffer de texte BASIC.
 $1a41       [not_star]
@@ -3462,8 +3460,8 @@ $1a4e       Efface A
 $1a50       [cload_vrfy]
 $1a50       Complémente A, ce qui donne $FF, car A est à 0 depuis la soustraction qui a causé le branchement ici.
 $1a51       Avance d'un octet dans le buffer de texte BASIC.
-$1a52       Ce qui donne A = $FF et Carry à 1 pour `CLOAD?`, A = $00 et Carry à 0 dans les autres cas. (??? non... à vérifier)
-$1a54       On pousse sur la pile A ainsi que les drapeaux de la comparaison avec $01 ???
+$1a52       Ce qui donne A = $FF et Carry à 0 pour `CLOAD?`, A = $00 et Carry à 1 dans les autres cas.
+$1a54       On pousse sur la pile A ainsi que les drapeaux de la comparaison avec $01.
 $1a55-$1a5a Efface les erreurs systèmes k7 de la variable `cascom`
 $1a5d       Copie le paramètre potentiel nom de fichier dans le descripteur de fichier.
 $1a60       Lit le potentiel second paramètre.
@@ -3486,7 +3484,7 @@ $1a91       Lance une nouvelle calibration
 $1a94       Branche en cas d'erreur ou d'interruption de commande.
 
 $1a96       [sync_silenc]
-$1a96       Cherche 10 octets à 0 ???
+$1a96       Cherche 10 octets à 0 entre les deux enregistrements.
 
 $1a98       [read_zero]
 $1a98       Lit un octet depuis la k7
@@ -3523,14 +3521,15 @@ $1adc       Arrête le moteur k7.
 $1adf       Pointe HL vers la variable du contrôle et erreurs de k7.
 $1ae2       Branche en cas d'erreur de lecture ou d'interruption de commande.
 $1ae4       Branche en cas de mémoire pleine.
-$1ae6-$1ae7 Place les drapeaux en fonction du contenu de C (qui contient quoi ???)
+$1ae6-$1ae7 C est $00 pour un chargement et $ff pour une vérification (CLOAD?)
 $1ae8       Charge le contenu de `cascom` dans A
-$1ae9       Branche si C était égal à zéro.
-$1aeb-$1aed Branche si `cascom` a signalé une erreur.
+$1ae9       En cas de chargement, finalise l'opération.
+$1aeb-$1aed Sinon, en vérification, branche si `cascom` a signalé une erreur.
 
 $1aef       [ok_clear]
-            Affiche le message d'invite "Ok!" et réinitialise le chaînage (???) et les variables.
+            Affiche le message d'invite "Ok!" et réinitalise les variables internes du BASIC.
 $1aef-$1af2 Affiche la chaîne "Ok!"
+$1af5       Branche pour réinitaliser les variables et boucler sur le moniteur.
 
 $1af8       [mem_out_k7]
             Indique une erreur de fichier trop grand dans `cascom` et affiche une erreur de dépassement de mémoire.
@@ -3557,8 +3556,8 @@ $1b2a       [bad_file]
             Sortie :
             - HL pointe sur le texte dans la bonne langue.
 
-$1b36       [load_adjust]
-            ???
+$1b36       [load_contnt]
+            Finalise le chargement.
 
 $1b36-$1b38 Branche si l'utilisateur a activé le mode `return if error`.
 $1b3a-$1b3c Branche s'il y a une erreur système.
@@ -3574,15 +3573,17 @@ $1b4a-$1b4c Branche s'il y a une erreur signalée.
 $1b4e       Construit le chaînage du listing BASIC chargé.
 $1b51       À la fin du chaînage, HL pointe à la fin du listing, qui devient donc l'adresse pour les variables, mis dans `(vartab)`.
 
-$1b54       [mem_adjust]
-            ???
-$1b54       État de l'exécution BASIC
-$1b57-$1b58 Branche si `(allflg)` est différent de 0, ce qui signifie que le moniteur BASIC ne doit pas tourner (??? pas sur, ça a l'air de servir comme variable temporaire pendant le chargement)
+$1b54       [load_in_mem]
+            Finalise le chargement de fichier binaire (type M).
+            Les données sont déjà en mémoire.
+
+$1b54-$1b58 Branche si le moniteur BASIC est désactivé (à cause de l'octet de protection)
 $1b5a       Pointe vers le buffer de travail.
-$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul (mais que contient-il ?)
+$1b5d-$1b5f Branche si le premier octet du buffer de travail est nul.
+            Le buffer contient le numéro de ligne sur lequel démarrer le programme BASIC après le chargement. Ou nul.
 $1b61       %CHAR
 $1b61-$1b63 Branche si le premier octet du buffer de travail est `0`.
-$1b65       Branche dans les autres cas (??? lesquels).
+$1b65       Il y a un numéro de ligne spécifié. Place le pointeur vers le texte BASIC dessus et branche indirectement vers l'instruction `RUN`.
 
 $1b67       [run_or_end]
 $1b67       Lecture du descripteur de fichier en décalé, donc numéro de ligne de départ (en ASCII)
@@ -3590,7 +3591,7 @@ $1b6a-$1b6c Branche si le premier octet n'est pas nul, il y a un numéro de lign
 
 $1b6e       [end_rd_file]
 $1b71       %CHAR
-$1b6e-$1b73 Branche si le type de fichier lu est `M` (placement de HL de `(contxt)` et retour).
+$1b6e-$1b73 Si le type de fichier lu est `M`, branche vers la restauration du pointeur vers le texte BASIC et termine la routine.
 $1b75       Branche vers le moniteur BASIC.
 
 $1b78       [run_k7_at]
@@ -3606,12 +3607,11 @@ $1b7b       [cp_line_nb]
 $1b7b-$1b7f Copie des 5 octets du descripteur de fichier vers le buffer pointé par HL (un buffer temporaire)
 $1b81       Restaure HL.
 $1b82       [k7_run]
-$1b82       Décrémente A pour quelles valeurs ???
+$1b82       Pour quelle raison décrémenter A ?
 $1b83       Branche sur l'instruction RUN.
 
 $1b86       [hl_contxt]
-$1b86       HL contient l'adresse dans `(contxt)`, (probablement la variable ou le tableau lu ???)
-
+$1b86       Restaure le pointeur vers le texte BASIC.
 
 $1b8a       [get_bauds]
             Récupère le paramètre optionnel de vitesse sur les opérations K7, et place le flag correspondant dans `cascom`.
@@ -3756,7 +3756,7 @@ $1c3d       Cherche la ligne suivante.
 $1c3f       [k7_advance]
 $1c3f       Incrémente HL, pointeur vers le texte BASIC.
 $1c40       Initialise le compteur B à 3.
-$1c42       C'est un patch de la ROM 1.0, branche plus loin (??? vérifier)
+$1c42       Branche sur la suite de la routine.
 
 $1c45       [init_ft]
             Initialise le descripteur de fichier
@@ -3765,7 +3765,7 @@ $1c45       [init_ft]
             - numéro de version
             - numéro de ligne de départ
             - octet de protection
-            - position de checksum (??? vérifier comment est utilisée cette information)
+            - position de checksum
 
             Les champs initialisés sont :
             - octet de protection avec la valeur de `(allflg)`
@@ -3891,7 +3891,7 @@ $1ce8       Et avance le pointeur
 $1ce9       Boucle selon le compteur B, 5 chiffres maximum.
 
 $1ceb       [prm_end]
-$1ceb       Sauve HL, qui pointe sur le buffer de texte BASIC, dans `(contxt)` ???
+$1ceb       Sauve HL, qui pointe sur le buffer de texte BASIC, dans `(contxt)`. Sera récupéré en fin de routine au besoin.
 $1cee-$1cef Met dans la version du descripteur de fichier -1 s'il y a un paramètre alphanumérique, 1 s'il y a un paramètre tableau et 0 sinon.
 
 $1cf3       [r_varname]
@@ -3941,7 +3941,7 @@ $1d2d       `CLOAD`, le chargement se fera vers `(txttab)`, c'est-à-dire à la 
 $1d31       [bin_format]
             %CHAR
 $1d31-$1d33 Branche si le type n'est pas `M`
-$1d35       Format de 'CSAVEM`, binaire, le chargement se fera vers l'adresse dans `(high)` (??? comment est-elle arrivée là ?)
+$1d35       Format de 'CSAVEM`, binaire, le chargement se fera vers l'adresse dans `(high)` qui est l'emplacement décalé de l'adresse cible pour le descripteur de fichier.
 
 $1d39       [scr_format]
             %CHAR
@@ -3984,7 +3984,7 @@ $1d79       [fetch_dim]
             - HL pointe vers le texte BASIC
 
             Sorties :
-            - DE pointe sur la zone mémoire contenant le descripteur du tableau (???)
+            - BC pointe sur la zone mémoire contenant le descripteur du tableau
             - HL pointe vers le texte BASIC avec le descripteur de tableau
 
 $1d79-$1d7b Mise à 1 de `subflg` pour demander la recherche d'un tableau
@@ -4012,8 +4012,6 @@ $1d97       [sd_char_k7]
             Envoie vers le buffer d'écriture de la k7 un octet ASCII sur 7 bits.
             Utilisé par `SAVE` à travers `outdo` ainsi qu'en direct pour envoyer l'octet de terminaison.
 
-            ??? À vérifier, cela copie des morceaux de (txttab) ???
-
             Entrée :
             - A contient le caractère à écrire. Seuls les 7 bits de poids faible sont pris en compte.
             - (ft_addr) contient l'adresse de destination pour le caractère.
@@ -4028,26 +4026,29 @@ $1da3-$1da4 Sélectionne l'écran comme périphérique de sortie.
 $1da7       Vérifie la mémoire restante entre HL et la pile.
 $1daa-$1dac Sélectionne la k7 comme périphérique de sortie.
 $1daf       Sauve DE
-$1db0       Récupère l'adresse de la ligne exécutée en BASIC dans DE.
-$1db4-$1db6 Branche si la ligne actuellement exécutée en BASIC est 0 (donc, mode direct).
+$1db0       Récupère l'adresse de la prochaine ligne à exécuter dans DE.
+            Cette variable est positionnée lorsque le pointeur de texte BASIC est positionné au début d'une ligne.
+            Elle contient alors un pointeur vers la ligne suivante.
+$1db4-$1db6 Branche si la ligne actuellement exécutée en BASIC est 0. Ce qui signifie que l'on n'est pas au début d'une ligne.
+            Dans le cas contraire, le code qui suit va décaler le contenu du listing pour s'assurer d'avoir de la place.
+            C'est pour cela que le listing est détruit lors de la sauvegarde.
 $1db8       Efface les drapeaux pour la soustraction qui suit.
-$1db9       HL contient la différence de mémoire entre la ligne exécutée et le buffer de travail pour la sauvegarde.
+$1db9       HL contient la différence de mémoire entre les prochaines données de ligne à sauver et le buffer de travail pour la sauvegarde.
 $1dbb       Sauve cette valeur sur la pile.
-$1dbc-$1dbf Place l'adresse de la ligne exécutée en BASIC comme étant la première du listing BASIC.
-$1dc2       Place HL (début de listing) dans DE, HL prend la valeur de la ligne exécutée du BASIC.
+$1dbc-$1dbf Réinitialise `(retadr)` avec la valeur de `(txttab)`, début du listing.
+$1dc2       Place HL (début de listing) dans DE, HL pointe vers les prochaines données à sauver.
 $1dc3       Récupère la différence calculée dans BC.
-$1dc4       Copie un bloc d'octets de (HL) vers (DE) de taille BC.
-$1dc6       Sauve DE, l'adresse de destination.
-$1dc7       Différence entre les adresses de destination et de source.
-$1dc9       Sauve cette différence dans DE.
-$1dca       Récupère l'adresse de la zone des variables dans HL (??? qu'est-ce que ça signifie exactement ?)
-$1dcd       Soustrait la différence précédente de l'adresse de la zone des variables.
-$1dcf       Et déclare cette adresse comme la nouvelle zone des variables.
-$1dd2       Récupère dans HL l'adresse de destination.
+$1dc4       Déplace les données restantes du listing vers `(txttab)`.
+$1dc6       Sauve DE, qui pointe après les données qui ont été deplacées.
+$1dc7       Différence entre la fin du buffer de travaill et la fin des données copiées.
+$1dc9       Sauve cette taille dans DE.
+$1dca-$1dcf Déplace l'adresse de début des variables de cette taille vers le début de la mémoire.
+            C'est le nouvel emplacement pour `(vartab)`, puisqu'un morceau du listing a été effacé.
+$1dd2       Récupère dans HL l'adresse de destination après la copie.
 $1dd3       [sd_direct]
 $1dd3       Restaure le DE initial.
 $1dd4       [sd_char_end]
-$1dd4       Sauve HL dans `(ft_addr)`, pointeur vers le prochain caractère à traiter.
+$1dd4       Sauve HL dans `(ft_addr)`, pointeur vers la prochaine position du buffer de traitement.
 $1dd7       Se replace sur le dernier caractère ayant été traité.
 $1dd8-$1ddd Met à jour la somme de controle par XOR successifs des octets écrits.
 $1dde       Restaure HL.
@@ -4063,7 +4064,7 @@ $1de5       Met (vartab) dans DE
 $1de9       Met A à 0, mais surtout passe le Carry à 0.
 $1dea       Différence entre HL, pointeur vers la fin du buffer de travail, et DE, le début.
 $1dec       Ce qui donne la taille du buffer, que l'on pousse sur la pile.
-$1ded       A = $FF pour le paramètre de l'appel suivant.
+$1ded       A = $ff pour le paramètre de l'appel suivant.
 $1dee       Démarre la k7 et envoie l'entête de synchronisation.
 $1df1       Récupère la taille du buffer.
 $1df2       Retour en cas d'erreur.
@@ -4091,19 +4092,20 @@ $1e11       Dernier octet lu sur 7 bits. Lors de l'écriture, le format ASCII me
 $1e13       Placé dans la zone pointée par HL
 $1e14-$1e16 Branche si la valeur est 3, marqueur de fin du listing ($83 sur la k7)
 $1e18-$1e1d Change la couleur de la marge.
-$1e20       Envoi le changement de couleur au VDP (??? juste comme ça ? D'où vient la commande ?)
+$1e20       Envoi le changement de couleur au VDP. La commande actuelle est $82, placée par `margin_col`.
 $1e22-$1e25 Branche s'il n'y a plus de mémoire (Carry est à 0)
 $1e27       Sinon pointe un octet plus loin
 $1e28       Lit un octet
 $1e2b       Retour si interruption ou erreur.
 $1e2c       Sauvegarde AF, A contient l'octet lu.
-$1e2d-$1e2f Branche si ce n'était pas $8d
-$1e31-$1e32 Sauvegarde HL (pointeur du buffer) et DE (début de la ligne) sur la pile
+$1e2d-$1e2f Branche si ce n'était pas $8d, afin de continuer à acquérir les caractères et calculer la sommme de contrôle.
+$1e31-$1e32 Sinon, une ligne entière vient d'être lue.
+            Sauvegarde HL (pointeur du buffer) et DE (début de la ligne) sur la pile
 $1e33       Ramène DE, qui pointe vers le début de ligne, dans HL.
 $1e34       Décodage d'un numéro de ligne.
 $1e37-$1e38 Le résultat, dans DE, est mis dans BC
-$1e39       Rétablie la valeure lue de A.
-$1e3b       Restaure DE, quite pointe un octet avec le nouveau début de ligne.
+$1e39       Rétablie la valeure lue de A afin de calculer la sommme de contrôle.
+$1e3b       Restaure DE, qui pointe un sur le début de la ligne qui vient d'être acquise.
 $1e3c       [xor_sumchk]
 $1e3c-$1e40 Ou exclusif de A avec le caractère pointé dans le buffer pour calculer le sumcheck.
 $1e41       Restaure HL
@@ -4111,14 +4113,14 @@ $1e42       Restaure AF
 $1e43       Boucle vers la prochaine partie à lire.
 $1e45       [vrfy_lines]
 $1e45-$1e47 Branche si BC, le numéro de la ligne courante, est 0
-$1e49       Préserve HL
+$1e49       Préserve HL, qui pointe sur la fin de la ligne acquise.
 $1e4a       A à 0
-$1e4b       Charge le dernier numéro de ligne de l'interval.
+$1e4b       Charge le dernier numéro de ligne de l'intervalle.
 $1e4e-$1e50 Branche si la ligne est supérieure à la dernière ligne.
 $1e52       Charge le premier numéro de ligne de l'interval.
 $1e55-$1e59 Branche si le numéro de ligne courant est supérieur au premier numéro de l'interval.
 $1e5b       [ignore_line]
-$1e5b       Tout ce calcul est pour le moment mysterieux ???
+$1e5b       Restaure le pointeur vers la fin de la ligne acquise.
 $1e5c       [commit_line]
 $1e5c-$1e5d Suivant le chemin d'arrivée, la ligne précédente est avancée au pointeur du buffer (la ligne est donc gardée) ou bien le pointeur actuel et remis en début de ligne (la ligne est donc ignorée, car elle sera écrasée).
 $1e5e       BC, le numéro de ligne courant, à 0
@@ -4140,16 +4142,16 @@ $1e6f       Interruption ou erreur, retour.
 $1e70       [check_sum]
 $1e70       Lecture d'un octet
 $1e73       Retour si interruption ou erreur
-$1e74       Préserve HL
-$1e75-$1e78 Soustrait le caractère lu de celui dans `low`
+$1e74       Fin des données. Préserve HL, qui pointe vers le buffer d'acquisition.
+$1e75-$1e78 Soustrait le caractère lu de celui dans `low` qui contient la sommme de contrôle.
 $1e79       Signal une erreur de somme de contrôle si le résultat n'est pas 0.
-$1e7c       Restaure HL
+$1e7c       Restaure HL, pointeur vers le buffer d'acquisition.
 $1e7d-$1e80 Branche s'il n'y a plus de mémoire
-$1e82       A à 0 et donc Z est levé.
+$1e82       A à 0 et donc Z est à 1.
 
 $1e84       [chk_no_mem]
 $1e84       Echange DE et HL
-$1e85-$1e87 Place $03 dans le caractère pointé par HL (qui est ???)
+$1e85-$1e87 Place $03 dans le caractère pointé par HL, le buffer d'aquisition, afin de forcer un marqueur de fin de données en cas de manque de mémoire.
 
 $1e89       [fetch_next]
             Récupère un octet lu avec `LOAD` depuis l'adresse stockée en `(high)`.
@@ -4250,19 +4252,17 @@ $1f25       Boucle 10 fois.
 $1f28       [read_contnt]
             Charge les données du fichier sur la K7 vers la zone mémoire pointée par HL.
 
-            (ou vérifie ???)
-
             Entrée :
             - HL contient l'adresse mémoire où charger les données chargées.
             - A est à 0 si on effectue un chargement, et à $FF si on effectue une vérification de fichier.
 
 $1f28       Sauve HL, l'adresse de destination.
-$1f29       Sauve AF, le paramètre de vérification. ???
+$1f29       Sauve AF, le paramètre chargement/vérification.
 $1f2a       Calibre la lecture.
 $1f2d       Retour (avec nettoyage de la pile) en cas d'erreur ou d'interruption de commande.
 $1f30       Charge l'indicateur de protection dans le descripteur de fichier lu (qui est toujours décalé)
-$1f33-$1f37 Ajuste la possibilité d'exécuter le moniteur BASIC (si `allflg` est à 1, on ne reviendra pas sur l'invite de commande du BASIC)
-$1f38-$1f39 Récupère le paramètre de vérification (???) et l'adresse de destination.
+$1f33-$1f37 L'octet de protection du jeu contrôle la possibilité pour le moniteur BASIC de s'exécuter.
+$1f38-$1f39 Récupère le paramètre de chargement/vérification  et l'adresse de destination.
 $1f3a       Copie A, le masque de comparaison ou lecture, dans D
 $1f3b       [read_ct]
 $1f3b       Initialise la lecture de 10 octets d'entete.
@@ -4298,6 +4298,7 @@ $1f83       Pointe vers l'octet suivant.
 $1f84       Décrémente le nombre d'octets à charger.
 $1f85-$1f87 Boucle s'il reste des octets à charger.
 $1f89       Récupère dans C le sélecteur de chargement ou vérification.
+            $ff pour une vérification, $00 pour un chargement.
 $1f8a       Sauve HL
 $1f8b       Charge la somme de contrôle calculée dans HL.
 $1f8e       Charge dans DE la somme de contrôle lue depuis la k7.
@@ -4317,7 +4318,7 @@ $1f9c       [check_mem_2]
             - Carry est à 1 s'il reste de la place
 
 $1f9c       Préserve HL
-$1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). Mais si on n'a pas 64ko de RAM ???
+$1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). C'est un premier test avec la mémoire maximale adressable, qu'elle soit présente ou non. 
 $1fa5       Branche s'il y a eu retenue, et donc que HL est supérieur à la limie.
 $1fa7       On obtient l'adresse de la pile plus la différence entre HL et le haut de la mémoire, afin de placer Carry.
 $1fa8       Restaure HL
@@ -4512,15 +4513,13 @@ $22ab       Affiche le caractère espace puis continue dans la boucle BASIC.
 $22ad       [out_loop]
 $22ad       Affiche le caractère qui est dans A puis continue dans la boucle BASIC. Le caractère est soit $20 soit $a0.
 
-$22ae       [stoploop]
+$22ae       [main_loop]
             Boucle de traitement du BASIC
 $22ae       Acquisition d'une ligne de commande BASIC.
 $22b1       Lorsque l'acquisition sort avec Carry à 1, une annulation a été demandée. On boucle alors sur l'acquisition d'une nouvelle ligne.
 
 $22b3       Lorsqu'on arrive ici, la touche Entrée a été appuyée, la ligne est donc validée.
-            HL pointe sur l'adresse précédente le buffer qui a été rempli par l'acqusition des touches, et qui se termine par un $00.
-
-            Pour une entrée normale, le buffer est `(buf)`, existe-t-il un autre cas ? (avec `LOAD` ???)
+            HL pointe sur l'adresse précédente le buffer qui a été rempli (`buf`) par l'acqusition des touches ou par `LOAD`, et qui se termine par un $00.
 $22b4-$22b5 Afin de tester si A est égal à zéro sans toucher au Carry, utilise une paire `INC`/`DEC` qui touche à Z mais pas à Carry.
 $22b6       Le premier caractère entrée était $00, ce qui signifie que la ligne est vide, on boucle sur la moniteur.
 $22b8       Sauve le drapeau Carry.
@@ -4546,8 +4545,8 @@ $22d9-$22da Préparation et sauvegarde du test de caractère nul.
 $22db       Recherche du numéro de ligne (depuis DE)
 $22de       Branche si le numéro de ligne a été trouvé.
 $22e0-$22e1 Sinon, récupère le résultat du test de caractère nul précédent ainsi que le caractère lu, en gardant la valeur sur la pile.
-$22e2       Retourne au moniteur si le buffer était vide (mais pourquoi avoir testé le numéro de ligne entre temps ???)
-$22e5       Pourquoi refaire un "or a,a" ici ??? Il y a besoin que Carry soit à 0, mais il devrait l'être à cause de $22d9
+$22e2       Retourne au moniteur si le buffer était vide.
+$22e5       Passe le Carry à 0, pour indiquer que la ligne n'a pas été trouvée.
 
 $22e6       [prev_found]
 $22e6       BC contient l'adresse de la ligne trouvée si elle l'a été, ou de la ligne suivante sinon.
@@ -4627,7 +4626,7 @@ $2347       [line_search]
             Sorties :
             - `(prelin)` contient le pointeur vers la ligne précédente à celle recherchée ou 0 s'il n'existe pas de ligne précédente.
             - Carry à 1 si la ligne a été trouvée, 0 dans le cas contraire.
-            - Z à 0 si la fin du listing est atteinte ???
+            - Z à 0 si la fin du listing a été atteinte sans trouver le numéro de ligne cherché.
             - BC pointe vers les données de la ligne cherchée. Sur les données de la ligne qui a dépassé sinon.
             - HL pointe vers les données de la ligne suivante si la ligne est trouvée. Contient le numéro de ligne qui a dépassé sinon.
             - DE contient toujours le numéro de la ligne BASIC à chercher.
@@ -4672,7 +4671,7 @@ $236b       [tokenize]
             - A est égal à 0
             
 $236b-$236c Mise à 0 de `(dores)` pour signaler la tokenisation. À 1, le drapeau indique un mode « direct » (ou littéral).
-$236f       Taille initial du buffer de sortie (pourquoi 5 ???)
+$236f       Taille initial du buffer de sortie. Commence à 5 pour prévoir les 2 octets de numéro de ligne, 2 octets de chaînage, et le 0 final.
 $2371       DE pointe sur le buffer de tokenisation
 $2374       [analyze]
 $2374       Récupération dans A du caractère à traiter
@@ -4746,7 +4745,7 @@ $23ed       [kw_found]
 $23ed       Sauvegarde dans C du numéro de token.
 $23ee       L'adresse du début de mot sur la pile est nettoyée.
 $23ef       L'adresse de retour en cas d'échec de recherche est dépilée.
-$23f0       A prends le numéro de token (pourquoi ne pas avoir fait directement LD A,B à ce niveau ???)
+$23f0       A prends le numéro de token (pourquoi ne pas avoir fait directement `ld a, b` ici?)
 $23f1-$23f3 Branche si le token est $88 (`GOTO`)
 $23f5-$23f7 Branche si le token est $8c (`GOSUB`)
 $23f9-$23fb Branche si le token est $8b (`RESTORE`)
@@ -4754,12 +4753,12 @@ $23fd-$23ff Branche si le token n'est pas $b6 (`THEN`)
 $2401       [test_number]
             Vérifie s'il y a un paramètre nombre derrière l'instruction
 $2401       Sauve HL, pointeur vers le buffer d'entrée.
-$2402       Lit le caractère dans le buffer d'entrée.
+$2402       Lit le prochain caractère intéressant depuis le buffer d'entrée.
 $2403       Restaure à nouveau HL, qui pointe au début de la partie à vérifier.
 $2404       Si Carry est à 0, le caractère n'était pas un nombre, il n'y a pas donc pas de paramètre numérique.
-$2406       Sauvegarde de HL, pointer vers le buffer d'entrée, dans DE.
+$2406       Sauvegarde de HL, pointeur vers le buffer d'entrée, dans DE.
 $2407       Récupération dans Y du compteur C initialement mis à 5.
-$2409       Récupération dans HL du pointeur vers le buffer en entrée.
+$2409       Récupération dans HL du pointeur vers le buffer de travail.
 
 $240a       [dec_number]
 $240a       Le token est placé dans le buffer de travail lors de la première arrivé. Ensuite, c'est la virgule de séparation préparée plus loin qui sera copiée.
@@ -4783,7 +4782,9 @@ $2423-$2426 Récupération dans C de la seconde partie du numéro de ligne
 $2427-$242b La taille du buffer de travail est augmentée de 3 (pour le token, le marqueur et la première partie du nombre)
 $242d       [miss_line]
 $242d       Comparaison de DE, buffer d'entrée, et de HL, buffer de travail.
-$242e       DE doit toujours être plus loin que HL. Sinon, branche vers l'erreur Opérande manquante. pourquoi ???
+$242e       DE doit toujours être plus loin que HL.
+            Si HL rattrappe DE, branche vers l'erreur Opérande manquante.
+            C'est le cas par exemple si on entre `10 ONIGOTO1,2,3,4`.
 $2431       HL contient le buffer en entrée, DE le buffer de travail.
 $2432       Sauvegarde du buffer d'entrée.
 $2433       Lecture du caractère suivant.
@@ -4881,14 +4882,15 @@ $247a       [inst_for]
             %CODE
 $247a-$247c Indique que la recherche/création de variable se fait pour une commande `FOR`.
 $247f       Juste après le `FOR` se trouve une assignation de variable. Au retour, DE pointe sur la variable.
+            S'il y a une erreur de syntaxe après l'assignation, celle-ci à tout de même lieu.
 $2482       Retire l'adresse de retour de l'instruction `LET` ($24ea)
 $2483       Sauve le pointeur vers le texte BASIC qui pointe à présent après l'assignation de variable.
-$2484       Cherche le début de l'instruction suivante. (est-ce que c'est ce qui provoque l'erreur de syntaxe en mode direct ???)
+$2484       Cherche le début de l'instruction suivante.
 $2487       Sauve le pointeur vers l'instruction suivant le `FOR`
 $248a-$248d Pointe 2 octets au-dessus de la pile, c'est-à-dire après le pointeur vers le texte BASIC que l'on vient d'y pousser.
 
 $248e       [search_for]
-$248e       Cherche le bloc `FOR` associé à la variable pointée par DE. (que se passe-t-il s'il est trouvé ? Et si un autre FOR est trouvé ???)
+$248e       Cherche le bloc `FOR` associé à la variable pointée par DE.
 $2491       Branche si un bloc `FOR` correspondant n'est pas trouvé.
 $2493       Sinon, fait pointer vers la pile après le bloc `FOR` trouvé.
 $2494       Sauve l'adresse de la variable associée.
@@ -4913,7 +4915,9 @@ $24a6       Incrémente C pour une raison inconnue... La valeur est écrasée ju
 
 $24a7       [no_for]
 $24a7       Restaure le pointeur vers le texte BASIC
-$24a8       DE = pas utilisé ???, HL = pointeur vers le texte BASIC
+$24a8       HL = pointeur vers le texte BASIC
+            DE ne semble pas être utilisé, un `pop hl` aurait suffit ?
+
 $24a9-$24ab Vérifie qu'il y a de la place pour 8 niveaux de la pile.
 $24ae       Sauve le pointeur vers le texte BASIC
 $24af       HL pointe sur l'instruction suivant le FOR.
@@ -5276,7 +5280,8 @@ $2657       [let_numeric]
 
 $2657       Sauve le pointeur vers la variable.
 $2658       Copie le contenu de FAC vers la variable.
-$265b       Restaure l'adresse de la variable dans DE (pour quelle raison ???)
+$265b       Restaure l'adresse de la variable dans DE.
+            Cela permet à l'instruction `FOR` de récupèrer la variable d'iteration.
 $265c       Restaure le pointeur vers le texte BASIC.
 
 $265e       [inst_on]
@@ -5343,7 +5348,7 @@ $26ad       %CHAR
 $26ad-$26af Branche si le caractère est ','
 $26b1       %CHAR
 $26b1-$26b3 Branche si le caractère est ';'
-$26b6       Récupération du pointeur vers le texte BASIC (ne sert pas ???)
+$26b6       Jette le pointeur vers le texte BASIC qui sera sauvé après la lecture de l'expression.
 $26b7       Lecture de l'expression pointée par HL.
 $26ba       Sauve le pointeur vers le texte BASIC.
 $26bb-$26bf Branche si l'expression est de type chaine.
@@ -5413,7 +5418,7 @@ $272e       Initialise A avec la colonne à l'écran.
 
 $2731       [print_spc]
 $2731-$2732 Pour SPC(), A = argument de SPC() - 0
-            Pour TAB(), A = argument de SPC() - colonne actuelle ( - 1 ???)
+            Pour TAB(), A = argument de SPC() - colonne actuelle - 1
 $2733       Continue à la suite si TAB() était inférieur à la colonne actuelle.
 
 $2735       [output_spc]
@@ -5498,7 +5503,8 @@ $27b0       Lecture d'un nom de variable. Retour dans DE.
 $27b3       HL = pointeur vers les données, haut de la pile = pointeur vers le texte BASIC.
 $27b4       Sauve le pointeur vers la variable sur la pile.
 $27b6       %CHAR
-$27b5-$27b8 Branche si le prochain caractère des données est ',' (c'est pour cela que l'INPUT est amorcé avec un ',' ???)
+$27b5-$27b8 Branche si le prochain caractère des données est ','.
+            C'est pour cela que le buffer pour INPUT est amorcé avec un ','.
 $27ba-$27be Branche pour l'instruction `READ`
 $27c1       %CHAR
 $27c1-$27c4 Il manque des données, lance une nouvelle acquisition de données.
@@ -5537,7 +5543,7 @@ $27f6       Sauve le pointeur sur la chaine de caractères lue.
 $27f7       Tout est prêt pour l'assignation de la variable alphanumérique. Le retour se fera à l'adresse juste spécifiée, partie commune avec la lecture d'une donnée numérique.
 
 $27fa       [num_data]
-$27fa       Lecture du premier caractère (??? amorce, ou ignore ?)
+$27fa       Lecture de la virgule et se positionne sur le premier caractère intéressant.
 $27fb       Lecture de la donnée sous forme d'un nombre.
 $27fe       HL = pointeur vers la variable, haut de la pile = pointeur vers les données.
 $27ff       Assigne la valeur lue dans FAC à la variable pointée par HL.
@@ -5636,9 +5642,6 @@ $2861       [read_expr]
             - une adresse de retour (eval_2) qui sera utilisée par le `ret` de l'opérateur.
             - le premier paramètre de l'opérateur sous forme BCDE.
             - l'adresse d'exécution de l'opérateur.
-
-            Lorsqu'un opérateur de plus faible priorité est trouvé (ou à la fin ???), le `ret nc` permet de faire un saut vers l'adresse d'exécution de l'opérateur.
-            L'opérateur trouvera son paramètre sur la pile, suivi de l'adresse de retour.
             
 $2861       Recalage du pointeur de texte BASIC.
 $2862       La priorité actuelle d'opérateur est dans D.
@@ -5677,9 +5680,9 @@ $289f       Récupère la priorité de l'opérateur.
 $28a0       Compare les priorités.
 $28a1       Si la nouvelle priorité est plus petite, le `ret` provoque le retour vers l'exécution de l'opérateur précédent.
 $28a2       Sinon, HL pointe sur l'adresse de l'opérateur.
-$28a3       Vérifie que le type est numérique (encore ???)
+$28a3       Vérifie que le type est numérique.
 $28a6       [op_stack]
-$28a6       Sauve la priorité (B) et C ???
+$28a6       Sauve la priorité actuelle B.
 $28a7-$28aa Sauvegarde de l'adresse de retour pour l'exécution de cet opérateur.
 $28ab-$28ac Sauve le token (E) ainsi que sa priorité (D) dans BC
 $28ad       Pousse la valeur de FAC sur la pile pour continuer la construction du bloc pour l'opérateur.
@@ -5763,7 +5766,7 @@ $2913       [inst_minus]
             - HL pointe vers la suite de l'expression.
 
 $2913       Charge la priorité de l'opérateur unaire '-' dans D.
-$2915       Puis évalue l'expression. Le retour se fera lorsqu'un opérateur de moins forte priorité sera trouvé (ou une fin d'expression ???).
+$2915       Puis évalue l'expression. Le retour se fera lorsqu'un opérateur de moins forte priorité sera trouvé (ou en fin d'expression).
 $2918       Recupère le pointeur sur le texte BASIC.
 $291b       Sauvegarde de ce pointeur sur la pile.
 $291c       Prends l'opposé de FAC dans FAC.
@@ -5803,27 +5806,28 @@ $2935       [function]
 
 $2935       Prépare l'index dans le tableau des fonctions.
 $2937       Double l'index de la fonction.
-$2938       BC = index de la fonction multiplié par 2.
-$2939       Sauvegarde de l'index dans le tableau.
+$2938       BC = index de la fonction multiplié par 2, ce qui donne son offset.
+$2939       Sauvegarde de l'offset dans le tableau.
 $293a       Permet de se placer au niveau de la parenthèse après le nom de la fonction.
             Cela permet d'utiliser l'évaluation d'une expression entre parenthèses pour évaluer l'argument de la fonction.
-$293b-$293e Branche si la fonction est après `CHR$`, qui sont les fonctions de traitement de chaînes de caractères qui ont plusieurs paramètres.
+$293b-$293e Branche si la fonction est `CHR$` ou avant.
+            Les fonctions qui suivent sont les fonctions de traitement de chaînes de caractères qui ont plusieurs paramètres.
+            Toutes les fonctions qui les précèdent ont un seul paramètre.
 $2940       Sinon, c'est une fonction alphanumérique avec plusieurs paramètres. Évaluation du premier paramètre.
 $2943       Vérification que le caractère suivant est ','
 $2944       %DATASKIP
 $2945       Le premier paramètre doit être alphanumérique.
 $2948       Sauve le pointeur vers le texte BASIC.
-$2949       HL = adresse de la chaîne évaluée en premier paramètre.
-$294c-$294d Que l'on place sous l'index doublé dans la pile.
+$2949       HL = adresse du descripteur de la chaîne évaluée en premier paramètre.
+$294c-$294d Que l'on place sous l'offset de la fonction dans la pile.
 $294e       Restaure le pointeur vers le texte BASIC.
 $294f       Évaluation du second paramètre, de type entier sur 8 bits.
 $2952       DE = pointeur vers le texte BASIC, HL = entier évalué en second paramètre.
-$2953       HL = index doublé, Haut de la pile = second paramètre.
+$2953       HL = offset de la fonction doublé, Haut de la pile = second paramètre.
 $2954       Branche sur l'exécution de la fonction.
             Sur la pile se trouve :
             - la valeur du second paramètre.
-            - le pointeur vers la chaîne de premier paramètre.
-            - l'index doublé de la fonction à exécuter.
+            - le pointeur vers le descripteur de la chaîne en premier paramètre.
 
 $2956       [eval_func]
 $2956       Évaluation du premier et seul paramètre de la fonction.
@@ -5867,9 +5871,6 @@ $2977       [fp_bcde_or]
             Appelé lors de l'évaluation d'une expression via la table de priorités.
             
 $2977       Marqueur pour le traitement de `OR`. A n'est pas 0.
-            En $2978 arrive le traitement de `AND` et dans ce cas, l'instruction est `xor a`, donc A = 0.
-
-            (La détection de l'instruction partielle ne fonctionne pas dans ce cas, pourquoi ???)
 $2978       [fp_bcde_and]
             %CODE,%MS_BASIC(PAND)
             Opérateur BASIC `AND`.
@@ -6167,20 +6168,26 @@ $2ad4       [acq_key]
             Décode une touche du clavier.
             
             Affiche sa valeur à l'écran en traitant les touches spéciale.
-            Dans le cas d'un traitement pour la commande INPUT, ignore certaines touches.
+            Dans le cas d'un traitement pour la commande INPUT, ignore certaines touches (haut, bas, LIST, EFFE,...)
 
-            Si une touche a été traitée, provoque un rafraichissement de l'écran.
+            Les touches haut et bas ont un traitement spécial lorsqu'une LIST est en train d'être éditée.
+
+            Les codes non filtrés sont envoyés à `outdo` pour traitement par le périphérique de sortie.
+
+            Si une touche a été traitée, provoque un rafraichissement de l'écran et renvoie 0 dans A.
 
             Sortie :
             - A est à 0 si aucune touche n'a été appuyée ou si elle a été traitée.
-            - Quelques touches spéciales n'ont pas l'air d'être traitées et sont alors renvoyées dans A. Lesquelles ???
+            - A est $0d si la touche ENTREE a été appuyée.
 
 $2ad4-$2ad6 Sauve BC, DE et HL sur la pile.
-$2ad7-$2adc Branche si la ligne n'est pas entrée depuis le BASIC. (depuis un INPUT ???)
+$2ad7-$2adc Branche si une ligne a été validée par le moniteur (que ce soit en direct ou dans une instruction `INPUT`).
 $2adf       Attente d'une interruption
 $2ae0       Décode une touche du clavier.
 $2ae3-$2ae4 Branche si aucun caractère n'a été validé.
-$2ae6       Sauve AF
+            La routine ayant déjà fait `or a`, celui-ci semble inutile.
+$2ae6       A contient la touche appuyée, Z correspond à A et M est à 1 si la touche est une touche de fonction.
+            Pousse le tout sur la pile.
 $2ae7       Bascule sur les registres alternatifs.
 $2ae8-$2aeb Configure le son émis lors de l'appuie d'un caractère.
 $2aee       Pendant une durée très courte.
@@ -6194,7 +6201,7 @@ $2b02-$2b04 Branche si la touche appuyée est Entrée.
             La ROM 1.1 patch ce morceau afin de traiter les cas particulier (lors d'une instruction `INPUT`).
 $2b07-$2b09 Branche pour traiter la touche Déplacement vers le haut.
 $2b0c-$2b0e Branche pour traiter la touche Saut de ligne.
-$2b11-$2b13 Branche pour traiter la touche Saut de page. ???
+$2b11-$2b13 Branche pour traiter la touche `LIST`.
 $2b16-$2b18 Branche si la touche n'est pas Efface Écran
 
 $2b1a       [key_effe]
@@ -6215,13 +6222,11 @@ $2b2d       [key_nul_ret]
             soit est annulée car la touche n'a pas d'effet (dans une commande INPUT par exemple).
 
 $2b2e       [key_acq_end]
-$2b2e-$2b31 Restaure les registres. D'où viennent les branchements directs ici ??? Toujours d'un traitement de touche ?
+$2b2e-$2b31 Restaure les registres en fin de traitement d'acquisition d'une touche de clavier.
 
 $2b32       [bufferstart]
-            Avant l'acquisition d'une touche de clavier, si une ligne a été validée, cette routine est exécutée.
-
-            À l'air de se positionner sur le premier caractère interessant à décoder ???
-$2b32       Coordoonées de la ligne BASIC à décoder. H contient la ligne à l'écran, L est à 0.
+            Une ligne vient d'être validée par le moniteur BASIC, que ce soit en direct ou dans une instruction `INPUT`.
+$2b32       Coordonnées de la ligne BASIC à décoder. H contient la ligne à l'écran, L est à 0.
 $2b35       Copie du numéro de ligne dans A.
 $2b36-$2b38 Branche si le numéro de ligne est 24 ou plus (la dernière ligne de l'écran)
 $2b3a       Sauve les coordonnées de la ligne.
@@ -6231,22 +6236,22 @@ $2b42       Branche si le curseur sur une ligne logique continuée.
 $2b44       [if_line_24]
 $2b44-$2b47 Branche si la colonne est 40 ou plus (la colonne la plus à droite est 39)
 $2b49       [if_cnt_line]
-$2b49       Sauve les drapeaux ???
+$2b49       Sauve les drapeaux de comparaison. Z si le curseur est sur une ligne logique continuée
 $2b4a-$2b4d Branche si la colonne est 38 ou moins.
 $2b4f-$2b50 Coordonnées sur la ligne suivante, première colonne.
 
 $2b52       [if_less_39]
 $2b52       Avance d'une colonne (la colonne 0 n'est pas utilisée par l'éditeur)
-$2b53       Enregiste les nouvelles coordonnées.
+$2b53       Enregistre les nouvelles coordonnées.
 $2b56       Et les sauve sur la pile.
 $2b57-$2b5a B contient le caractère aux nouvelles coordonnées.
 $2b5b       DE contient les nouvelles coordoonées.
-$2b5c       Récupère les drapeaux de comparaison (de quoi ???)
+$2b5c       Récupère les drapeaux de comparaison.
 $2b5d       A contient le caractère lu aux coordonnées.
-$2b5e       Branche si quoi ???
+$2b5e       Branche si ce n'est pas la dernière ligne physique de la ligne logique.
 $2b60       %CHAR
 $2b60-$2b62 Branche si ce n'est pas un espace.
-$2b64       [loop2B64]
+$2b64       [srch_char]
 $2b64       Incrémente la colonne.
 $2b65       Place la colonne dans A.
 $2b66-$2b68 Branche si la colonne est 40 ou plus.
@@ -6255,11 +6260,11 @@ $2b6d       %CHAR
 $2b6c-$2b6f Boucle si le caractère est un espace.
 $2b71       %CHAR
 $2b71       Sinon, on pointe sur un caractère qui n'est pas un espace. Place un espace dans A
-$2b73       Et continue vers ???
+$2b73       Et continue vers l'acquisition de la ligne.
 
 $2b75       [if_col_40]
 $2b75-$2b7a Remet l'indicateur de ligne entrée en BASIC à 0 .
-$2b7d-$2b82 Branche si le bit 8 de `(entstt)` est à 1. ???
+$2b7d-$2b82 Branche si le bit 7 de `(entstt)`, premier caractère de la ligne logique, est à 1.
 $2b84       %CHAR
 $2b84-$2b86 Branche si `(entstt)` est un espace.
 $2b88       %CHAR
@@ -6279,13 +6284,21 @@ $2b9c-$2b9f Émet l'insertion de ligne (comme une touche `INSL`) puis prétend q
 
 $2ba1       [not_digit]
 $2ba1       Place le curseur après le bloc de ligne logique.
-$2ba4-$2ba6 Émission d'une autorisation de visualisation ???
+$2ba4-$2ba6 Émission du caractère d'effacement d'écran de la ligne du curseur jusqu'en bas de l'écran.
 
 $2ba7       [acquired_cr]
 $2ba7-$2ba9 Retour en ayant acquis un retour chariot.
 
 $2bac       [special_acq]
-            Traitement des caractères spéciaux lors de la validation d'une ligne. ???
+            Traitement des caractères spéciaux lors de la validation d'une ligne.
+
+            Table de correspondance :
+            $ff -> $10
+            $0d -> $11
+            $08 -> $13
+            $04 -> $18
+            $1f -> $1a
+            $03 -> $1c
 
 $2bac-$2bae Branche si le caractère n'est pas $ff.
 $2bb0       Sinon, transforme $ff en $10.
@@ -6318,7 +6331,7 @@ $2bd3       [skip_block]
 
             Est utilisé pour amener le curseur après une ligne logique sur plusieurs lignes physiques, après ce bloc.
 
-$2bd3-$2bd5 Envoie d'un retour à la ligne ($03 à la même effet que $0d ???)
+$2bd3-$2bd5 Envoie d'un retour à la ligne ($03)
 $2bd6       Charge les coordonnées du curseur dans HL
 $2bd9       Colonne précédente.
 $2bda       Récupère le caractère.
@@ -6330,32 +6343,35 @@ $2be0       Récupération des coordonnées du curseur dans HL.
 
 $2be3       [find_start_l]
             Cette partie est patchée dans la ROM 1.1 pour le traitement des lignes logiques.
-$2be3-$2be5 Branche si le curseur est en colonne 1.
-$2be7       Sinon décrémente le numéro de colonne.
-$2be8       Sauve les coordonnées ainsi modifiées.
-$2be9       Lit le caractère à cet endroit.
-$2bec       Restaure les coordonnées modifiées.
-$2bed-$2bf3 Branche si le caractère n'est pas un chiffre.
-$2bf5       Boucle sur la recherche de début de ligne logique.
+$2be3       Décrémentation le numéro de colonne.
+$2be4       Sauve les coordonnées ainsi modifiées.
+$2be5       Lit le caractère à cet endroit.
+$2be8       Restaure les coordonnées modifiées.
+$2be9-$2beb Branche si le caractère trouvé est $80, le début de ligne logique.
+$2bed-$2bf1 Branche si le caractère n'est pas un chiffre.
+$2bf3       Boucle sur la recherche de début de ligne logique.
 
-$2bf7       [line_start]
-            Le curseur est positionné sur la colonne 0.
-$2bf7-$2bfb Branche si le mode `AUTO` n'est pas en cours.
-$2cfd-$2cfe Sinon, le mode `AUTO` est annulé.
-$2c01       L'adresse du curseur mis à jour.
-$2c04-$2c06 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne courante)
-$2c07       Et la touche acquise sera validée comme étant un retour chariot ($0d).
+$2bf5       [line_start]
+            Le curseur est positionné sur le caractère de continuité de ligne.
+$2bf5-$2bf7 Si on n'était pas sur la colonne 0, c'était une fausse alerte et non un vrai début de ligne.
+            Continue à chercher.
+$2bf9       Sinon, se place sur la colonne 1 de la première ligne de la ligne logique.
+$2bfa-$2bfe Branche si le mode `AUTO` n'est pas en cours.
+$2c00-$2c01 Sinon, le mode `AUTO` est annulé.
+$2c04       L'adresse du curseur mis à jour.
+$2c07-$2c09 Émission d'un `EFFL` (effacement jusqu'à la fin de la ligne courante)
+$2c0a       Et la touche acquise sera validée comme étant un retour chariot ($0d).
 
-$2c0a       [find_cont]
-            Traitement lors d'une continuité trouvée au début de la ligne ???
-$2c0a-$2c0d Place les coordonnées du curseur sur la colonne 1.
+$2c0d       [find_cont]
+            Recherche les coordonnées du début de la ligne logique.
+$2c0d       Place les coordonnées modifiées du curseur sur la colonne 1.
 $2c0f       [find_start]
 $2c0f       Enregistre la coordonnées modifiée comme la coordonnées actuelle de ligne envoyée au BASIC.
 $2c12       Sauve ces coordonnées sur la pile.
 $2c13-$2c14 Lecture du caractère en colonne 0 de la ligne courante.
 $2c17-$2c18 Branche si ce caractère n'est pas le marqueur de continuité de ligne logique ($84).
 $2c1a       Monte les coordonnées d'une ligne.
-$2c1b       Branche si la ligne est au-dessus de la ligne 0.
+$2c1b       Branche si la ligne est au-dessus de la ligne 0 sans traitement supplémentaire.
 $2c1e       Boucle pour trouver le début de la ligne logique, ou bien le début de l'écran.
 
 $2c20       [found_start]
@@ -6390,9 +6406,9 @@ $2c4b       Lecture du caratère aux coordonnées curseur actuelle.
 
 $2c4e       [record_char]
 $2c4e       Enregistre le premier caractère lu de la ligne logique (ou début d'`INPUT`) dans `(entstt)`.
-$2c51-$2c56 Met le drapeau `ligne entrée en BASIC` à 1.
+$2c51-$2c56 Met le drapeau `ligne entrée en BASIC` à 1 pour indiquer qu'une ligne vient d'être validée en entrée.
 $2c59-$2c5d Placement des coordonnées sur le caractère en colonne précédente.
-            Donc 0 pour une ligne logique, et avant l'entrée en cas d'`INPUT` (???)
+            Donc 0 pour une ligne logique, et une colonne avant l'entrée utilisateur en cas d'`INPUT`.
 
 $2c60       [screenstart]
 $2c60       La fonction sortira avec pour valeur acquise `NUL`. Le traitement a été effectué.
@@ -6427,10 +6443,10 @@ $2ca7       Une ligne a été trouvée, mise à jour du listing dynamique.
 $2caa       [do_down]
 $2caa-$2cac Pour les lignes inférieures à 24, ne traite pas le déplacement vers le bas et délègue le `line feed` à `outdo`.
 
-$2caf       [ifformf]
-            Saut de page, ou bien plutôt `HOME` ???
+$2caf       [if_list]
+            Traitement de la touche `LIST`
 $2caf-$2cb4 Ignore la touche si on est dans un traitement de `INPUT`.
-$2cb7       Place le Carry à 1 pour la mise à jour de la liste dynamique. (qu'est-ce que cela indique ???)
+$2cb7       Place le Carry à 1 afin d'indiquer à la mise à jour du listing à l'écran qu'il faudra placer le curseur en haut de l'écran.
 $2cb8       Branche vers la mise à jour du listing dynamique.
 
 $2cba       [update_list]
@@ -6441,15 +6457,13 @@ $2cba       [update_list]
 $2cba-$2cbb BC pointe vers le numéro de ligne.
 $2cbc-$2cc0 DE = numéro de la ligne.
 $2cc1       Mise à jour du numéro de ligne de la première ligne du listing à l'écran.
-$2cc5       Mise à 0 du Carry (pour différentier d'une arrivée en $2cca avec Carry à 1)
+$2cc5       Mise à 0 du Carry (pour différencier d'une arrivée depuis le traitement de la touche `LIST`.
 $2cc6       HL = coordonnées du curseur.
 $2cc9       Sauve les coordonnées du curseur.
 
-$2cca       [list_home]
-            Vérifier l'adéquation du nom de ce label. ???
-
-$2cca       Sauve A et les drapeaux sur la pile.
-$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et caractère de continuité lors d'un passage à la ligne (??? pour la continuité)
+$2cca       [list_key]
+$2cca       Sauve le Carry sur la pile, pour la différence entre la mise à jour du listing et l'appuie sur la touche `LIST`.
+$2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et gestion du caractère de continuité lors des déplacements du curseur.
 $2cd0       Délai de rafraichissement de l'écran à $40, pour avoir le temps de mettre à jour tout le listing.
 $2cd4       `(attcar)` à 0.
 $2cd8-$2cdb Place le curseur en colonne 0, ligne 1
@@ -6462,12 +6476,12 @@ $2cea       Écrit la ligne courante à l'écran.
 $2ced       Branche si le listing doit s'arrêter (fin de listing, ou bas de l'écran)
 $2cef-$2cf2 Compare la ligne du curseur avec 24.
 $2cf4       Prépare l'écriture du caractère de continuité.
-$2cf6       Envoie le caractère de continuité si la ligne est inférieure à 24 ??? (du coup, il y a de la continuité sur tout l'écran ???)
-$2cf9       Boucle sur la ligne suivante si le curseur n'a pas atteind la ligne 24.
+$2cf6       Envoie un retour chariot si la ligne courante est inférience à 24.
+$2cf9       Boucle sur la ligne suivante si le curseur n'a pas atteint la ligne 24.
 
 $2cfb       [list_end]
-$2cfb       Récupère les drapeaux.
-$2cfc       Branche si l'on vient du traitement de `HOME` (???)
+$2cfb       Récupère le Carry.
+$2cfc       Branche si l'on vient du traitement de la touche `LIST`, afin de placer le curseur en haut de l'écran.
 $2cfe       Sinon, récupère les coordonnées du curseur du début de routine.
 
 $2d01       [cur_reset]
@@ -6558,7 +6572,7 @@ $2d8e       Puis le pointeur avancé dans la table.
 $2d8f       Boucle pour traiter l'octet suivant.
 
 $2d91       [ctrl_keys]
-            Traitement des touches de contrôle (des touches de contrôle ?)
+            Traitement des touches accentuées.
 $2d91-$2d94 DE contient l'index de la touche de contrôle appuyée.
 $2d96       HL pointe vers la table des touches de contrôles en RAM, initialisée depuis `i_contbl`. Ce sont les touches accentuées.
 $2d99-$2d9a A lit l'équivalence de la touche de contrôle dans la table.
@@ -6620,13 +6634,13 @@ $2ec4       [mem_verify]
             Entrée :
             - HL, le pointeur à vérifier
             
-$2ec4       Sauve le pointeur HL fourni.
-$2ec5-$2ecc Ajoute 96 en soustrayant $ffa0 à HL.
-$2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL (ajusté avec les niveaux) et le haut de la mémoire ($FFFF).
+$2ec4       Sauve le pointeur HL fourni
+$2ec5-$2ecc HL <- $ffa0 - HL, donc l'espace disponible entre HL et la fin de la mémoire adressable moins un espace réservé.
+$2ecd       Si la soutraction est négative, alors il n'y a pas la place nécessaire entre HL et le haut de la mémoire ($FFFF).
             Branche sur une erreur.
 $2ecf       Ajoute HL
-$2ed0       Restore dans HL le pointeur d'exécution
-$2ed1       Retour si HL + SP provoque une retenue, il y a assez d'espace. ???
+$2ed0       Restaure le pointeur fourni
+$2ed1       Retour si HL + SP provoque une retenue, c'est que le pointeur fourni est assez loin du haut de la mémoire. C'est ok.
 
 $2ed2       [out_of_mem]
 $2ed2-$2ed5 Message d'erreur "Out of Memory"
@@ -6640,6 +6654,8 @@ $2ed8       [inst_new]
 
 $2ed9       [reset_lst]
             %MS_BASIC(CLRPTR)
+            Casse le chaînage du listing en mettant à 0 le premier lien.
+
 $2ed9       HL pointe vers le début du listing BASIC.
 $2edc       A = 0
 $2edd-$2edf Coupe le premier lien du listing BASIC.
@@ -6683,10 +6699,8 @@ $2f19       Remet l'adresse de retour sur la pile avant le RET
 
 $2f1a       [do_again]
             %MS_BASIC(DOAGN)
-            A tracer depuis le reset qui précède et depuis INPUT (???)
-            
-$2f1a       HL est chargé avec la valeur de `temp`, qui contient l'adresse d'exécution d'une commande.
-            Qu'est-ce qu'il y a au boot ???
+$2f1a       HL est chargé avec la valeur de `temp`.
+            Pendant `INPUT`, `hl` pointe vers le début de l'instruction `INPUT` a relancé en cas de mauvais type de donnée.
 
 $2f1e       [inst_restore]
             %CODE,%MS_BASIC(RESTOR)
@@ -6720,8 +6734,6 @@ $2f39       Prépare le drapeau pour `STOP` ($c0)
 $2f3a       [inst_end]
             %CODE,MS_BASIC(PEND)
             Instruction BASIC : END
-
-            ??? Attention, le formateur ne créé par d'entrée ici !
 
 $2f3a       Pas d'effet s'il y a un argument. Cela provoquera une erreur de syntaxe en cherchant l'instruction suivante.
 $2f3b       Sauve l'endroit où l'arrête a eu lieu en cas de `STOP` ou de `END`
@@ -6766,19 +6778,20 @@ $2f7a-$2f7e Sinon, place le numéro de la ligne d'arrêt dans `(curlin)`. Avec l
 
 $2f83       [myst_inst]
             %CODE
+            Cette instruction, qui branche vers une instruction illégale, ne semble pas être appelée.
 
             Est-ce une instruction illégale ??? D'où est-ce appelé ?
 
-$2f86       [mystere]
+$2f86       [mysterious]
             %CODE
+            Cette routine ne semble pas être appelée.
 
-            Est-ce vraiment une instruction appelée ???
-            La routine n'a pas vraiment de sens, mais n'est pas non plus complètement absurde.
+            Elle ne semble pas non plus avoir beaucoup de sens.
 
 $2f86-$2f88 Prépare la demande d'un tableau.
 $2f8b       Récupère un tableau tel que pointé par HL sur du texte BASIC.
 $2f8e       Sauve le pointeur de texte BASIC.
-$2f8f       Que prend `(subflg)` ???
+$2f8f       Est-ce que cela a du sens ?
 $2f92-$2f93 HL = BC
 $2f94-$2f97 Recule le pointeur BC de 4 octets.
 
@@ -7158,10 +7171,10 @@ $31ae       Revient à la boucle de l'éditeur BASIC en ignorant l'adresse de re
 
 $31b1       [line_pair]
             Lit deux arguments de type numéro de ligne depuis le pointeur HL sur du texte BASIC.
-
+            
             La routine est patchée en ROM 1.1 pour corriger l'erreur en cas d'absence de premier argument.
             En ROM 1.0, en cas d'absence de premier argumer, `(temp)` n'est pas mis à 0. Sa valeur est donc indéterminée.
-            
+
             Entrée :
             - HL pointe sur le texte BASIC.
 
@@ -7224,7 +7237,7 @@ $320d-$3210 Comparaison avec la borne supérieur pour les numéros de lignes du 
 $3211       Resteur le pointeur vers les données de la ligne.
 $3212       Inverse le résultat de comparaison.
 $3213       Retour si le numéro de la ligne lue est supérieur à la borne supérieure du listing demandé.
-$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `HOME` (???)
+$3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `LIST`.
 $3219       Sauve le pointeur vers les données de la ligne.
 $321a-$321b Émet le numéro de la ligne lue sur le périphérique sélectionné.
 $321e       %CHAR
@@ -7234,7 +7247,7 @@ $3221       Sauve le pointeur vers les données de la ligne dans `(retadr)` temp
 $3224       Émet l'espace vers le périphérique sélectionné.
 $3225       Restaure le pointeur vers les données de la ligne.
             Note : vu que `(retadr)` est écrasé juste après, pourquoi n'avoir pas laissé la valeur sur la pile ?
-$3228       Sauve le pointeur vers la ligne suivante dans `(retadr)` (pourquoi ???)
+$3228       Sauve le pointeur vers les données de la ligne.
 $322c       Évite l'émission de caractère qui suit.
 
 $322d       [emit_char]
@@ -7380,21 +7393,24 @@ $3317       Place les drapeaux en fonction de A.
 $3318       Revient sur les registres initiaux.
 
 $331a       [sendchar_t2]
-            Routine à tracer pour mieux la comprendre ???
+            Traite un caractère à destination de l'écran.
+
+            Entrée :
+            - A contient le caractère à traiter.
 
 $331a       Passe sur les registres généraux annexes.
-$331b       Sauve AF sur la pile.
-$331c-$331f Place l'adresse de retour sur la pile.
-$3320-$3322 Branche si le caractère dans A est inférieur strictement à 128.
-$3324-$3326 Branche si le caractère dans A est égal ou supérieur à 160.
+$331b       Sauve le caractère à traiter sur la pile.
+$331c-$331f Place l'adresse de retour sur la pile vers la fin de la routine.
+$3320-$3322 Branche si le caractère est inférieur strictement à 128.
+$3324-$3326 Branche si le caractère est égal ou supérieur à 160.
 $3328       A est compris entre 128 et 159. La mise à 0 du bit 7 revient à soustraire 128, ce qui amène A entre 0 et 31.
 $332a       Branche plus loin.
 
 $332c       [sdchar_bl80]
             A est inférieur strictement à 128.
-$332c-$332e Branche si A est égale à 32 ou supérieur (donc entre 32 et 127 inclus)
+$332c-$332e Branche si A est égale à 32 ou supérieur (donc entre 32 et 127 inclus). Le caractère est envoyé tel quel.
 $3330-$3334 Branche si les caractères utilisateurs (modifiables en RAM du VDP) son actifs.
-$3336-$333a Sinon, branche si c'est un caractère graphique (et ROM).
+$3336-$333a Sinon, branche si c'est un caractère graphique (et ROM). Le caractère est envoyé tel quel.
 
 $333c       [sdchar_spec]
             Arrivée ici si le caractère était
@@ -7419,22 +7435,22 @@ $3349       [sd_a_ff]
             Les 6 labels suivants chargent A avec une certaine valeur puis exécutent une série de `ld hl,xxxx` avec des valeurs inutiles.
 
             Pour finalement arriver sur 'sdchar_pass'
-$3349       A = $ff (???)
+$3349       A = $ff (signe DISK)
 $334c       [sd_a_0d]
-$334c       A = $0d (RET)
+$334c       A = $0d
 $334f       [sd_a_08]
-$334f       A = $08 (Déplacement à gauche)
+$334f       A = $08
 $3352       [sd_a_04]
-$3352       A = $04 (EFFL)
+$3352       A = $04
 $3355       [sd_a_1f]
-$3355       A = $1f (EFFE)
+$3355       A = $1f
 $3358       [sd_a_03]
-$3358       A = $03 (RET) (quelle différence entre $03 et $0d ???)
+$3358       A = $03
 
 $335a       [sdchar_pass]
 $335a       Jette la valeur en haut de la pile.
 $335b-$335e Adresse de retour pour le prochain `ret` qui termine la routine avec une demande de rafraichissement du buffer écran et nettoyage de lapile.
-$335f       Provoque l'affichage dans le buffer écran du caractère avec ses attributs (???).
+$335f       Affiche le caractère présent dans A avec les attributs actuels.
 
 $3362       [sdchar_ind]
             Suite de saut pour traitement des 31 premiers caractères.
@@ -7463,7 +7479,7 @@ $3380       %CODE
 $3383       %CODE
             CHR$(11) -> aucune action
 $3386       %CODE
-            CHR$(12) -> HOME
+            CHR$(12) -> Curseur en haut de l'écran.
 $3389       %CODE
             CHR$(13) -> RET
 $338c       %CODE
@@ -7471,39 +7487,39 @@ $338c       %CODE
 $338f       %CODE
             CHR$(15) -> Réinitialise le terminal.
 $3392       %CODE
-            CHR$(16) -> Transforme en $ff (???)
+            CHR$(16) -> Transforme en $ff (caractère DISK)
 $3395       %CODE
-            CHR$(17) -> Transforme en $0d (???)
+            CHR$(17) -> Transforme en $0d
 $3398       %CODE
-            CHR$(18) -> Envoie le caractère tel quel (???)
+            CHR$(18) -> Envoie le caractère tel quel
 $339b       %CODE
-            CHR$(19) -> Transforme en $08 (???)
+            CHR$(19) -> Transforme en $08
 $339e       %CODE
-            CHR$(20) -> Envoie le caractère tel quel (???)
+            CHR$(20) -> Envoie le caractère tel quel
 $33a1       %CODE
-            CHR$(21) -> Envoie le caractère tel quel (???)
+            CHR$(21) -> Envoie le caractère tel quel
 $33a4       %CODE
-            CHR$(22) -> Envoie le caractère tel quel (???)
+            CHR$(22) -> Envoie le caractère tel quel
 $33a7       %CODE
-            CHR$(23) -> Envoie le caractère tel quel (???)
+            CHR$(23) -> Envoie le caractère tel quel
 $33aa       %CODE
-            CHR$(24) -> Transforme en $04 (???)
+            CHR$(24) -> Transforme en $04
 $33ad       %CODE
-            CHR$(25) -> Envoie le caractère tel quel (???)
+            CHR$(25) -> Envoie le caractère tel quel
 $33b0       %CODE
-            CHR$(26) -> Transforme en $1f (???)
+            CHR$(26) -> Transforme en $1f
 $33b3       %CODE
-            CHR$(27) -> Envoie le caractère tel quel (???)
+            CHR$(27) -> Envoie le caractère tel quel
 $33b6       %CODE
-            CHR$(28) -> Transforme en $03 (???)
+            CHR$(28) -> Transforme en $03
 $33b9       %CODE
-            CHR$(29) -> Envoie le caractère tel quel (???)
+            CHR$(29) -> Envoie le caractère tel quel
 $33bc       %CODE
             CHR$(30) -> Efface l'écran du curseur jusqu'en bas.
 $33bf       %CODE
 $33bf       Charge les attributs de fond utilisés par `INIT`.
 $33c2       Efface l'écran.
-            CHR$(31) -> Efface l'écran + HOME
+            CHR$(31) -> Efface l'écran + Touche LIST
 
 $33c5       [send_back]
             %CODE
@@ -7599,7 +7615,7 @@ $345a       [sd_effc]
 $345a       Charge les coordonnées du curseur dans HL.
 $345d-$3460 Branche si le curseur est sur la colonne 1 ou moins.
 
-            [sd_effc_lp]
+$3463       [sd_effc_lp]
 $3463       Sinon, sauve les coordonnées sur la pile
 $3464       Calcule l'adresse correspondante dans le buffer d'écran BASIC.
 $3467       Récupère les coordonnées du curseur dans BC.
@@ -7711,7 +7727,8 @@ $3501       Branche si le mode activé est celui des caractères graphiques et q
 
 $3503       [insc_txt]
 $3503       %CHAR
-$3503-$3505 Branche si le caractère texte est l'espace.
+$3503-$3505 Branche si le caractère texte de la dernière ligne du bloc logique est l'espace.
+            Il n'y aura pas besoin d'insérer une nouvelle ligne.
 
 $3508       [insc_gr]
 $3508-$350b Charge les coordonnées du curseur dans HL et décrémente le numéro de ligne.
@@ -7720,21 +7737,19 @@ $350c       Branche si le numéro de ligne du curseur est négatif. Le curseur �
 
 $350f       Sauve les coordonnées modifiées du curseur (ligne précédente)
 $3510-$3516 Place le curseur sur la ligne après la dernière ligne logique et émet `INSL`, afin de faire de la place pour la ligne logique.
-$3519       Où est le curseur maintenant ???
-$351c       Colonne 0.
+$3519-$351c Récupère les coordonnées du curseur sur la dernière ligne du bloc logique, colonne 0.
 $351e       HL pointe sur l'adresse du buffer d'écran BASIC à ces coordonnées.
 $3521-$3523 Y place un marqueur de continuité.
-$3524       Récupère les coordonnées du curseur de la ligne précédente (???)
-$3525       Rétablie les coordonnées du curseur (???)
+$3524-$3525 Récupère et rétablie les coordonnées du curseur initial.
 $3528       [insc_blank]
 $3528       Charge les coordonnées du curseur dans HL.
-$352b       Récupère les coordonnées (lesquelles ???)
+$352b       Récupère les coordonnées de la première ligne logique, en colonne 0.
 $352c-$352e Branche si les deux coordonnées ont les mêmes lignes.
 $3531-$3532 Copie de DE vers HL.
-$3533       Décrémente la ligne des coordonnées DE.
+$3533       Décrémente la ligne des coordonnées DE (la ligne traitée)
 $3534       Sauve ces nouvelles coordonnées dans la pile.
 $3535       HL pointe vers le buffer écran du BASIC aux coordonnées HL.
-$3538-$353c Pointe 77 octets plus loin. (??? bien dérouler tout ce passage)
+$3538-$353c Pointe 76+1 octets plus loin.
 $353d-$353e Copie HL dans DE.
 $353f-$3540 DE pointe 79 octets plus loin que les coordonnées précédentes dans HL.
 $3541       Copie 76 octets de `(de)` vers `(hl)`
@@ -7743,6 +7758,7 @@ $3546       Prend l'octet pointé.
 $3547-$354a Avance HL de 4 octets
 $354b       Y place l'octet.
 $354c       Boucle sur l'insertion d'un espace sur le reste de la ligne logique.
+            Cette boucle copie chaque ligne du bloc entre la fin et le curseur vers la ligne suivante, de bas en haut.
 
 $354f       [insc_same]
 $354f       Charge les coordonnées du curseur dans HL.
@@ -7796,7 +7812,7 @@ $3598       [iinsl_0]
 $3598-$359b Efface le contenu de la ligne du curseur.
 
 $359f       [sd_effe]
-            Traitement de `EFFE` (par le caractère 31)
+            Traitement de l'effacement bas de l'écran (par le caractère 30)
             
             Efface toutes les lignes à partir de la ligne courante du curseur jusqu'en bas de l'écran.
 
@@ -7881,18 +7897,20 @@ $3609       [str_cmp]
             == DEBUT DE SECTION BISTRS (BASIC string handler) ==
             Comparaison entre deux chaînes de caractères.
 
-$3609       Sauve le nom de la chaîne sur la pile.
-$360a       Récupère la chaîne. (d'où ???)
+$3609       Sauve le descripteur de la première chaine sur la pile.
+$360a       Récupère le descripteur de la seconde chaîne depuis FAC.
 $360d       A = longueur de la chaîne.
 $360e-$3610 Se place sur l'adresse de la chaîne.
 $3611-$3612 BC = adresse de la chaîne.
-$3613       Restaure le nom de la chaîne (???).
-$3614       Sauve l'adresse de la chaîne sur la pile.
+$3613       Restaure le descripteur de la première chaîne.
+$3614       Sauve l'adresse du contenu de la seconde chaîne sur la pile.
 $3615       De même que sa longueur.
-$3616       Récupère la seconde chaîne (à partir d'où ???)
-$3619       Récupère l'adresse de la seconde chaîne.
+$3616       Récupère le descripteur de la première chaîne pointée par DE.
+$3619       Le descripteur est chargé dans BCDE.
+            E contient la longueur de la chargé.
+            BC pointe vers le contenu de la première chaîne.
 $361c-$361d Met la longueur de la première chaine dans D.
-$361e       HL pointe sur la première chaine.
+$361e       HL pointe sur le contenu de la seconde chaine.
 
 $361f       [cmp_str_lp]
 $361f-$3621 Retour (avec Z à 1) si D et E sont égaux à 0.
@@ -7901,8 +7919,9 @@ $3622-$3623 Réduit la longueur restante de 1.
 $3625       Retour (avec Z à 0 et Carry à 1) si la longueur est devenu négative.
             La première chaine est terminée, mais pas la seconde.
 $3626-$3627 Compare E avec 0.
-$3628       ???
-$3629       Retour sur la taille de la seconde chaine a été consommée ???
+$3628       A = 1
+$3629       Retour si la taille de la seconde chaine a été consommée.
+            Le test se fait sur Carry car ce drapeau n'est pas touché par `inc a`.
 $362a       Diminue le compteur de taille restante de la première chaine.
 $362b       Diminue le compteur de taille restante de la seconde chaine.
 $362c-$3630 Boucle si les deux octets deux deux chaines sont identiques.
@@ -7917,8 +7936,8 @@ $3636       [inst_str]
 $3636       Le paramètre doit être de type numérique.
 $3639       Transforme le nombre en chaine de caractère.
 $363c       Créé une entrée de chaine avec le résultat.
-$363f       Récupère la chaine (depuis où ???)
-$3642-$3645 Place l'adresse de retour pour aller vers (???)
+$363f       Récupère le descripteur de chaine depuis FAC.
+$3642-$3645 Place l'adresse de retour pour monter la chaine vers le buffer temporaire et FAC.
 
 $3646       [save_str]
 $3646       A = longueur de la chaine source
@@ -7926,7 +7945,7 @@ $3647-$3649 Sauve l'adresse du contenu de la chaine sur la pile.
 $364a       Allocation de l'espace nécessaire dans l'espace des chaines de caractères.
 $364d-$3650 BC = adresse du contenu de la chaine source.
 $3651       Création d'un descripteur temporaire de chaine.
-$3654       Sauve l'adresse de ce descripteur temporaire. sur la pile
+$3654       Sauve l'adresse de ce descripteur temporaire, sur la pile
 $3655-$3656 Copie L octets de BC (source) vers DE (destination), ce qui copie la chaine dans l'espace des chaines de caractères.
 $3659       DE pointe sur le decripteur de chaine temporaire.
 $365a       En venant de la fonction `STR()`, branche vers `to_pool`.
@@ -7968,14 +7987,13 @@ $3663       Sauve cette adresse sur la pile.
 $3664-$3665 Place la longueur de la chaine de caractères dans le descripteur.
 
 $3666       [de_in_hl]
-            Place le contenu de DE vers ce que pointe HL.
 $3666-$3669 Place DE dans les deux octets pointés par HL et HL + 1.
             Dans le cas d'une chaine de caractères, c'est le pointeur vers son contenu.
 $366a       Restaure HL.
 
 $366c       [out_str_prc]
             %MS_BASIC(CRTST)
-            Création d'une chaine de caractères depuis la source pointée par HL (dans le pool de string ???)
+            Création d'une chaine de caractères depuis la source pointée par HL dans le buffer `tempst`
 
             Une chaine se termine lorsqu'elle atteint le caractère nul.
             Une chaine a une taille de 255 caractères maximum.
@@ -8020,12 +8038,12 @@ $3688       Créé un descripteur temporaire sur cette chaîne de caractères.
 
 $368b       [cpy_to_pool]
 $368b       DE pointe sur l'espace temporaire utilisé pour le descripteur.
-$368e       HL pointe vers l'espace temporaire pour le traitement de chaine de caractères.
+$368e       HL pointe vers l'espace temporaire `tempst` pour le traitement de chaine de caractères, à un emplacement libre.
 $3691       Cette adresse est sauvée dans FAC.
 $3694-$3696 La valeur courante est une chaîne de caractères.
 $3699       Copie les 4 premiers octets de `dsctmp` vers `(hl)`.
-            Autrement dit, copie la description de chaine temporaire dans le pool de chaine.
-$369c       Comme `dsctmp` est situé après le buffer `tempst`, comparer `de` et `hl` permet de savoir si le buffer temporaire a été entièrement rempli.
+            Autrement dit, copie la description de chaine temporaire dans le pool de chaine `tempst`.
+$369c       Vérifie si 'de' et 'hl' sont identiques. Cela signifie que le buffer de chaine `tempst` est plein.
 $369d       Mise à jour du pointeur vers le buffer temporaire `tempst`.
 $36a0       Récupère le pointeur vers la fin des données de la chaine de caractères.
 $36a1       Lecture du prochain caractère à destination de l'appelant.
@@ -8056,7 +8074,7 @@ $36ad       [out_str1]
 
             Entrée :
             - FAC pointe vers un descripteur de chaîne de caractères.
-$36ad       Lit le descripteur de chaîne. HL pointe sur le descripteur. ???
+$36ad       Lit le descripteur de chaîne courante. HL pointe sur le descripteur.
 $36b0       Copie le descripteur dans BCDE.
 $36b3       Prépare la boucle suivante, E étant la longeur de la chaîne de caractères.
 
@@ -8075,6 +8093,9 @@ $36bb       [alloc_stmem]
 
             Lance le GC (Garbage Collector / Ramasse Miettes) si nécessaire.
 
+            Z est d'abord mis à 0, et plus tard mis à 1 s'il n'y a pas assez de mémoire et que le ramasse miettes est lancé.
+            Si au deuxième passage il n'y a toujours pas assez de mémoire, alors une erreur est lancée.
+
             Entrée :
             - A contient la longueur de la chaîne demandée.
 
@@ -8082,9 +8103,8 @@ $36bb       [alloc_stmem]
             - DE pointe vers l'espace alloué.
             - `(fretop)` est ajusté en conséquence.
 
-            Dans ces implémentations, Z (ou Carry???) est d'abord reset, mais plus tard Set avec un bouclage après GC.
-            Si au deuxième passage il n'y a toujours pas assez de mémoire, alors l'erreur est lancée.
-            
+            [ArticleGarbageCollect]
+
 $36bb       Met Z à 0 pour indiquer qu'il faudra lancer le GC.
             En effet, la longueur de la chaîne n'est pas nul.
 $36bc       Passe par dessus le `pop af` qui suit.
@@ -8137,43 +8157,47 @@ $36fc       Le descripteur étudié n'était pas le dernier.
 $36ff       Sinon, la recherche dans les descripteurs temporaire est terminée, la recherche se fait à présent dans les variables.
             HL pointe vers le début de la zone des variables.
 $3702       [srch_var]
-$3702       DE pointe vers... ???
+$3702       DE pointe vers le début de la zone des tableaux, donc à la fin de la zone des variables.
 $3706       Compare le pointeur de variables avec le début de la zone des variables.
 $3707       Branche si les deux pointeurs sont égaux : la recherche est terminée pour la zone des variables.
 $3709-$370c Si le nom de la variable désigne une chaine de caractères, le drapeau P sera à 0.
 $370d       Vérifie si cette variable référence une chaine de caractères.
-$3710       Boucle sur la variable précédente.
+$3710       Boucle sur la variable suivante.
 
 $3712       [next_ary]
-$3712       Jette 
+$3712       Jette le pointeur vers le nombre de dimension du tableau précédent.
+
 $3713       [srch_ary]
             Recherche les références de chaines dans les tableaux.
 
 $3713       `DE` pointe sur la derniere adresse allouée pour les tableaux.
-$3717       Compare avec HL qui pointe sur... toujours `(vartab)` ??? (HL devrait pointer sur `(arytab)`.
-$3718       La zone des tableaux est terminée (et on reparse les variables du coup ???)
-$371b       Récupère le ??? du tableau dans BCDE.
+$3717       Compare avec HL qui pointe sur un début de tableau ou sur `(strend)`
+$3718       La zone des tableaux est terminée.
+$371b       Récupère l'identifiant du tableau dans BCDE.
+            ED est l'identifiant.
+            BC est la taille des données du tableau.
 $371e       Récupère le type du tableau.
-$371f       Sauve ??? sur la pile.
+$371f       Sauve HL sur la pile, qui pointe vers le nombre de dimensions du tableau.
 $3720       HL pointe sur le tableau suivant.
 $3721-$3722 Branche si le type du tableau est numérique.
 $3725       Sauve l'adresse du tableau suivant.
-$3728       Récupère ???.
+$3728       Récupère le pointeur vers le nombre de dimensions du tableau.
 $3729-$372a BC est le nombre de dimensions du tableau.
 $372c-$372e Pointe au delà des dimensions (2 octets par dimensions).
 $372f       [ary_lp]
-$372f       Place le pointeur sur DE.
+$372f       Place le pointeur dans DE.
 $3730       Récupère l'adresse du tableau suivant.
 $3733-$3734 Compare l'adresse actuelle dans le tableau avec celle du tableau suivant.
 $3735       Ce tableau est terminé, branche sur le suivant.
-$3737       Prépare l'adresse de retour vers la boucle de recherche dans les tableaux.
+$3737       Prépare l'adresse de retour vers la boucle de recherche dans le tableau actuel.
+            Enchaîne pour vérifier si l'identifiant contenu dans le tableau pointe vers la donnée chaîne actuelle.
 
 $373a       [st_pool]
 $373a       Place l'adresse de retour.
 $373b       Prépare le type chaine pour la routine suivante.
 
 $373d       [str_in_pool]
-            Vérifie si ... ???
+            Vérifie si le descripteur de chaine pointé vers HL correspond à la chaîne pointée par `(freetop)`
 $373d       A = longueur de la chaine de caractères.
 $373e-$3743 DE pointe sur les données de la chaine de caractères.
 $3744       Retour si la variable n'est pas de type chaine.
@@ -8181,36 +8205,37 @@ $3744       Retour si la variable n'est pas de type chaine.
             Le retour est en fait un branchement vers la boucle actuelle.
 $3745-$3746 Retour si la longueur de la chaine est 0.
 $3747-$3748 Sauve HL dans BC
-$3749-$374c Compare ... avec ...
-$374d-$374e Restaure HL depuis BC. Qui est ???
-$374f       Du coup, retour lorsque ???
-$3750-$3751 Récupère l'adresse sous l'adresse de retour
-$3752       Compare avec ???
+$3749-$374c Compare l'adresse de contenu de chaine avec le pointeur de donnée trouvée dans le descripteur.
+$374d-$374e Restaure HL depuis BC. HL pointe après le descripteur analysé.
+$374f       Retour si HL est inférieur à DE, cela signifie que les données sont après `(fretop)`.
+$3750-$3751 Récupère l'adresse sous l'adresse de retour, qui pointe vers `(strend)`
+$3752       Compare `(strend)` avec l'adresse des données dans DE.
 $3753-$3754 Remet la pile en ordre.
-$3755-$3756 Récupère ???
-$3757       Retour, on est hors de la zone des chaines de caractères.
+$3755-$3756 Récupère le pointeur après le descripteur analysé.
+$3757       Retour si DE (les données) est inférieur à `(strend)`.
+            Après ces deux conditions de retour, DE est situé entre `(strend)` et `(fretop)`.
 $3758       Préserve l'adresse de retour dans BC
 $3759-$375a Jette les deux valeurs suivantes.
-$375b       Place le pointeur de la variable ???
-$375c       Place ???
+$375b       Place le pointeur après la variable à nettoyer.
+$375c       Place la zone des données de chaines associée.
 $375d       Replace l'adresse de retour sur la pile.
 
 $375f       [gc_end]
-$375f       Récupère...
-$3760       ... des addresses ???
-$3761-$3763 Retour si l'adresse (de quoi ???) est nulle.
-$3764-$3767 Récupère une adresse ??? dans BC
-$3768       Sauve HL sur la pile ???
-$3769-$376a Revient en arrière de deux octets.
+$375f       Récupère le pointeur vers les données de chaine.
+$3760       Récupère le pointeur après le descripteur trouvé (ou 0).
+$3761-$3763 Retour si HL est nul, il n'y a rien à faire.
+$3764-$3767 Récupère le pointeur vers les données de chaine depuis le descripteur.
+$3768       Sauve le pointeur vers la partie adresse du descripteur.
+$3769-$376a Revient en arrière de deux octets pour pointer sur la longueur de la chaine.
 $376b-$376c HL = longueur de la chaine.
-$376e       HL pointe vers le début de la chaine suivante.
-$376f-$3770 DE pointe sur le début de la chaine.
+$376e       HL pointe vers le début des données de chaine suivante.
+$376f-$3770 DE pointe sur le début des données de la chaine.
 $3771-$3773 BC pointe sur le dernier octet de la chaine.
 $3774       HL pointe vers la première adresse disponible dans l'espace de chaine.
 $3777       Déplace la chaine pour compacter l'espace des chaine de caractères.
 $377a       Récupère l'adresse du descripteur de la chaine.
 $377b-$377d Met à jour le descripteur avec la nouvelle adresse des données de chaine.
-$377e-$3780 HL pointe vers... ???
+$377e-$3780 HL pointe vers la valeur ajustée pour `(fretop)` qui sera mise à jour à la prochaine boucle.
 $3781       Boucle vers la prochaine chaine.
 
 $3784       [str_concat]
@@ -8230,16 +8255,16 @@ $3793-$3796 Sauve l'adresse de la seconde chaine de caractères.
 $3797       Ajoute la longueur de la seconde chaine à la longueur de la première.
 $3798-$379b Sors avec "String too long" si la somme de deux longueurs est supérieur à 255.
 $379e       Alloue une chaine de caractères de la longueur de la future chaîne de caractères.
-$37a1       DE pointe vers la seconde chaîne.
-$37a2       Récupère la chaîne pointée par DE (où ???).
-$37a5       HL pointe sur la première chaîne.
-$37a6       Récupère la chaîne pointée par HL (où ???).
-$37a9       Sauve la première chaîne (???)
-$37aa-$37ad DE pointe sur ???
+$37a1       DE pointe vers le descripteur de la seconde chaîne.
+$37a2       Récupère la chaîne pointée par DE.
+$37a5       HL qui pointe sur la première chaîne est mis en haut de la pile. Récupère le descripteur de la première chaine.
+$37a6       Récupère la chaîne pointée par HL.
+$37a9       Sauve le descripteur sur la première chaîne.
+$37aa-$37ad DE pointe sur la zone mémoire allouée pour le résultat.
 $37ae       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères.
-$37b1       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères.
+$37b1       Envoie la chaine pointée sur la pile vers la zone des chaines de caractères. Ce qui effectue la concatenation.
 $37b4-$37b8 Place l'adresse de retour vers `eval_1b` sous l'adresse de retour actuelle.
-$37b9       Copie la chaine vers ???
+$37b9       Copie le descripteur de chaine vers le buffer temporaire et FAC.
 
 $37bc       [to_str_area]
             Copie la chaine désignée par le pointeur de descripteur en deuxième place dans la pile vers l'adresse pointée par DE.
@@ -8264,8 +8289,12 @@ $37ce       [get_string]
             %MS_BASIC(GETSTR)
             Vérifie le type courant comme étant un chaine, puis enchaîne sur la récupération de la chaine de caractères courante.
 
+            Entrée :
+            - Suivant l'entrée, le descripteur de chaine à récupérer est soit dans FAC, soit dans HL, soit dans DE.
+
             Sortie :
-            - HL pointe sur un descripteur de chaine de caractères.
+            - HL pointe sur le descripteur de chaine de caractères en entrée.
+            - DE pointe un caractère avant le contenu de la chaine.
             
 $37ce       Vérifie que le type de donnée évaluée est de type chaine.
 
@@ -8277,21 +8306,21 @@ $37d4       [get_str_1]
 $37d4       Sauve HL dans DE.
 
 $37d5       [get_str_2]
-$37d5       Que fait ça ???
+$37d5       Récupère le descripteur de chaine le plus récent. BC pointera sur le contenu de la chaine.
 $37d8       Récupère HL depuis DE.
-$37d9       Sort en fonction du résultat du call précédent ???
-$37da       Sauve DE qui contient ???
-$37db-$37dc DE prend l'adresse BC, l'adresse de la chaine de caractères (le descripteur ou les données ???)
+$37d9       Sort si la chaine cherchée (initialement HL) n'était pas la plus récente.
+$37da       Sauve DE qui contient le descripteur de chaine.
+$37db-$37dc DE pointe sur le contenu de la chaine.
 $37dd       Pointe sur l'octet qui précède.
 $37de       C contient la taille de la chaine de caractères
-$37df       Compare DE (l'adresse de la chaine) avec HL (l'adresse la plus basse de l'espace de chaine).
+$37df       Compare DE (le contenu de la chaine) avec HL (l'adresse la plus basse de l'espace de chaine).
 $37e2-$37e3 Branche si ce n'est pas la dernière chaine (la plus basse) de l'espace de chaine.
-$37e5       B = 0 (car A = 0), donc BC est la longueur de la chaine de carractères.
-$37e6-$37e7 Efface la chaine de l'espace de nom.
+$37e5       B = 0 (car A = 0), donc BC est la longueur de la chaine de caractères.
+$37e6-$37e7 Efface la chaine de l'espace de nom par ajustement du pointeur de l'espace de chaine.
 $37ea       [gstr_end]
-$37ea       Restaure ???
+$37ea       Restaure le descripteur de la chaine.
 
-$37ec       [get_tmp]
+$37ec       [pop_tmp]
             Retourne dans BC le contenu de la chaine la plus en haut (la plus récente) de la pile des descripteurs de chaine temporaire.
 
             Si DE pointe sur le descripteur le plus récent, le laisse dans la pile de chaines.
@@ -8301,7 +8330,7 @@ $37ec       [get_tmp]
             - DE pointe sur un descripteur de chaine.
 
             Sortie :
-            - BC pointe sur le 
+            - BC pointe sur le contenu de la chaine de carractères. 
            
 $37ec       HL pointe sur sur le haut du buffer de descripteurs de chaines temporaires.
 $37ef-$37f4 BC pointe sur les données de la chaine décrite sur le haut du buffer.
@@ -8352,19 +8381,21 @@ $3821-$3824 Injecte le résultat de l'évaluation dans la chaine.
 $3825       [to_pool]
 $3825       Jette l'adresse de retour vers le traitement de la valeur de la fonction.
             L'évaluation d'une chaine est transmise par FAC.
-$3826       Monte la chaine dans ???
+$3826       Monte le descripteur de chaine dans le buffer temporaire et FAC.
 
 $3829       [inst_left]
             %CODE,MS_BASIC(LEFT)
             Fonction BASIC : `LEFT`
 
-            Les fonctions évaluent systématiquement leur premier argument avant d'arriver dans la routine ???
-            Où est-ce que c'est placé, dans la pile ??? Et HL ???
+            En arrivant dans les fonctions de traitement de chaines à plusieurs paramètres, la pile contient :
+            - la valeur du second paramètre.
+            - le pointeur vers le descripteur de la chaîne en premier paramètre.
 
-$3829       Récupère l'argument numérique de `LEFT`.
+$3829       Dépile l'argument numérique de `LEFT` dans B.
 $382c       A = 0
 $382d       [from_right]
-$382d       Récupère le pointeur vers le descripteur de chaine. Haut de la pile = ???
+$382d       Récupère le pointeur vers le descripteur de la chaine.
+            Haut de la pile = pointeur vers le texte BASIC.
 $382e       Copie A, l'index de début de la chaine à extraire, dans C.
 $382f       [from_mid]
 $382f       Sauve le pointeur vers le descripteur de chaine sur la pile.
@@ -8373,7 +8404,7 @@ $3834       Sinon, copie la taille voulue dans A.
 $3835       Saute par dessus le 'ld c,$00' qui suit.
 $3836       [small_str]
 $3836       L'index de départ est 0, car la chaine initiale est plus petite que la chaine à extraire.
-$3838       Sauve BC sur la pile.
+$3838       Sauve BC sur la pile, taille de la chaine résultante, sur la pile.
 $3839       Alloue une chaine de taille A. DE pointe sur la zone allouée.
 $383c       Restaure BC. C = index de départ.
 $383d       Restaure HL, le pointeur vers le descripteur de la chaine source.
@@ -8385,9 +8416,8 @@ $384a       Créé un descripteur de chaine temporaire vers DE
 $384d       Copie la longueur de la chaine dans L.
 $384e       Copie la chaine pointée par `BC` vers l'espace pointée vers `DE` sur une longueur `L`.
 $3851       Restaure le pointeur vers le descripteur source dans DE.
-$3852       ???
-$3855       Continue en plaçant le résultat dans le buffer de chaines temporaires ???
-            Comment est-ce que le résultat se retrouve-t-il dans FAC ???
+$3852       Récupère le descripteur de chaine temporaire.
+$3855       Copie le descripteur résultat dans le buffer résultat et FAC.
 
 $3858       [inst_right]
             %CODE,MS_BASIC(RIGHT)
@@ -8474,7 +8504,7 @@ $38b1       [inst_fre]
 $38b1-$38b4 DE contient l'adresse `(strend)`
 $38b5-$38b8 HL contient l'adresse de la pile.
 $38b9-$38bd Branche si l'argument est numérique sur le calcul de la différence (HL - DE).
-$38c0       Récupère la chaine courante (pour ne pas créer une chaine vide ???)
+$38c0       Récupère le descripteur de la chaine courante depuis FAC.
 $38c3       Lance le ramasse miette.
 $38c6       HL contient `(fretop)`, la plus haute mémoire accessible par le BASIC.
 $38ca       DE contient `(stktop)`, l'adresse la plus haute de la pile (donc le bas de la pile).
@@ -8515,21 +8545,22 @@ $38da       [getvar]
             
             - Si le type de la variable est numérique, alors les deux caractères sont sur 7 bits avec les bits de poids fort à 0.
             - Si le type de la variable est alphanumérique, alors le second caractère a son bit de poids fort à 1.
-            - Si le type de la variable est une fonction, alors le premier caractère a son bit de poids fort à 1. (vérifier ???)
+            - Si le type de la variable est une fonction, alors le premier caractère a son bit de poids fort à 1.
 
             La valeur est stockée sur les quatre octets qui suivent.
             
             - Si le type de la variable est numérique, les 4 octets indiquent la valeur.
             - Si le type de la variable est alphanumérique, le premier octet est la longueur de la chaine, le second n'est pas utilisé, les deux derniers pointent vers les données de la chaine.
-            - Si le type de la variable est une fonction, ???
+            - Si le type de la variable est une fonction, les deux premiers octets pointent vers le texte BASIC de la fonction, les deux octets suivants forment l'identifiant de la variable locale.
 
             Entrée:
             - HL pointe sur le texte BASIC au niveau du nom.
 
             Sorties:
-            - DE pointe sur la valeur de la variable correspondant au nom en entrée, ou à la donnée indexée dans le tableau.
+            - DE pointe sur la valeur de la variable correspondant au nom en entrée pour une variable simple, ou la valeur indexée dans un tableau, ou le descripteur de la fonction.
+            - BC, en cas de recherche explicite d'un tableau (`(subflg) à 1), pointe sur le nombre de dimensions du tableau (début des données). Dans ce cas, DE contient la taille du tableau.
             - HL pointe sur le texte BASIC à la suite du référencement de la variable (incluant l'indice du tableau).
-            - FAC ???
+
 $38da       En arrivant ici, `(dimflg)` aura pour valeur 0.
 $38db       Initialisation de `(dimflg)`. En venant de `DIM`, avec $af, sinon avec $00.
 $38de       C est le premier caractère du nom de la variable.
@@ -8564,7 +8595,7 @@ $3912       %CHAR
 $3911-$3914 Branche si le caractère suivant est une parenthèse ouvrante.
 
 $3917       [var_no_ary]
-$3917-$3918 Le cas est celui d'une variable simple (pas un tableau).
+$3917-$3918 Le cas est celui d'une variable simple ou d'une fonction (pas un tableau).
 $391b       Sauve le pointeur vers le texte BASIC.
 $391c-$391d Copie le nom de la variable dans DE.
 $391e-$3921 Compare le nom du paramètre d'une fonction (HL) avec le nom cherché (DE).
@@ -8619,7 +8650,6 @@ $3971-$3974 Écriture du nom de la variable dans les deux premiers octets de la 
 $3975       [var_found]
 $3975       DE pointe sur la mémoire après le nom de la variable, c'est-à-dire sur sa valeur.
 $3976       HL pointe sur le texte BASIC.
-            Mais du coup, cmment est mis à jour FAC ???
 
 $3978       [ret_null]
 $3978-$397e Arrivé ici, A est à 0. La résultat monté dans FAC est donc une valeur qui est à la fois 0 en numérique et la chaîne vide en alphanumérique.
@@ -8630,28 +8660,29 @@ $3983       Sauve le pointeur vers le texte BASIC.
 $3984-$3987 HL = pointeur vers le texte BASIC, Haut de la pile : `(dimflg)` et `(valtyp)`.
 $3988       D = A = 0. A compte les dimensions.
 $3989       [loop_dim]
-$3989       Sauve le nombre de dimensions.
+$3989       Sauve le numéro de la dimension.
 $398a       Sauve le nom de la variable (et donc du tableau).
 $398b       Lit un entier sur 16 bits dans DE.
 $398e       Restaure le nom de la variable.
-$398f       Restaure le nombre de dimensions.
+$398f       Restaure le numéro de la dimension.
 $3990       Taille/Index du tableau dans HL.
 $3991-$3992 Place la taille/index sous `(dimflg)/(valtype)`
 $3993       HL pointe sur le texte BASIC, DE contient `(dimflag)/(valtyp)`.
-$3994       Augmente le nombre de dimensions.
+$3994       Augmente le numéro de la dimension.
 $3995       Et place le compte dans D.
 $3997       %CHAR
 $3996-$3999 Boucle si la taille est suivie par une virgule.
 $399c       Sinon, le caractère suivant doit être une parenthèse fermante.
 $399d       %DATASKIP
 $399e       Sauve HL, pointeur sur le texte BASIC, temporairement.
-$39a1-$39a2 Remise en place de la valeur `(dimflg)/(valtyp)` venant de la pile (a-t-elle pu être modifiée ???)
+$39a1-$39a2 Remise en place de la valeur `(dimflg)/(valtyp)` venant de la pile.
+            Cette valeur n'a pas été modifée depuis qu'elle a été lue. Cette instruction est étrange.
 $39a5-$39a7 D est le nombre de dimensions, E est à 0, le tout poussé sur la pile.
 $39a8       Saute par dessus les deux `push` qui suivent.
 
 $39a9       [aryvar]
 $39a9       Sauve le pointeur sur le texte BASIC.
-$39aa       Sauve A = 0 et Z à 1
+$39aa       Sauve A = 0 et Z à 1, pour indiquer la recherche de l'adresse d'un tableau.
 $39ab       HL pointe sur le début de la zone mémoire des tableaux.
 $39ae       Saute par dessus le 'add' qui suit.
 
@@ -8666,11 +8697,11 @@ $39bc-$39bd Comparaison des seconds caractères des noms pour préparer le test 
 $39be       [dim_neq]
 $39be-$39c2 Lecture vers DE de la taille mémoire du contenu du tableau.
 $39c3       Boucle vers le prochain tableau en mémoire si le nom cherché et le nom pointé sont différents.
-$39c5       Sinon, A récupère l'action voulue (création ou lecture).
+$39c5       Sinon, A récupère l'action voulue (création ou accès).
 $39c8-$39c9 Branche vers une erreur de redimensionnement si `(dimflg)` est différent de zéro (création de tableau).
-$39cc       Sinon, c'est une lecture. A prend le nombre de dimensions indiqués par le texte BASIC.
+$39cc       Sinon, c'est un accès. A prend le nombre de dimensions indiqués par le texte BASIC.
 $39cd-$39ce BC pointe vers les dimensions du tableau trouvé.
-$39cf       Branche en fonction des drapeaux que l'on vient de récupérer. Quels sont les cas ???
+$39cf       Branche si le nombre de dimension était 0 (recherche d'une adresse de tableau)
 $39d2-$39d3 Branche si les dimensions sont égales.
 
 $39d6       [out_range]
@@ -8683,15 +8714,11 @@ $39dc       [ary_at_end]
             Entrées :
             - HL est `(strend)`, pointeur vers le début de la mémoire inutilisée du BASIC.
             - BC est le nom de la variable/tableau
-
-            HL contient arytab
-            BC contient le nom de la variable (du tableau)
             
 $39dc       %NOT_LABEL
             DE est initalisé à 4, qui est la taille d'un élément de tableau.
 $39df       Récupère la dimension dans A.
-            Z est forcément à 1 ???
-$39e0       Branche si Z était à 0 vers une erreur d'appel illégal. (dans quel cas ???)
+$39e0       Branche vers une erreur si le tableau a zero dimension.
 $39e3-$39e6 Inscrit le nom de la variable/tableau dans les deux premiers octets de l'entrée pointée.
 $39e7       Place le nombre de dimensions dans C.
 $39e8       Vérifie qu'il y a assez de place sur la pile pour 2 * le nombre de dimensions.
@@ -8814,7 +8841,13 @@ $3a7e       Restaure AF
 $3a7f       Permet l'IRQ
 
 $3a81       [save_sync]
-            ??? Mieux comprendre l'effet du paramètre A.
+            Écrit sur la k7 la partie synchronisation.
+
+            Il s'agit d'une séquence d'alternances 1/0 courts (cycles high/low) dont le nombre dépend de `(handler)` et de A.
+            
+            Entrée :
+            - A à $00 multiplie `(handler)` par 256 (cas de l'amorce initiale pour SAVE et de l'amorce d'en-être pour CSAVE).
+            - A à $ff multiplie `(handler)` par 1024 (cas de l'amorce du contenu pour un CSAVE).
 
 $3a81       Place les drapeaux en fonction de A.
 $3a82       Sauve les drapeaux sur la pile.
@@ -8823,15 +8856,18 @@ $3a8a       [sync_loop]
 $3a87-$3a8d Boucle d'attente le temps que HL boucle de $0000 à $0000
 $3a8f       Restaure les drapeaux.
 $3a90       [send_ones]
+$3a90       La valeur de `(handler)` vient des paramètres initialisés dans `k7_set_prms`.
 $3a93       Si le drapeau était à Z, on branche.
 $3a95-$3a96 Si Z n'était pas à 1 (dans A initialement pas à 0), A est multiplié par 4.
 $3a97       [not_mult]
 $3a97       La valeur est ensuite stockée dans B
-$3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à la valeur de handler * 1024 ou handler * 256 (suivant le drapeau Z)
+$3a98       Et C est mis à $00 pour former BC comme un compteur qui commence à :
+            - `handler * 1024` si `A` en entrée était $ff
+            - `handler * 256` si `A` en entrée était $00
 $3a9a       Désactivation des interruptions.
 $3a9b       [send_one_lp]
 $3a9e       Attente de 29 états T
-$3aa1-$3aa4 Boucle tabt que BC n'atteint pas 0.
+$3aa1-$3aa4 Boucle tant que BC n'atteint pas 0.
 $3aa6       Pour terminer, branche sur la vérification de BREAK, d'anti copie et de reset des touches. Profitera du `ret` de la routine.
 
 $3aa9       [k7write]
@@ -8883,7 +8919,11 @@ $3af1       Restaure AF
 $3af3       [calibrate]
             Calibre la lecture de la cassette.
 
-            ??? Vérifier les calculs.
+            Lit le « temps » nécessaire à un cycle 1/0.
+
+            La routine est un succès si elle peut lire 1111 fois un cycle 1/0 dont le temps reste assez stable.
+
+            La stabilité est jugée par un écart qui ne doit par dépasser un compte de 4.
 
 $3af3-$3af5 Démarre le moteur du lecteur k7 (si la prise remote est branchée).
 $3af7       Désactive l'IRQ
@@ -8891,30 +8931,31 @@ $3af7       Désactive l'IRQ
 $3af8       [cal_retry]
 $3af8       Compteur à $457 (1111)
 $3afb       [cal_adjust]
-$3afb       Mise dans D de la valeur précédente du compteur de cycle 0/1 (et à la première itération ???)
-$3afc       Lit un cycle 0/1
+$3afb       Mise dans D de la valeur précédente du compteur de cycle 1/0.
+            La valeur de D à la première itération n'a pas d'importance.
+$3afc       Lit un cycle 1/0
 $3aff       Si le Carry est levé, l'interruption de la commande a été demandée, retour immédiat.
-$3b00       Compteur de cycle 0/1 dans A
+$3b00       Compteur de cycle 1/0 dans A
 $3b01-$3b03 Boucle si le compteur est supérieur à 222
 $3b05-$3b07 Boucle si le compteur est inférieur à 5
 $3b09-$3b0a Le compteur est dans ses bornes. Branche plus loin si A était supérieur à D, la valeur précédente. A contient la différence entre la nouvelle et l'ancienne valeur.
 $3b0c-$3b0d Complément à 2 de A, pour prendre sa valeur opposée.
 
 $3b0e       [cycle_abs]
-$3b0e       A contient la valeur absolue de la différence entre les deux précédent compteur de cycle 0/1
+$3b0e       A contient la valeur absolue de la différence entre les deux précédent compteur de cycle 1/0
 $3b10       Boucle si cette différence est de 4 ou plus avec le compteur HL réinitialisé.
 $3b12       Décrémente HL
 $3b13-$3b15 Boucle si HL n'est pas nul pour lire une nouvelle valeur.
-$3b17       Force HL à 0 (il est déjà à 0 normalement ???)
+$3b17       Force HL à 0. Qui est déjà à $0000...
 $3b1a-$3b1b B et D à 0 aussi
 
 $3b1c       [read_256]
-$3b1c       Lecture d'un cycle 0/1
+$3b1c       Lecture d'un cycle 1/0
 $3b1f       Retour si l'interruption de la commande a été demandé.
-$3b20       Ajoute BC (donc C, car B est initialisé à 0) à l'accumulateur HL
+$3b20       Accumule dans HL les temps de cycle successivements lus.
 $3b21-$3b22 Boucle 256 fois (D initialement à 0)
-$3b25-$3b28 Un dernier ajoute de $5fa (1530) à l'accumulateur, pour l'arrondi ???
-$3b29       A contient la moyenne du compteur de 256 lectures de cycle 0/1 (à l'ajout de 5 prêt)
+$3b25-$3b28 Valeur d'ajustement à l'accumulation des temps de lectures (= 1530).
+$3b29       A contient la moyenne du compteur de 256 lectures de cycle 1/0 (à l'ajout de 5 prêt)
 $3b2a-$3b2b Moyenne divisée par 2
 $3b2d       Et mise dans D
 $3b2e       Double l'accumulateur de toutes les durées de lecture.
@@ -8923,6 +8964,7 @@ $3b30       Différence entre 2 fois la moyenne et la moitié de la moyenne.
 $3b31       Sauvegarde de la différence dans D
 $3b32       Soustraction de 5 à la différence (ajoutée précédemment à la somme)
 $3b34       Enregistrement de la différence entre la moitiée et le double de la moyenne.
+            C'est la longueur de la phase haute de cycle 1/0.
 $3b37-$3b38 Doublement de la différence
 $3b39       Initialise B pour calculer A / 3.
 $3b3b       [lim_div_3]
@@ -8959,20 +9001,19 @@ $3b63       B prend la période de la lecture de 0.
 $3b64       Lecture d'un demi cycle à 1, avec calcul de la période.
 $3b67       Retour si demande d'interruption de commande.
 $3b68-$3b69 Ajout du total des deux périodes.
-$3b6a       Si la somme dépasse 255 (en cas d'échec de lecture), nouvelle tentative.
-            À chaque fois, la somme calculée est celle des deux demi-périodes du cycle lues.
-$3b6c-$3b6d Nouvelle tentative si la période du cycle complet est plus petite que `lowlim` actuellement dans D.
+$3b6a       Si la somme dépasse 255 (en cas d'échec de lecture), nouvelle tentative. À chaque fois, la somme calculée est celle des deux demi-périodes du cycle lues.
+$3b6c-$3b6d Nouvelle tentative si la période du cycle complet est plus petite que `(lowlim)` actuellement dans D.
 $3b6f       L compte les 8 bits à lire.
 
 $3b71       [rd_nxt_byte]
 $3b71       Lecture pendant la durée d'une fenêtre.
-$3b74-$3b77 Retour s'il y a eu plus de 4 changements de signal pendant la période avec le Carry à 1.
-$3b78-$3b7a Si le nombre de changements est inférieur strictement à 2, le Carry est à 0, sinon (donc pour 2, 3 ou 4 changements), le Carry est à 1.
+$3b74-$3b77 Retour s'il y a eu 4 changements de signal ou plus pendant la période avec le Carry à 1.
+$3b78-$3b7a Si le nombre de changements est inférieur strictement à 2, le Carry est à 0, sinon (donc pour 2 ou 3 changements), le Carry est à 1.
             Normalement, on s'attend à avoir 3 changements (bit à 1) ou 1 changement (bit à 0). Le Carry porte donc la valeur du bit.
 $3b7b       Construction progressive de l'octet lu par rotation et valeur lue en bit 7.
-$3b7d       A = C, mais n'étaient-ils pas déja égaux ???
-$3b7e-$3b7f En cas d'un nombre de changement impaire, on attent le prochain changement pour se recaler.
-$3b82       Puis attente d'un nouveau changement de signal. Ce qui fait qu'on a toujours un nombre de changement impaire ???
+$3b7d       Copie la valeur de C dans A... Mais ceux-ci sont déjà égaux et non modifiés depuis l'appel à `read_window`.
+$3b7e-$3b7f En cas d'un nombre de changement paire (0 ou 2), on attent le prochain changement pour se recaler sur 1 ou 3.
+$3b82       Puis attente d'un nouveau changement de signal. Ce qui fait qu'on a toujours un nombre de changements pair (2 ou 4)
 $3b85-$3b86 Boucle 8 fois.
 $3b89       Vérifie l'interruption de commande.
 $3b8c       Résultat de l'octet lu de l'opération dans A.
@@ -9031,7 +9072,9 @@ $3bbd       [wait_timout]
 $3bbd       Ramène C à $ff
 
 $3bbf       [read_cycle]
-            Lit depuis la k7 un cycle 0/1 et renvoie dans C le temps total.
+            Lit depuis la k7 un cycle 1/0 et renvoie dans C le temps total.
+
+            La routine commence par attendre le passage au signal haut.
 
             Sortie :
             - C, compteur total pour le cycle 0/1, ou 255 en cas d'échec.
@@ -9207,28 +9250,27 @@ $3ca2       Appel au hook d'entrée de ligne.
 $3ca5       HL pointe vers le buffer de travail
 $3ca8       [get_line2]
 $3cab-$3cac Branche si le périphérique d'entrée actuel est le clavier.
-$3cae       Sinon, l'entrée est autre chose. Pour la ROM de base, c'est la k7, via la routine de chargement de `LOAD`. ???
-            L'adresse à lire est dans `(high)` et l'octet lu sera en retour dans A.
-            Le drapeau Z est à 1 si l'octet lu était le marqueur de fin de buffer, $03 et dans ce cas, A est à 0.
+$3cae       Sinon, l'entrée est autre chose qu'un clavier. Pour la ROM de base, c'est la k7, via la routine de chargement de `LOAD`.
+            L'adresse à lire est dans `(high)` et l'octet lu sera en retour dans A. Le drapeau Z est à 1 si l'octet lu était le marqueur de fin de buffer, $03 et dans ce cas, A est à 0.
 $3cb1       Branche si un octet a été lu depuis le buffer.
 $3cb3       Sinon, la fin du buffer a été atteinte, et on branche pour finaliser la ligne entrée.
 
 $3cb5       [keyloop]
             Traitement du moniteur pour une entrée par le clavier.
 $3cb5       Traitement de l'appuie d'une touche, qui est éventuellement traitée.
-$3cb8-$3cb9 Branche si une touche validée nécessite un traitement. La plupart des touches sont traitées directement et A est alors à 0. Quelles touchent sortent-elles avec A != 0 ??? STOP par exemple.
+$3cb8-$3cb9 L'acquisition de touche a deux sorties possibles.
+            Si A est à 0, alors une touche a été acquise mais ne demande pas de traitement particulier (ou a déjà été traitée).
+            Si A est différent de 0, alors c'est qu'une boucle a été initiéé et que l'acquisition de touche va envoyer chacun des caractères de la ligne validée pour décodage.
 $3cbb-$3cbe Retour à la boucle de traitement si la touche STOP n'a pas été appuyée
 $3cc0       La combinaison d'interruption de commande (SHIFT+STOP) a été détectée. Carry est à 1 et on termine l'acquisition des touches. Le retour se fait en $22b1
 
 $3cc1       [decodebasic]
-            Fonction : décode la ligne en BASIC ???
+            Traitement d'une ligne BASIC validée.
+
 $3cc1-$3cc3 Branche si le dernier caractère acquis était un retour chariot.
-$3cc5-$3cc7 Sinon, replace le caractère dans le buffer en effaçant le bit de poids fort.
-$3cc8-$3ccb Compare le pointeur vers le texte entré avec la fin du buffer de travail.
-            Mais comment est-ce que HL pourrait déborder ??? Pas en entrée direct on dirait...
-            Il est possible qu'on n'arrive là que via la lecture k7 ???
-$3ccc       Si le pointeur a atteint la fin du buffer, branche vers la validation de la ligne.
-            Cette partie est patchée dans la ROM 1.1 pour une meilleure gestion de la fin de buffer.
+$3cc5-$3cc7 Sinon, place le caractère dans le buffer de travail BASIC en effaçant le bit de poids fort.
+$3cc8-$3ccb Vérifie que le pointeur dans le buffer de travail n'a pas atteint la fin du buffer.
+$3ccc       Branche vers la suite.
 
 $3ccf       [hl_incbuf]
 $3ccf       Incrémente le pointeur dans le buffer de travail.

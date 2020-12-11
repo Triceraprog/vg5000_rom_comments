@@ -1998,7 +1998,7 @@ $0984       Prends l'exposant de FAC.
 $0987       Le compare avec $77 ($80 - 9)
 $0989       Retourne avec FAC non touché si l'exposant est petit (inférieur à environ 0.0019)
             En effet, pour des petits nombres, x est une approximation de sin(x)
-$098d       Récupèration du MSB dans A.
+$098a-$098d Récupèration du MSB dans A.
 $098e       Branche plus loin si c'est un nombre positif
 $0991       Comme sin(-a) = -sin(a), on rend le paramètre positif.
 $0993       On remonte le MSB dans FAC
@@ -6158,6 +6158,7 @@ $2ac5       Place A dans l'adresse spécifiée.
 $2ac7       Quatre octets inutilisés, reliquat du patch de l'instruction `POKE` en ROM 1.1.
 
 $2acb       [poke_addr]
+            %CODE
             Routine de récupération du premier argument pour `POKE`.
             Cette routine est séparée de la routine pour l'instruction pour une raison inconnue.
 
@@ -6926,7 +6927,7 @@ $302c       [str_hex_dec]
             %MS_BASIC(HEXTFP)
             Transforme un nombre de la forme &"xxxx" en nombre flottant.
 
-            La fin de la routine est patchée dans la ROM 1.1 pour se reposer sur `bade_to_fac`
+            La fin de la routine est patchée dans la ROM 1.1 pour se reposer sur `bade_to_fac`.
 
             Entrée :
             - HL pointe vers le texte BASIC au niveau du '&' initial.
