@@ -388,7 +388,7 @@ $00aa       [kbscan]
 
             Sortie :
             - A contient le caractère ASCII produit par la touche appuyée, ou bien 0.
-            - Le Carry drapeau indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
+            - Le Carry indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
 
             [ArticleKeyboard]
 $00aa       Saut vers l'implémentation.
@@ -478,7 +478,7 @@ $00b9       [break]
 $00b9       Saut vers l'implémentation.
 
 $00bc       [disp_refrsh]
-            rafraîchissement de l'état de l'affichage sur l'EF9345 en fonction
+            Rafraîchissement de l'état de l'affichage sur l'EF9345 en fonction
             du contenu de la mémoire vidéo en RAM ($4000)
 
             La séquence commence avant le branchement à la fin de `irq:`.
@@ -717,7 +717,7 @@ $02a7       [kbscan_impl]
 
             Sortie :
             - A contient le caractère ASCII produit par la touche appuyée, ou bien 0.
-            - Le Carry drapeau indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
+            - Le Carry indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
 
 $02a7       Prépare C avec le premier port à scanner ($87) et B avec le nombre de ports (7).
 $02aa       [kb_row_loop]
@@ -762,10 +762,10 @@ $02e2       L'index est ajouté au pointeur de la table.
 $02e3       La valeur de la table est lue dans A.
 $02e4       [key_changed]
 $02e4       Comparaison avec la valeur précédente lue au clavier.
-$02e7       Set Carry drapeau
+$02e7       Set Carry
 $02e8       Branche si la nouvelle touche pressée est identique à la précédente.
 $02ea       Sinon, on enregistre la nouvelle valeur
-$02ed       Et le Carry drapeau est enlevé
+$02ed       Et le Carry est enlevé
 $02ee       [kbscan_exit]
 
 $02ef       [regst_impl]
@@ -1242,7 +1242,7 @@ $059e       [ret_cmp]
 $059e       %CODE
             Prend le complément de A.
 $059f       Rotation à gauche via Carry, qui contient donc le bit de poids fort de A.
-$05a0       [drapeau_diff]
+$05a0       [flag_diff]
 $05a0       Soustraction de A avec A avec retenu.
 $05a1       Saute si la rotation avait débordée dans la retenue.
 $05a2       Sinon, augmente A de 1 (autrement, dit A = 1 puisque la soustraction avait donné 0)
@@ -4636,8 +4636,8 @@ $2347       [line_search]
             - DE contient toujours le numéro de la ligne BASIC à chercher.
             - Si la fin du listing a été atteinte, alors BC et HL pointent sur le pointeur final.
 
-            En sortie, si Carry drapeau est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
-            Si Carry drapeau est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché. HL contient la ligne suivante à celle pointée par BC.
+            En sortie, si Carry est levé, alors HL contient le pointeur vers la ligne de BASIC trouvée.
+            Si Carry est reset, alors la ligne n'a pas été trouvée. BC contient le pointeur vers la ligne de numéro inférieur à celui cherché. HL contient la ligne suivante à celle pointée par BC.
             (prelin) contient toujours le pointeur vers la ligne cherchée précédemment.
 
 $2347       Initialise BC à 0.
@@ -5618,7 +5618,7 @@ $2852       [type_eq_chk]
             Vérifie que deux types de variables sont égaux.
 
             Entrée :
-            - Carry drapeau porte le premier type, 0 = numérique, 1 = chaîne de caractères
+            - Carry porte le premier type, 0 = numérique, 1 = chaîne de caractères
             - `(valtyp)` porte le second type, 0 = numérique, 1 = chaîne de caractères
 
             Sortie :

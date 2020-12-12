@@ -20,7 +20,7 @@ $0008       [chkchr]
             %CODE
             Vérifie que le caractère pointé par HL est égal au caractère qui suit exactement
             l'instruction `RST $8`/`RST 1` appelante.
-            
+
             Si ce n'est pas le cas, affiche un message d'erreur de syntaxe BASIC.
 
 $0008       Enregistre le caractère pointé par HL
@@ -81,13 +81,13 @@ $0020       [dcompr]
 
             Entrée :
             - HL et DE, les deux registres à comparer.
-            
+
             Sortie :
             - A est modifié
             - Carry est à 1 si DE est supérieur à HL.
             - Z est à 1 si les deux registres sont égaux.
             - HL et DE sont conservés.
-            
+
 
 $0020-$0024 Effectue d'abord la soustraction (H-D) puis (L-E) si H et D sont égaux.
 $0026       Deux octets inutilisés.
@@ -129,7 +129,7 @@ $0038       [irq]
             Le Z80 fonctionne en mode 1. Dans ce mode, un signal IRQ provoque, après
             traitement de l'instruction en cours, un branchement à cette adresse.
 
-            Sur le VG5000µ, cette interruption est levée par le signal Vertical Sync 
+            Sur le VG5000µ, cette interruption est levée par le signal Vertical Sync
             de l'affichage (sortie PC/VS sur l'EF9345).
 
             Un vecteur est disponible pour installer une routine d'utilisateur qui
@@ -142,11 +142,11 @@ $0038       [irq]
 $0038       Appel au vecteur utilisateur.
 $003b       Sauve AF.
 $003c       Décrémente le compteur de temporisation d'affichage
-$003f       Si le compteur n'est pas nul, on évite le rafraichissement.
-$0042-$0045 Chargement de la valeur de référence du compteur de rafraichissement.
-$0048-$004c Test puis mise à zéro du bit 0 du flag d'affichage.
-$0050       Si le flag d'affichage était à zéro, on évite le rafraichissement.
-$0053-$0055 Début du rafraichissement de l'affichage, avec sauvegarde
+$003f       Si le compteur n'est pas nul, on évite le rafraîchissement.
+$0042-$0045 Chargement de la valeur de référence du compteur de rafraîchissement.
+$0048-$004c Test puis mise à zéro du bit 0 du drapeau d'affichage.
+$0050       Si le drapeau d'affichage était à zéro, on évite le rafraîchissement.
+$0053-$0055 Début du rafraîchissement de l'affichage, avec sauvegarde
             de registres.
 $0056-$005c VDP - $28/$82, MAT = R1
 $005e-$0062 Prépare la commande $29
@@ -170,7 +170,7 @@ $0069       [lang_to_eng]
             %CODE
             Met le système en anglais.
 
-            Le seul accès semble être via la valeur que prend temporairemet `nmihk` pendant le démarrage.
+            Le seul accès semble être via la valeur que prend temporairement `nmihk` pendant le démarrage.
 $0069-$006b Messages en anglais.
 $006e-$0071 Table de transcription du clavier en anglais.
 $0074       Retour d'interruption NMI.
@@ -184,7 +184,7 @@ $0080       [retfun]
             Doit être appelé à la fin d'une fonction utilisateur afin de placer le contenu de A comme
             résultat de la fonction.
 
-            Entrées : 
+            Entrées :
             - A contient la valeur de retour de la fonction
             - HL pointe sur le texte BASIC
 $0080       Saut vers l'implémentation.
@@ -199,7 +199,7 @@ $0083       [deint]
 
             Entrées :
             - HL pointe généralement sur le texte BASIC (mais ne sert pas et est préservé).
-            
+
             Sortie :
             - DE contient la valeur de l'accumulateur flottant, sous forme entière.
 $0083       Saut vers l'implémentation.
@@ -224,7 +224,7 @@ $0089       [frmnum]
             Évalue l'expression BASIC pointée par HL et renvoie son résultat dans FAC.
 
             Si l'expression n'est pas numérique, une erreur BASIC sera levée.
-            
+
             Cette opération peut être enchaînée avec un appel à `deint` pour récupérer le
             résultat sous forme d'entier 16 bits dans DE.
 
@@ -331,7 +331,7 @@ $009e       [cls]
             %CODE
             Efface la mémoire tampon de l'écran.
 
-            L'effacement se fait en effçant la première selon la procédure `cll` qui suit, puis
+            L'effacement se fait en effaçant la première selon la procédure `cll` qui suit, puis
             en recopiant son contenu dans le reste de la mémoire tampon.
 
             Entrées :
@@ -388,7 +388,7 @@ $00aa       [kbscan]
 
             Sortie :
             - A contient le caractère ASCII produit par la touche appuyée, ou bien 0.
-            - Le Carry Flag indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
+            - Le Carry indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
 
             [ArticleKeyboard]
 $00aa       Saut vers l'implémentation.
@@ -398,7 +398,7 @@ $00ad       [regst]
             Envoie au VDP une liste de paires (registres, valeur).
 
             Le premier élément de la liste est le nombre de paires de la table.
-            Suivent les paires sous forme de deux octets, le premier contenant l'adresse de selection de registre et le deuxième la valeur à transmettre.
+            Suivent les paires sous forme de deux octets, le premier contenant l'adresse de sélection de registre et le deuxième la valeur à transmettre.
 
             Entrées :
             - HL pointe vers la table des valeurs.
@@ -412,11 +412,11 @@ $00b0       [stkv]
             %CODE
             Vérification de l'axe vertical pour les déplacements.
 
-            L'axe vertical est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+            L'axe vertical est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de sélection contenue dans A.
 
             Entrées :
             - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
-            
+
             Sortie :
             - A = 0, aucune action selon l'axe vertical.
             - A = 1, action vers le bas.
@@ -432,11 +432,11 @@ $00b3       [stkh]
             %CODE
             Vérification de l'axe horizontal pour les déplacements.
 
-            L'axe horizontal est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+            L'axe horizontal est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de sélection contenue dans A.
 
             Entrées :
             - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour les touches curseurs du clavier.
-            
+
             Sortie :
             - A = 0, aucune action selon l'axe horizontal.
             - A = 1, action vers la droite.
@@ -452,11 +452,11 @@ $00b6       [stka]
             %CODE
             Vérification du bouton d'action.
 
-            Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de selection contenue dans A.
+            Le bouton d'action est vérifié sur un des deux joysticks ou sur le clavier en fonction de la valeur de sélection contenue dans A.
 
             Entrées :
             - A contient le choix du périphérique à scanner. 0 pour le joystick gauche, 1 pour le joystick droit, 2 pour la barre espace du clavier.
-            
+
             Sortie :
             - A = 0, aucune action.
             - A = 1, bouton actif.
@@ -478,7 +478,7 @@ $00b9       [break]
 $00b9       Saut vers l'implémentation.
 
 $00bc       [disp_refrsh]
-            Rafraichissement de l'état de l'affichage sur l'EF9345 en fonction
+            Rafraîchissement de l'état de l'affichage sur l'EF9345 en fonction
             du contenu de la mémoire vidéo en RAM ($4000)
 
             La séquence commence avant le branchement à la fin de `irq:`.
@@ -628,7 +628,7 @@ $0230       Sauve les coordonnées.
 $0231       Provoque un défilement de l'écran de 1 ligne vers le haut.
 $0234-$0236 Efface la ligne 24.
 $0239       Restaure les coordonnées.
-$023a       Demande un rafraichissement de l'écran à la prochaine interruption.
+$023a       Demande un rafraîchissement de l'écran à la prochaine interruption.
 $023e       Charge DE avec l'adresse du premier octet de la dernière ligne de l'écran.
 $0241       [line_ok]
 $0241-$0246 Branche si le caractère de continuité n'est pas requis par le registre.
@@ -717,7 +717,7 @@ $02a7       [kbscan_impl]
 
             Sortie :
             - A contient le caractère ASCII produit par la touche appuyée, ou bien 0.
-            - Le Carry Flag indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
+            - Le Carry indique si la lue touche a changé depuis le dernier appel (0) ou est restée identique (1).
 
 $02a7       Prépare C avec le premier port à scanner ($87) et B avec le nombre de ports (7).
 $02aa       [kb_row_loop]
@@ -762,10 +762,10 @@ $02e2       L'index est ajouté au pointeur de la table.
 $02e3       La valeur de la table est lue dans A.
 $02e4       [key_changed]
 $02e4       Comparaison avec la valeur précédente lue au clavier.
-$02e7       Set Carry flag
+$02e7       Set Carry
 $02e8       Branche si la nouvelle touche pressée est identique à la précédente.
 $02ea       Sinon, on enregistre la nouvelle valeur
-$02ed       Et le Carry flag est enlevé
+$02ed       Et le Carry est enlevé
 $02ee       [kbscan_exit]
 
 $02ef       [regst_impl]
@@ -773,7 +773,7 @@ $02ef       [regst_impl]
 $02ef       Lecture dans B de la longueur (nombre de paires) de la table.
 $02f0       Place HL sur l'octet suivant de la séquence.
 $02f1       [regst_loop]
-$02f4-$02fc Utilisation de `outi` pour enoyer les paires vers le VDP.
+$02f4-$02fc Utilisation de `outi` pour envoyer les paires vers le VDP.
             À chaque tour de boucle, le premier octet est envoyé vers le port `$8f` et le second vers le port `$cf`. Chaque envoie est précédé d'une attente d'état `prêt` du VDP.
 
 $02ff       [add_half]
@@ -793,7 +793,7 @@ $0302       [fp_add_hl]
 
             Sortie :
             - FAC contient le résultat.
-$0302       Charge les quatre octetcs pointés par HL dans BCDE.
+$0302       Charge les quatre octets pointés par HL dans BCDE.
 $0305       Branche vers l'addition entre BCDE et FAC.
 $0307       [fp_sub_hl]
             %MS_BASIC(SUBPHL),CODE
@@ -827,7 +827,7 @@ $0310       [fp_bcde_add]
 $0310-$0312 Si l'exposant de BCDE est 0, il n'y a rien à ajouter, on ne touche pas à FAC et on sort.
 $0313-$0317 Si l'exposant dans FAC est 0, alors on copie BCDE dans FAC et c'est terminé
 $031a-$031b Si l'exposant de BCDE (B) est plus petit que celui de FAC (A), on garde comme ça. Sinon, on les échange.
-$031d-$031e Oppose la différence entre les expostants (complément à 2)
+$031d-$031e Oppose la différence entre les exposants (complément à 2)
 $031f       Sauve DE...
 $0320       Le temps de mettre FAC sur la pile
 $0323       ... et restaure DE
@@ -867,7 +867,7 @@ $035f-$0360 L et H sont les plus petits signifiants de la mantisse, qui est sous
 $0361       A = 0, va servir de compteur
 
 $0362       [rot_loop]
-            La partie ci-dessous prend C, D, H, L, A comme un buffer en decalage vers la gauche
+            La partie ci-dessous prend C, D, H, L, A comme un buffer en décalage vers la gauche
             (octet par octet). A est un compteur (sauvé temporairement dans B pendant la rotation) auquel
             on soustrait 8 à chaque fois, jusqu'à attendre $e0 (ce qui fait 4 fois avec A = 0 au début)
 $0362       Sauvegarde du compteur dans B
@@ -880,7 +880,7 @@ $0369       ... vers
 $036a       ... DHLA (et A est égal à 0 ici). On embarque L (l'exposant) dans le shift, pour tester au passage s'il était nul.
 $036b       Récupération temporaire dans A du compteur
 $036c-$036e Soustrait 8 du compteur, puisque l'on vient de décaler de 8, et comparaison avec -24-8.
-$0370       Arrêt si le compteur est arrivé à 32. On a shifté de 32 bits au max, le résultat est donc 0. Sinon, on continue le shift
+$0370       Arrêt si le compteur est arrivé à 32. On a décalé de 32 bits au max, le résultat est donc 0. Sinon, on continue le shift
 $0372       [clear_fac]
 $0372       On met 0 dans le FAC
 $0373       [a_to_exp]
@@ -933,8 +933,8 @@ $03bb       Retour si tout va bien. Mais si l'exposant a bouclé sur 0
 $03bc       Alors c'est que le nombre est trop grand, on lance l'erreur.
 
 $03bf       [add_bcde]
-            Ajoute les mantisses de FAC (plus exactemet, de ce qui est pointé par HL) et CDE.
-            
+            Ajoute les mantisses de FAC (plus exactement, de ce qui est pointé par HL) et CDE.
+
             Le résultat est dans CDE, et Carry à 1 si dépassement de capacité.
             FAC n'est pas modifié.
 
@@ -952,12 +952,12 @@ $03df       [scale]
             Décalage vers la gauche de la mantisse CDEB d'un nombre donné par A.
 
             Le décalage se fait d'abord par groupe de 8 bits tant que c'est possible, puis continue bit à bit.
-            
+
 $03df       Initialise B à 0. B contiendra les bits les moins significatifs de la mantisse.
 $03e1       [shiftr_8]
 $03e1-$03ea Décale la mantisse de 8 bits (un registre complet) vers la droite.
 $03ec       [end_256]
-$03ec       La denière soustractiona a fait passer A négatif, on y ajoute 8+1.
+$03ec       La dernière soustraction a fait passer A négatif, on y ajoute 8+1.
 $03ee       Sauvegarde de l'exposant restant dans A
 $03ef-$03f2 S'il y a des bits à 1 dans le bas de la mantisse (DEB), on passe sur la méthode complète (plus lente) de shift vers la droite L fois.
 $03f4       Sinon, on s'occupe uniquement de la partie haute de la mantisse (C)
@@ -973,7 +973,7 @@ $03fd       [fp_shift_r]
             %MS_BASIC(SHRLP)
             Décalage vers la droite L fois de la mantisse CDEB.
             Méthode complète.
-            
+
 $03fd       A prend 0. Et Carry est à 0 (important pour initialiser le décalage à droite)
 $03fe       Décrémentation du nombre de décalage restant (la boucle commence par le test, ce qui explique le 8+1 ajouté à A).
 $03ff       Traitement terminé, routine terminée.
@@ -1010,7 +1010,7 @@ $0434       [inst_log]
             %CODE
             Fonction BASIC : `LOG()`
 
-$0434-$0436 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.       
+$0434-$0436 Branche sur une erreur si l'argument, dans FAC, est négatif ou nul.
 $0439       Appel le calcul du log.
 $043c-$043f BCDE = ln(2)
 $0442       Multiplie le résultat par ln(2)
@@ -1021,14 +1021,14 @@ $044c       Inverse le bit 7 de l'exposant du paramètre.
 $044d       Et sauvegarde le résultat sur la pile.
 $044e       Pousse FAC (l'argument du `log` avec son exposant à `$80`) sur la pile.
 $0451       Fait pointer HL vers la table de facteurs pour `log`.
-$0454       Calcule le polynome avec les facteurs de `logtab`.
+$0454       Calcule le polynôme avec les facteurs de `logtab`.
 $0457-$0458 Récupère l'argument dans BCHL (car DE va être utilisé)
-$0459       Pousse le résultat du polynome sur la pile.
+$0459       Pousse le résultat du polynôme sur la pile.
 $045c       Reconstitue BCDE, argument du `log`.
 $045d       Monte BCDE dans FAC.
-$0460-$0463 Calcule le second polynome avec les facteurs de `logtab2`.
+$0460-$0463 Calcule le second polynôme avec les facteurs de `logtab2`.
 $0466-$0467 Récupère BCDE, l'argument du `log`.
-$0468       Division de l'argument dans BCDE par le polynome.
+$0468       Division de l'argument dans BCDE par le polynôme.
 $046b       Récupération de l'opération sur l'exposant de FAC (inversion du bit 7).
 $046c       Résultat de la division dans la pile.
 $046f       Placement du nombre dans A dans FAC (qui était la valeur de l'exposant)
@@ -1080,7 +1080,7 @@ $04ac       Le résultat devient le nouveau DE.
 $04ad       Restauration de H (multiplicateur) et L (compteur de bits)
 $04ae-$04b1 Addition des deux MSB (argument et accumulateur) en tenant compte de la retenue des parties basses.
 $04b2       [no_add]
-$04b2       
+$04b2
 $04b2-$04bc Décalage du résultat vers la droite de CDEB.
             Dans l'opération, les bits les plus faibles de la mantisse peuvent être perdus.
 $04bd       Test si le décalage a amené un bit en position 5 de B (l'octet de récupération de la précision).
@@ -1100,7 +1100,7 @@ $04cf       Voir les commentaires ci-dessus sur l'effet de RET dans cette routin
 $04d0       [fp_div_10]
             %MS_BASIC(DIV10)
             Division de FP par 10
-            
+
 $04d0       Place FAC sur la pile
 $04d3-$04d6 Monte le nombre "10" dans BCDE
 $04d9       Monte BCDE dans FAC
@@ -1225,7 +1225,7 @@ $0580       Sinon, c'est un dépassement de capacité, on branche vers l'erreur.
 $0583       [fp_x_10]
             %MS_BASIC(MLSP10)
             Multiplication de FAC par 10
-            
+
 $0583       Récupère FAC dans BCDE
 $0586-$0588 Si BCDE est nul, retour immédiat (il suffit de vérifier l'exposant B)
 $0589       En ajoutant 2 à l'exposant, on multiplie le nombre par 4
