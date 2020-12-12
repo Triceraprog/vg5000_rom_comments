@@ -9496,7 +9496,7 @@ $491c       [dores]
             Drapeau de suppression de la tokenisation
 $491d       [contxt]
 $491f       [memsiz]
-            Plus haute mémoire disponible (pour le BASIC ?)
+            Plus haute mémoire disponible
 $4921       [temppt]
 $4923       [tempst]
 $499b       [dsctmp]
