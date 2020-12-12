@@ -1,6 +1,6 @@
 # Commentaires de la ROM VG5000µ
 
-Les deux fichiers sont les commentaires de lq `ROM`s de l'ordinateur 8 bits VG5000µ en versions 1.0 et 1.1.
+Les deux fichiers sont les commentaires de la `ROM`s de l'ordinateur 8 bits VG5000µ en versions 1.0 et 1.1.
 
 ## Format des fichiers
 
