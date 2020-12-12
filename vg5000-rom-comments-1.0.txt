@@ -777,7 +777,7 @@ $02f4-$02fc Utilisation de `outi` pour enoyer les paires vers le VDP.
             À chaque tour de boucle, le premier octet est envoyé vers le port `$8f` et le second vers le port `$cf`. Chaque envoie est précédé d'une attente d'état `prêt` du VDP.
 
 $02ff       [add_half]
-            %SECTION(f4i),MSBASIC(ROUND)
+            %SECTION(f4i),MS_BASIC(ROUND)
             == DEBUT DE SECTION F4I (mathématiques flottantes) ==
             Ajoute `0.5` à FAC (l'accumulateur flottant).
 
