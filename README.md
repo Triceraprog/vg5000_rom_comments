@@ -9,8 +9,8 @@ Ces fichiers ont le format suivant :
 - Dans les 11 premières colonnes est placée l'adresse ou la plage d'adresse sur laquelle le commentaire s'applique.
 - À partir de la colonne 13 sont placés les commentaires.
 - Un nom entre crochets désigne un `label`, c'est-à-dire une adresse nommée.
-- Le caractère `%` indique des meta-indications.
-    - `CODE` indique qu'il s'agit d'une section contenant du code executable, même si aucun saut apparant n'est fait à cette adresse.
+- Le caractère `%` indique des méta-indications.
+    - `CODE` indique qu'il s'agit d'une section contenant du code exécutable, même si aucun saut apparent n'est fait à cette adresse.
     - `SECTION` indique le début d'une section telle qu'indiquée dans le manuel technique.
     - `NTS` indique une « Null Terminated String » dans les données.
     - `MS\_BASIC` indique entre parenthèse un label correspondant dans le BASIC NASCOM. L'indication n'est pas systématique.
