@@ -7869,7 +7869,7 @@ $35c5       [reset_term]
             Réinitialise les attributs d'affichage à l'écran.
 
 $35c5-$35ca La ligne n'est pas une ligne BASIC, et le défilement de l'écran est permis.
-$35cd       sélection des caractères en ROM.
+$35cd       Sélection des caractères en ROM.
 $35d1       Couleur d'encre et fond graphique à zero, mode texte sélectionné.
 $35d5-$35d9 Équivalent de `DISPLAY 10`.
 $35dd       Simple hauteur de caractère (bit 7 de MAT)
@@ -9347,7 +9347,7 @@ $3d20       A = 0
 $3d21       [loop_256]
 $3d21-$3d23 Boucle 256 fois.
 $3d25-$3d27 Boucle 7000 fois.
-$3d29-$3d2a sélectionne l'écran comme périphérique de sortie.
+$3d29-$3d2a Sélectionne l'écran comme périphérique de sortie.
 $3d2d       Prépare la boucle des 5 'bips'
 
 $3d2f       [bip_5]
