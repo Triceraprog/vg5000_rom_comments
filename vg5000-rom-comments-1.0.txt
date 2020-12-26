@@ -2366,7 +2366,7 @@ $0cc1       [snd_high]
 $0cc1       Attente de 74 états.
 $0cc4       Décrémente la valeur de la seconde période.
 $0cc5       Boucle tant que le nombre est différent de zéro.
-$0cc8-$0cca Mise à état bas de la sortie son (bit 3 de $af à 1)
+$0cc8-$0cca Mise à état bas de la sortie son (bit 3 de $af à 0)
 $0ccc-$0cce Boucle si DE n'est pas nul.
 $0cd1       Réactive les interruptions
 $0cd2       Bascule sur les registres alternatifs.
