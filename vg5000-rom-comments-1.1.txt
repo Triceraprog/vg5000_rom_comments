@@ -601,7 +601,8 @@ $01ef-$01f2 Attente du VDP.
 $01f5-$01f9 VDP - $21, lecture dans E
 
 $01fc       [delim_wrt]
-            Inscrit un délimiteur à l'écran avec les attributs courants et avance le curseur.
+            Inscrit un caractère à l'écran avec les attributs courants et avance le curseur.
+            Sert aussi pour afficher un délimiteur, qui n'est autre qu'un caractère $80 (espacement) ou $84 (espacement + souligné).
 
             Peut provoquer un défilement de l'écran.
 
