@@ -3204,7 +3204,7 @@ $116d       [start_music]
 $1179       [init_ef_seq]
             Séquence d’initialisation de l'EF9345 au démarrage.
 
-            VDP - $28/$81 -> TGS prend la valeur de R1 (pourquoi exécuter cette commande alors qu'elle est à nouveau exécutée juste après ?)
+            VDP - $28/$81 -> TGS prend la valeur de R1. L'exécution d'une première commande permet d'initialiser l'état d'occupation du VDP.
             VDP - $29/$00 -> TGS = R1 = 0 (625 lignes, non entrelacé, no-input-resync, output VSync+HSync, Service Row = 0, 40 Char
             VDP - $20/$82,$29/$6e -> MAT = $6e (Marge = B+G, Insert Marge, Curseur plein/flash, Curseur affiché, simple hauteur(
             VDP - $20/$83,$29/$f7 -> PAT = $f7 (Ligne 0 'ON', Bulk haut et bas activé, pas de conceal, insert mode : Active Area, Flash ON, Format court pour le 40 colonnes)
