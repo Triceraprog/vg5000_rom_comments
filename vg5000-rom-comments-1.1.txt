@@ -4513,7 +4513,7 @@ $2299       [monitorloop]
 $2299-$229c Met la ligne courante du BASIC à -1 ($ffff), c'est-à-dire, pas de ligne courante
 $229f-$22a3 Branche si `(autflg)` est à 0, `AUTO` n'est pas actif.
 $22a5       Ligne courante du mode AUTO dans HL
-$22a8       Patch de `AUTO`par rapport à la ROM 1.0, branche plus loin.
+$22a8       Patch de `AUTO` par rapport à la ROM 1.0, branche plus loin.
             Le patch consiste en l'affichage d'un signe montrant qu'une ligne est déjà existante.
 
 $22ab       [out_space]
@@ -9610,7 +9610,7 @@ $4846       [rnd_seed_2]
 $4867       [rnd_gen]
 $486e       [lptpos]
 $486f       [prtflg]
-            sélectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
+            Sélectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
 $4870       [getflg]
             Entrée des caractères sur clavier (0) ou cassette (255)
 $4871       [picflg]

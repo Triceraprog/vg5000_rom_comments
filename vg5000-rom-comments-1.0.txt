@@ -166,7 +166,7 @@ $0066       [nmi]
             sur l'interruption du processeur (broche \NMI)
 
             L'interruption branche immédiatement vers un vecteur qui, par défaut, branche à
-            son tour vers `test_reset`. Cette routine par défaut vérifie l'appuie sur la
+            son tour vers `test_reset`. Cette routine par défaut vérifie l'appui sur la
             touche `CTRL`. Si c'est le cas, un redémarrage à chaud aura lieu. Sinon, il ne
             se passe rien de plus.
 
@@ -533,7 +533,7 @@ $0129-$012b VDP - $20
 $012d       [w_vdp_3]
 $012d-$0130 Attente du VDP
 
-$0133-$0139 VDP - $29/$b0, Increment Y
+$0133-$0139 VDP - $28/$b0, Increment Y
 $013b-$013c Boucle 24 fois.
 $013e-$0142 Branche si le curseur n'est pas actif.
 $0144       Coordonnées du curseur dans HL
@@ -2439,7 +2439,7 @@ $0d0f       Envoie la commande $22 avec le premier paramètre modifié au VDP.
 $0d12-$0d13 Récupère puis remet sur la pile l'argument préparé suivant si on est dans `SETET` ou `SETEG`.
 $0d14       Inverse le bit 7 de A (ce qui inverse les $c0 et $40)
 $0d16-$0d19 Envoie la commande $21 avec la valeur déduite de la commande utilisée. (VDP : R1 = mode)
-$0d1c-$0d20 Envoie la commande $20 avec l'argument $03 au VDP (VDP : R0 = 3, c'est-à-dire KRG+Ince)
+$0d1c-$0d20 Envoie la commande $20 avec l'argument $03 au VDP (VDP : R0 = 3, c'est-à-dire KRG+Incr)
 $0d23       Prépare la commande $24 pour le VDP
 $0d25-$0d27 Bascule de registre AF alternatif le temps de récupérer le premier argument (numéro de caractère) dans E
 $0d28       On récupère dans A le numéro de caractère.
@@ -2451,7 +2451,7 @@ $0d34       On garde les 2 bits de poids faible de l'argument.
 $0d36       Récupération du type de commande depuis la pile (dans B)
 $0d37-$0d38 Préparation de l'argument pour la commande comme l'union du type de commande (B) et des 2 bits de poids faibles.
 $0d39       Envoi de la commande $25 avec cet argument au VDP (VDP : R5 = (A & $03 | mode)
-$0d3c-$0d40 Envoi de la commande $20 avec l'argument $34 au VDP (VDP : R0 = OCT Write AP NoInce, écrit R1 en mémoire désignée par R4 R5)
+$0d3c-$0d40 Envoi de la commande $20 avec l'argument $34 au VDP (VDP : R0 = OCT Write AP NoIncr, écrit R1 en mémoire désignée par R4 R5)
 $0d43       Vérifie la présence d'une virgule dans le buffer texte du BASIC.
 $0d44       %DATASKIP
 $0d45       Vérifie la présence d'un début de chaîne de caractères.
@@ -2659,7 +2659,7 @@ $0e7b       Ajoute la couleur de fond texte.
 $0e7c       Le bit 7 de `attbak` doit être à 1 pour le format code court/40 colonnes du VDP.
 $0e7e       [init_end]
 $0e7e       Efface l'écran avec la nouvelle couleur de fond.
-$0e81       Restaure le pointer de texte BASIC.
+$0e81       Restaure le pointeur de texte BASIC.
 
 $0e83       [inst_cursor]
             %CODE
@@ -2851,17 +2851,17 @@ $0f2e       Prépare la valeur de retour.
 $0f30       Restreint le paramètre d'entrée entre 0 et 3.
 $0f32       Branche pour le cas 0.
 $0f34-$0f35 Branche pour le cas 1.
-$0f38-$0f3a Vérification de l'appuie de la touche ESPACE
+$0f38-$0f3a Vérification de l'appui de la touche ESPACE
 $0f3c       Branche vers la partie finale commune.
 
 $0f3d       [stka_joy0]
             Dans cette version ROM 1.0, ne prend en compte qu'un seul bouton.
-$0f3f       Vérification de l'appuie sur la bouton action du joystick 0
+$0f3f       Vérification de l'appui sur le bouton action du joystick 0
 $0f41       Branche vers la partie finale commune.
 
 $0f43       [stka_joy1]
             Dans cette version ROM 1.0, ne prend en compte qu'un seul bouton.
-$0f45       Vérification de l'appuie sur la bouton action du joystick 1
+$0f45       Vérification de l'appui sur la bouton action du joystick 1
 $0f47       Branche vers la partie finale commune.
 
 $0f49       [inst_key]
@@ -3658,7 +3658,7 @@ $1bb9       Retour si la ligne est terminée (pas de nom de fichier en paramètr
 $1bba       [name_to_ft]
             Place le nom de fichier en paramètre d'une commande dans FT.
 $1bba       Lit l'expression de alphanumérique. Au retour, DE pointe vers l'adresse de la chaîne, et C contient sa longueur.
-$1bbd       Sauve le pointer de texte BASIC.
+$1bbd       Sauve le pointeur de texte BASIC.
 $1bbe       La longueur de la chaîne est mise dans B.
 $1bbf       6 caractères maximum.
 $1bc1       HL pointe vers le nom de fichier du descripteur de fichier.
@@ -4105,13 +4105,13 @@ $1e27       Sinon pointe un octet plus loin
 $1e28       Lit un octet
 $1e2b       Retour si interruption ou erreur.
 $1e2c       Sauvegarde AF, A contient l'octet lu.
-$1e2d-$1e2f Branche si ce n'était pas $8d, afin de continuer à acquérir les caractères et calculer la sommme de contrôle.
+$1e2d-$1e2f Branche si ce n'était pas $8d, afin de continuer à acquérir les caractères et calculer la somme de contrôle.
 $1e31-$1e32 Sinon, une ligne entière vient d'être lue.
             Sauvegarde HL (pointeur du buffer) et DE (début de la ligne) sur la pile
 $1e33       Ramène DE, qui pointe vers le début de ligne, dans HL.
 $1e34       Décodage d'un numéro de ligne.
 $1e37-$1e38 Le résultat, dans DE, est mis dans BC
-$1e39       Rétablie la valeur lue de A afin de calculer la somme de contrôle.
+$1e39       Rétablit la valeur lue de A afin de calculer la somme de contrôle.
 $1e3b       Restaure DE, qui pointe un sur le début de la ligne qui vient d'être acquise.
 $1e3c       [xor_sumchk]
 $1e3c-$1e40 Ou exclusif de A avec le caractère pointé dans le buffer pour calculer le sumcheck.
@@ -4129,7 +4129,7 @@ $1e55-$1e59 Branche si le numéro de ligne courant est supérieur au premier num
 $1e5b       [ignore_line]
 $1e5b       Restaure le pointeur vers la fin de la ligne acquise.
 $1e5c       [commit_line]
-$1e5c-$1e5d Suivant le chemin d'arrivée, la ligne précédente est avancée au pointeur du buffer (la ligne est donc gardée) ou bien le pointeur actuel et remis en début de ligne (la ligne est donc ignorée, car elle sera écrasée).
+$1e5c-$1e5d Suivant le chemin d'arrivée, la ligne précédente est avancée au pointeur du buffer (la ligne est donc gardée) ou bien le pointeur actuel est remis en début de ligne (la ligne est donc ignorée, car elle sera écrasée).
 $1e5e       BC, le numéro de ligne courant, à 0
 $1e61       [pre_sumchk]
 $1e61       Restaure AF
@@ -4150,14 +4150,14 @@ $1e70       [check_sum]
 $1e70       Lecture d'un octet
 $1e73       Retour si interruption ou erreur
 $1e74       Fin des données. Préserve HL, qui pointe vers le buffer d'acquisition.
-$1e75-$1e78 Soustrait le caractère lu de celui dans `low` qui contient la sommme de contrôle.
+$1e75-$1e78 Soustrait le caractère lu de celui dans `low` qui contient la somme de contrôle.
 $1e79       Signal une erreur de somme de contrôle si le résultat n'est pas 0.
 $1e7c       Restaure HL, pointeur vers le buffer d'acquisition.
 $1e7d-$1e80 Branche s'il n'y a plus de mémoire
 $1e82       A à 0 et donc Z est à 1.
 
 $1e84       [chk_no_mem]
-$1e84       Echange DE et HL
+$1e84       Échange DE et HL
 $1e85-$1e87 Place $03 dans le caractère pointé par HL, le buffer d’acquisition, afin de forcer un marqueur de fin de données en cas de manque de mémoire.
 
 $1e89       [fetch_next]
@@ -4326,7 +4326,7 @@ $1f9c       [check_mem_2]
 
 $1f9c       Préserve HL
 $1f9d-$1fa4 HL = $ffa0 - HL (afin de garder une pile minimale de $60). C'est un premier test avec la mémoire maximale adressable, qu'elle soit présente ou non.
-$1fa5       Branche s'il y a eu retenue, et donc que HL est supérieur à la limie.
+$1fa5       Branche s'il y a eu retenue, et donc que HL est supérieur à la limite.
 $1fa7       On obtient l'adresse de la pile plus la différence entre HL et le haut de la mémoire, afin de placer Carry.
 $1fa8       Restaure HL
 $1fa9       Retour si la pile augmentée de la place restante dépasse. Il y a encore de la place.
@@ -4470,7 +4470,7 @@ $2258       Pointe sur la table des erreurs en français.
 $225b-$225f Branche si le système est en français.
 $2261       Sinon, pointe vers la table des erreurs en anglais.
 $2264       [err_msg_fr]
-$2264-$2266 Ajoute 2 à l'erreur et prends le multiple de 2 inférieur
+$2264-$2266 Ajoute 2 à l'erreur et prend le multiple de 2 inférieur
 $2268-$226b Branche si E est inférieur à $2b
 $226d       Sinon fixe l'erreur à $2a (autrement dit, E est maximum $2a)
 $226f       [err_loop]
@@ -4505,7 +4505,7 @@ $2293-$2296 Affiche "Ok!"
 $2299       [monitorloop]
             %MS_BASIC(GETCMD)
 
-$2299-$229c Met la ligne courante du BASIC à -1 ($ffff), c'est-à-dire, par de ligne courante
+$2299-$229c Met la ligne courante du BASIC à -1 ($ffff), c'est-à-dire, pas de ligne courante
 $229f-$22a3 Branche si `(autflg)` est à 0, `AUTO` n'est pas actif.
 $22a5       Ligne courante du mode AUTO dans HL
 $22a8       Écrit le nombre.
@@ -4536,12 +4536,12 @@ $22c3       DE, aui contient soit un numéro de ligne, soit 0, est sauvé sur la
 $22c4       Appelle la tokenisation de la ligne.
 $22c7       A = 0, donc B = 0.
 $22c8       Récupération du numéro de ligne dans DE
-$22c9       Récupération des drapeaux. Le Carry est celui de `chget` et donc est à 1 si la ligne commence par un nomnbre.
+$22c9       Récupération des drapeaux. Le Carry est celui de `chget` et donc est à 1 si la ligne commence par un nombre.
 $22ca       Branche si la ligne ne commençait pas par un nombre, c'est-à-dire pas par un numéro de ligne.
 $22cd       Sauve le numéro de ligne.
 $22ce       Sauve la taille du buffer résultat tokenisé.
 $22cf       Sauve l'adresse du buffer résultat (HL pointe un octet avant le premier octet du buffer).
-$22d0-$22d3 Augmente le numéro de ligne gérée par la commande `AUTO`. HL contient le numéro numéro de ligne.
+$22d0-$22d3 Augmente le numéro de ligne gérée par la commande `AUTO`. HL contient le numéro de ligne.
 $22d4       Mise à jour de la nouvelle ligne pour `AUTO`.
             Dans la ROM 1.1, un patch introduit ici la vérification du dépassement de numéro de ligne maximum.
 
@@ -4752,7 +4752,7 @@ $23ed       [kw_found]
 $23ed       Sauvegarde dans C du numéro de token.
 $23ee       L'adresse du début de mot sur la pile est nettoyée.
 $23ef       L'adresse de retour en cas d'échec de recherche est dépilée.
-$23f0       A prends le numéro de token (pourquoi ne pas avoir fait directement `ld a, b` ici?)
+$23f0       A prend le numéro de token (pourquoi ne pas avoir fait directement `ld a, b` ici?)
 $23f1-$23f3 Branche si le token est $88 (`GOTO`)
 $23f5-$23f7 Branche si le token est $8c (`GOSUB`)
 $23f9-$23fb Branche si le token est $8b (`RESTORE`)
@@ -4834,10 +4834,10 @@ $244d       Récupération de C, qui contient la taille du buffer de travail.
 $244e       DE pointe sur le buffer de travail.
 $244f       [no_token]
             On arrive ici soit par un token, soit en copie directe du buffer d'entrée vers le buffer de travail.
-            Quoiqu'il arrive, la donnée à copier à dans A.
+            Quoiqu'il arrive, la donnée à copier est dans A.
 $244f       Incrémente le pointeur vers le buffer d'entrée.
 $2450       Copie la donnée actuelle dans le buffer de travail.
-$2451       Avance le pointer vers le buffer de travail.
+$2451       Avance le pointeur vers le buffer de travail.
 $2452       Augmente la taille du buffer de travail.
 $2453       %CHAR
 $2453-$2455 Branche si le caractère est ':'
@@ -4862,7 +4862,7 @@ $246b       [ifquote]
 $246b       Avance le pointeur vers le buffer d'entrée.
 $246c       Copie le caractère dans le buffer de travail.
 $246d       Incrémente la taille du buffer de travail.
-$246e       Avance le pointer vers le buffer de travail.
+$246e       Avance le pointeur vers le buffer de travail.
 $246f       Boucle sur la copie littérale.
 
 $2471       [ifnul]
@@ -4923,7 +4923,7 @@ $24a6       Incrémente C pour une raison inconnue... La valeur est écrasée ju
 $24a7       [no_for]
 $24a7       Restaure le pointeur vers le texte BASIC
 $24a8       HL = pointeur vers le texte BASIC
-            DE ne semble pas être utilisé, un `pop hl` aurait suffit ?
+            DE ne semble pas être utilisé, un `pop hl` aurait suffi ?
 
 $24a9-$24ab Vérifie qu'il y a de la place pour 8 niveaux de la pile.
 $24ae       Sauve le pointeur vers le texte BASIC
@@ -5070,7 +5070,7 @@ $255a-$255d BCDE = -32768, qui est le seul nombre avec un exposant à $90 qui es
 $2560       Sauve le pointeur vers le texte BASIC.
 $2561       Compare FAC et BCDE.
 $2564       Restaure le pointeur vers le texte BASIC.
-$2565       DE = $8000, soit -32878 sur 16 bits signé.
+$2565       DE = $8000, soit -32768 sur 16 bits signé.
 $2566       Si FAC = -32768, alors retour.
 $2567       [ill_call]
 $2567-$2569 Erreur "Illegal function call"
@@ -5128,7 +5128,7 @@ $259a       [inst_run]
             %CODE,%MS_BASIC(RUN)
             Instruction BASIC : RUN
 
-            L'instruction RUN sans argument réinitialise les variables BASIC et faite pointer l'interpréteur vers la première ligne du programme.
+            L'instruction RUN sans argument réinitialise les variables BASIC et fait pointer l'interpréteur vers la première ligne du programme.
 
             Avec un argument, le contexte BASIC est réinitialisé puis continue vers l'instruction `GOTO`.
 
@@ -5292,7 +5292,7 @@ $265b       Restaure l'adresse de la variable dans DE.
 $265c       Restaure le pointeur vers le texte BASIC.
 
 $265e       [inst_on]
-            %CODE%MS_BASIC(ON)
+            %CODE,%MS_BASIC(ON)
             Instruction BASIC : ON
 
 $265e       Évalue l'expression qui suit `ON` sous la forme d'un entier sur un octet.
@@ -5442,7 +5442,7 @@ $273d       Lit l'octet suivant.
 $273e       Évaluation de l'expression potentielle suivante sans retour à la ligne s'il n'y en a pas.
 
 $2741       [print_end]
-$2741-$2742 Sélection l'écran comme périphérique de sortie.
+$2741-$2742 Sélectionne l'écran comme périphérique de sortie.
 
 $2746       [bad_input]
             %MS_BASIC(BADINP)
@@ -5462,7 +5462,7 @@ $2760       Appeler `INPUT` en direct est illégal, l'instruction doit être dan
 $2763       Appel du `hook` sur `INPUT`
 $2767       %CHAR
 $2766-$2767 S'il y a un '"' après INPUT, c'est qu'il y a un texte à afficher.
-$2769       Reliquat de portage. Dans d'autres BASIC, A sert à permettre la sortie de caractères. Dans cette ROM, aucune des deux branches possbles n'utilise cette valeur.
+$2769       Reliquat de portage. Dans d'autres BASIC, A sert à permettre la sortie de caractères. Dans cette ROM, aucune des deux branches possibles n'utilise cette valeur.
 $276b       Il n'y a rien à afficher, on passer directement à l'acquisition des données.
 $276d       Évalue la chaîne de caractères à afficher.
 $2770       Vérifie que le caractère suivant est un ';' ou provoque une erreur de syntaxe.
@@ -5482,7 +5482,7 @@ $2793       [input_data]
 $2793       Récupère le pointeur de texte BASIC dans BC (HL est utilisé par la ligne juste entrée pour l'INPUT)
 $2794       Branche en cas d'interruption de commande.
 $2797-$279a Lit le premier caractère de la chaîne entrée et prépare le drapeau Z (HL pointe un octet avant le buffer d'acquisition)
-$279b       Sauvegarde le pointer sur le texte BASIC.
+$279b       Sauvegarde le pointeur sur le texte BASIC.
 $279c       Si le buffer était vide, branche pour ignorer le reste de l'instruction. Cela signifie que la ou les variables d'`INPUT` ne sont pas touchées.
 $279f       %CHAR
             Dans le cas contraire, on ',' en caractère avant les données entrées. Cela permet d'utiliser la routine de `READ`.
@@ -5600,13 +5600,13 @@ $284d       Lecture d'une expression.
 $2850       [type_eq_num]
             Vérifie que le type évalué est de type numérique.
 
-            `(valtyp)` a du être assigné au préalable.
+            `(valtyp)` a dû être assigné au préalable.
 $2850       Le `or $37` a pour but de passer le Carry à 0 et de sauter par dessus l'instruction `scf`.
 
 $2851       [type_eq_str]
             Vérifie que le type évalué est de type chaîne de caractère.
 
-            `(valtyp)` a du être assigné au préalable.
+            `(valtyp)` a dû être assigné au préalable.
 $2851       Place le Carry à 1.
 
 $2852       [type_eq_chk]
@@ -5776,7 +5776,7 @@ $2913       Charge la priorité de l'opérateur unaire '-' dans D.
 $2915       Puis évalue l'expression. Le retour se fera lorsqu'un opérateur de moins forte priorité sera trouvé (ou en fin d'expression).
 $2918       Récupère le pointeur sur le texte BASIC.
 $291b       Sauvegarde de ce pointeur sur la pile.
-$291c       Prends l'opposé de FAC dans FAC.
+$291c       Prend l'opposé de FAC dans FAC.
 $291f       [ret_num]
 $291f       Vérifie que le type évalué est numérique.
 $2922       Restaure le pointeur sur le texte BASIC.
@@ -5793,7 +5793,7 @@ $2924       [str_to_var]
 
 $2924       DE pointe sur l'adresse de la variable.
 $2927       [from_eval]
-$2927       Sauve le pointer vers le texte BASIC.
+$2927       Sauve le pointeur vers le texte BASIC.
 $2928       HL = adresse de la variable, DE = peu importe
 $2929       Sauve l'adresse de la variable dans les deux octets les moins significatifs de FAC.
 $292c-$2930 Si le type de la variable est numérique, monte la valeur pointée par HL, le contenu de la variable numérique, dans FAC.
@@ -5898,7 +5898,7 @@ $2989       Récupère FAC en tant qu'entier dans DE. On a donc un argument dans
 $298c       Récupère le marqueur de l'opérateur.
 $298d       Récupère l'autre argument.
 $298e       Monte le LSB de BC dans A.
-$298f       Prépare le branchement à le fin du traitement de l'opérateur.
+$298f       Prépare le branchement à la fin du traitement de l'opérateur.
 $2992       Branche si l'opérateur est `OR`.
 $2994-$2997 AC = BC & DE
 $2998       Monte AC dans FAC et termine l'instruction.
@@ -5938,7 +5938,7 @@ $29c9       [cmp_result]
             Entrée :
             - A contient un résultat de comparaison.
 
-$29c9-$29ca Transforme le résultat de comparaison on opérateur équivalent.
+$29c9-$29ca Transforme le résultat de comparaison en opérateur équivalent.
             Si la relation était '<', alors A = $FF et Carry 1, au final, A = 1
             Si la relation était '=', alors A = $00 et Carry 0, au final, A = 2
             Si la relation était '>', alors A = $01 et Carry 0, au final, A = 4
@@ -5950,7 +5950,7 @@ $29d0       A devient le résultat de la fonction en étant transféré dans FAC
 
 $29d3       [inst_not]
 $29d3       Charge la priorité pour l'opérateur NOT.
-$29d5       Lance une évaluation qui sortira reviendra lorsqu'une priorité d'opérateur plus faible sera rencontrée.
+$29d5       Lance une évaluation qui sortira et reviendra lorsqu'une priorité d'opérateur plus faible sera rencontrée.
 $29d8       Vérifie le type numérique de la valeur obtenue.
 $29db       Récupère FAC dans DE sous forme entière.
 $29de-$29e2 Met dans AC la négation de DE.
@@ -5982,7 +5982,7 @@ $29ff       Le retourne en tant que résultat de fonction.
 
 $2a01       [inst_pos]
             %CODE
-            Fonction BASIC : LPOS()
+            Fonction BASIC : POS()
 
             La fonction POS retourne le numéro de colonne actuelle à l'écran.
 
@@ -5998,7 +5998,7 @@ $2a0c       Charge le numéro de ligne puis continue sur le retour de fonction a
 $2a0f       [retfun_impl]
             Place A dans FAC.
 
-            Appelé par les fonctions donc le résultat est dans A.
+            Appelé par les fonctions, donc le résultat est dans A.
 
             Entrée :
             - A contient la valeur de retour de la fonction.
@@ -6196,7 +6196,7 @@ $2ae3-$2ae4 Branche si aucun caractère n'a été validé.
 $2ae6       A contient la touche appuyée, Z correspond à A et M est à 1 si la touche est une touche de fonction.
             Pousse le tout sur la pile.
 $2ae7       Bascule sur les registres alternatifs.
-$2ae8-$2aeb Configure le son émis lors de l'appuie d'un caractère.
+$2ae8-$2aeb Configure le son émis lors de l'appui d'un caractère.
 $2aee       Pendant une durée très courte.
 $2af1       Émet le son.
 $2af4-$2afb Indique qu'un caractère a été entré depuis une interaction en BASIC.
@@ -6213,7 +6213,7 @@ $2b16-$2b18 Branche si la touche n'est pas Efface Écran
 
 $2b1a       [key_effe]
             La touche EFFE a été appuyée
-$2b1a-$2b1f Branche si la drapeau de commande INPUT est activé.
+$2b1a-$2b1f Branche si le drapeau de commande INPUT est activé.
 $2b21       Sinon, remet la valeur $1f dans la touche appuyée.
 
 $2b23       [key_out]
@@ -6373,7 +6373,7 @@ $2c0d       [find_cont]
             Recherche les coordonnées du début de la ligne logique.
 $2c0d       Place les coordonnées modifiées du curseur sur la colonne 1.
 $2c0f       [find_start]
-$2c0f       Enregistre la coordonnées modifiée comme la coordonnées actuelle de ligne envoyée au BASIC.
+$2c0f       Enregistre les coordonnées modifiées comme les coordonnées actuelles de ligne envoyée au BASIC.
 $2c12       Sauve ces coordonnées sur la pile.
 $2c13-$2c14 Lecture du caractère en colonne 0 de la ligne courante.
 $2c17-$2c18 Branche si ce caractère n'est pas le marqueur de continuité de ligne logique ($84).
@@ -6387,7 +6387,7 @@ $2c20       [found_start]
 $2c20-$2c25 Branche si la commande `INPUT` n'est pas en train d'être exécutée.
 $2c27-$2c29 Annule le traitement de la commande `INPUT`.
             Cette partie est remplacée par des `NOP`s dans la ROM 1.1
-$2c2c       Recupération des coordonnées du début de ligne logique.
+$2c2c       Récupération des coordonnées du début de ligne logique.
 $2c2f       Sauve ces coordonnées sur la pile.
 $2c30       Calcule dans HL la correspondance en buffer écran du BASIC.
 $2c33       DE = coordonnées de début de ligne logique.
@@ -6469,7 +6469,7 @@ $2cc6       HL = coordonnées du curseur.
 $2cc9       Sauve les coordonnées du curseur.
 
 $2cca       [list_key]
-$2cca       Sauve le Carry sur la pile, pour la différence entre la mise à jour du listing et l'appuie sur la touche `LIST`.
+$2cca       Sauve le Carry sur la pile, pour la différence entre la mise à jour du listing et l'appui sur la touche `LIST`.
 $2ccb-$2ccd Met à jour `(picflg)` avec les informations : pas de défilement d'écran et gestion du caractère de continuité lors des déplacements du curseur.
 $2cd0       Délai de rafraîchissement de l'écran à $40, pour avoir le temps de mettre à jour tout le listing.
 $2cd4       `(attcar)` à 0.
@@ -6502,7 +6502,7 @@ $2d0a       [write_line]
 
             Les `REM` sont écrits en rouge.
 
-            Une partie de cette routine est similaire à cette de l'implémentation de la commande `LIST` du BASIC.
+            Une partie de cette routine est similaire à celle de l'implémentation de la commande `LIST` du BASIC.
 
             Entrée :
             - HL pointe vers une ligne de listing BASIC.
@@ -6682,7 +6682,7 @@ $2ef5-$2ef8 `(arytab)` = `(strend)` = `(vartab)`, ce qui invalide les variables,
 
 $2efe       [clear_regs]
             %MS_BASIC(CLREG)
-            Quelques réinitialisation.
+            Quelques réinitialisations.
 
             - Réinitialise les pointeurs de chaînes temporaires,
             - Réinitialise l'imprimante,
@@ -6707,7 +6707,7 @@ $2f19       Remet l'adresse de retour sur la pile avant le RET
 $2f1a       [do_again]
             %MS_BASIC(DOAGN)
 $2f1a       HL est chargé avec la valeur de `temp`.
-            Pendant `INPUT`, `hl` pointe vers le début de l'instruction `INPUT` a relancé en cas de mauvais type de donnée.
+            Pendant `INPUT`, `hl` pointe vers le début de l'instruction `INPUT` à relancer en cas de mauvais type de donnée.
 
 $2f1e       [inst_restore]
             %CODE,%MS_BASIC(RESTOR)
@@ -6743,7 +6743,7 @@ $2f3a       [inst_end]
             Instruction BASIC : END
 
 $2f3a       Pas d'effet s'il y a un argument. Cela provoquera une erreur de syntaxe en cherchant l'instruction suivante.
-$2f3b       Sauve l'endroit où l'arrête a eu lieu en cas de `STOP` ou de `END`
+$2f3b       Sauve l'endroit où l'arrêt a eu lieu en cas de `STOP` ou de `END`
 $2f3e       Saute par dessus le `OR` suivant.
 
 $2f3f       [input_brk]
@@ -7166,7 +7166,7 @@ $31a0       Branche sur la boucle de l'éditeur BASIC.
 $31a3       [inst_llist]
             %CODE
             Instruction BASIC : LLIST
-$31a3-$31a5 Sélection l'imprimante comme périphérique de sortie.
+$31a3-$31a5 Sélectionne l'imprimante comme périphérique de sortie.
 
 $31a8       [inst_list]
             %CODE
@@ -7233,14 +7233,14 @@ $31f9       [list_bounce]
 $31f9       Scan le clavier.
 $31fc-$31fd Boucle tant qu'il y a de l'activité.
 $31ff       [list_wait]
-$32ff-$3206 Boucle tant qu'aucune touche n'a été appuyée.
+$31ff-$3206 Boucle tant qu'aucune touche n'a été appuyée.
 $3208       Restaure le pointeur vers les données de la ligne.
 
 $3209       [list_dec]
 $3209-$320b DE = numéro de la ligne.
 $320c       Sauve le pointeur vers les données de la ligne.
 $320d-$3210 Comparaison avec la borne supérieur pour les numéros de lignes du listing demandé.
-$3211       Resteur le pointeur vers les données de la ligne.
+$3211       Restaure le pointeur vers les données de la ligne.
 $3212       Inverse le résultat de comparaison.
 $3213       Retour si le numéro de la ligne lue est supérieur à la borne supérieure du listing demandé.
 $3214       Enregistre cette ligne comme celle vers laquelle ramènera la touche `LIST`.
@@ -7283,7 +7283,7 @@ $3260       Décrémente l'index.
 $3261       Boucle tant que l'index n'est pas nul, afin d'arriver sur le bon mot clé.
 
 $3263       [emit_keyw]
-$3263-$3265 Émet le caractère du mot clé, ramené à ces 7 bits de poids faible.
+$3263-$3265 Émet le caractère du mot clé, ramené à ses 7 bits de poids faible.
 $3266       Lit le caractère suivant du mot clé.
 $3267       Et avant le pointeur vers le mot clé.
 $3268-$3269 Boucle tant que l'on reste sur le même mot clé (pas de marque de début de mot clé).
@@ -7803,7 +7803,7 @@ $357c       Le compare au caractère de continuité de ligne logique.
 $357f       [sd_insl]
             Traitement de `INSL` (par le caractère 6)
 
-            La ligne insérée est au niveau du curseur et poussent tous les lignes du dessus vers le haut.
+            La ligne insérée est au niveau du curseur et pousse toutes les lignes du dessus vers le haut.
 $357f       Charge les coordonnées du curseur dans HL.
 $3582-$3584 Branche si la ligne est 0.
 $3586       Sinon, coordonnées en colonne 0.
@@ -7913,7 +7913,7 @@ $3614       Sauve l'adresse du contenu de la seconde chaîne sur la pile.
 $3615       De même que sa longueur.
 $3616       Récupère le descripteur de la première chaîne pointée par DE.
 $3619       Le descripteur est chargé dans BCDE.
-            E contient la longueur de la chargé.
+            E contient la longueur de la chaîne chargée.
             BC pointe vers le contenu de la première chaîne.
 $361c-$361d Met la longueur de la première chaîne dans D.
 $361e       HL pointe sur le contenu de la seconde chaîne.
@@ -7930,7 +7930,7 @@ $3629       Retour si la taille de la seconde chaîne a été consommée.
             Le test se fait sur Carry car ce drapeau n'est pas touché par `inc a`.
 $362a       Diminue le compteur de taille restante de la première chaîne.
 $362b       Diminue le compteur de taille restante de la seconde chaîne.
-$362c-$3630 Boucle si les deux octets deux deux chaînes sont identiques.
+$362c-$3630 Boucle si les deux octets des deux chaînes sont identiques.
             Les pointeurs sur les deux chaînes ont été placés sur le caractère suivante.
 $3632       Complète le Carry pour signaler la bonne différence par rapport à la dernière comparaison de caractère.
 $3633       Branche vers le retour signalant une différence dans la comparaison.
@@ -7967,7 +7967,7 @@ $365d       [ctr_ver_str]
             Un descripteur de chaîne fait 4 octets de long :
             - longueur de la chaîne sur un octet
             - un octet inutilisé
-            - ponteur vers les données de la chaîne, sur deux octets.
+            - pointeur vers les données de la chaîne, sur deux octets.
 
             Entrées :
             - A contient la longueur de la chaîne de caractères en octets.
@@ -8011,7 +8011,7 @@ $366c       [out_str_prc]
             - FAC contient l'adresse du descripteur de la chaîne.
             - HL pointe après les données de chaîne pointée par HL initialement.
             - A contient le caractère lu après les données de la chaîne.
-            - `(valtype)` est à 1.
+            - `(valtyp)` est à 1.
 
 $366c       Positionne HL un caractère avant le début de la chaîne (à cause du inc hl de la boucle qui suit)
 $366d       [str_to_str]
@@ -8176,7 +8176,7 @@ $3712       Jette le pointeur vers le nombre de dimension du tableau précédent
 $3713       [srch_ary]
             Recherche les références de chaînes dans les tableaux.
 
-$3713       `DE` pointe sur la derniere adresse allouée pour les tableaux.
+$3713       `DE` pointe sur la dernière adresse allouée pour les tableaux.
 $3717       Compare avec HL qui pointe sur un début de tableau ou sur `(strend)`
 $3718       La zone des tableaux est terminée.
 $371b       Récupère l'identifiant du tableau dans BCDE.
@@ -8259,7 +8259,7 @@ $3791       A = longueur de la première chaîne de caractères.
 $3792       Sauve l'adresse de la première chaîne de caractères.
 $3793-$3796 Sauve l'adresse de la seconde chaîne de caractères.
 $3797       Ajoute la longueur de la seconde chaîne à la longueur de la première.
-$3798-$379b Sors avec "String too long" si la somme de deux longueurs est supérieur à 255.
+$3798-$379b Sors avec "String too long" si la somme des deux longueurs est supérieure à 255.
 $379e       Alloue une chaîne de caractères de la longueur de la future chaîne de caractères.
 $37a1       DE pointe vers le descripteur de la seconde chaîne.
 $37a2       Récupère la chaîne pointée par DE.
@@ -8626,7 +8626,7 @@ $3943       Boucle vers la variable suivante pointée par HL.
 
 $3946       [no_var_yet]
 $3946       HL pointe vers le texte BASIC.
-$3947       HL est l'adresse de retour de la routine, Haut de la Pile est le pointer vers le texte BASIC.
+$3947       HL est l'adresse de retour de la routine, Haut de la Pile est le pointeur vers le texte BASIC.
 $3948       Sauve DE, qui contient `(arytab)`.
 $3949-$394c Compare l'adresse de retour récupérée avec `from_eval`.
 $394d       Restaure DE, qui contient `(arytab)`.
@@ -8644,7 +8644,7 @@ $395d       Sauve la nouvelle fin de la zone des tableaux sur la pile.
 $395e       Copie [DE,BC], c'est-à-dire [`(arytab)`,`(strend)`] vers [`(arytab)`+6,`(strend)`+6], après vérification de mémoire disponible pour l'opération.
             Cela laisse 6 octets de libre à la fin de la zone des variables.
 $3961       Restaure la nouvelle valeur de `(strend)`.
-$3962       Cette valeur est mise à jour dans la vairable `(strend)`.
+$3962       Cette valeur est mise à jour dans la variable `(strend)`.
             Autrement dit : `(strend)` <- `(strend)` + 6
 $3965-$3967 Mise à jour de `(arytab)` selon le même calcul.
 
@@ -8672,7 +8672,7 @@ $398b       Lit un entier sur 16 bits dans DE.
 $398e       Restaure le nom de la variable.
 $398f       Restaure le numéro de la dimension.
 $3990       Taille/Index du tableau dans HL.
-$3991-$3992 Place la taille/index sous `(dimflg)/(valtype)`
+$3991-$3992 Place la taille/index sous `(dimflg)/(valtyp)`
 $3993       HL pointe sur le texte BASIC, DE contient `(dimflg)/(valtyp)`.
 $3994       Augmente le numéro de la dimension.
 $3995       Et place le compte dans D.
@@ -9263,7 +9263,7 @@ $3cb3       Sinon, la fin du buffer a été atteinte, et on branche pour finalis
 
 $3cb5       [keyloop]
             Traitement du moniteur pour une entrée par le clavier.
-$3cb5       Traitement de l'appuie d'une touche, qui est éventuellement traitée.
+$3cb5       Traitement de l'appui d'une touche, qui est éventuellement traitée.
 $3cb8-$3cb9 L'acquisition de touche a deux sorties possibles.
             Si A est à 0, alors une touche a été acquise mais ne demande pas de traitement particulier (ou a déjà été traitée).
             Si A est différent de 0, alors c'est qu'une boucle a été initiée et que l'acquisition de touche va envoyer chacun des caractères de la ligne validée pour décodage.
@@ -9349,7 +9349,7 @@ $3d4e       [skip_nrdy]
 $3d4e-$3d50 Re-bascule sur l'imprimante comme périphérique de sortie.
 
 $3d53       [wait_key]
-$3d53-$3d57 Attend l'appuie d'une touche.
+$3d53-$3d57 Attend l'appui d'une touche.
 $3d59-$3d5b Attend et rafraîchis l'état de l'imprimante si la touche appuyée n'est pas `PRT`.
             Sinon, continue avec la bascule de l'état utilisateur.
 
@@ -9381,7 +9381,7 @@ $47d0       [inthk]
 $47d3       [calhk]
             Tremplin pour la commande `CALL` qui y place l'opcode `call`/$c3
 $47d4       [calhk_addr]
-            Addresse pour le tremplin `calhk`.
+            Adresse pour le tremplin `calhk`.
 $47d6       [sonhk]
 $47d9       [plyhk]
 $47dc       [rsthk]
@@ -9453,7 +9453,7 @@ $4846       [rnd_seed_2]
 $4867       [rnd_gen]
 $486e       [lptpos]
 $486f       [prtflg]
-            Selectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
+            Sélectionne la sortie des caractères (0=Terminal, 1=printer, ff=k7)
 $4870       [getflg]
             Entrée des caractères sur clavier (0) ou cassette (255)
 $4871       [picflg]
@@ -9466,20 +9466,20 @@ $4876       [prtint]
 $4878       [prtxlt]
 $487a       [contbl]
 $4884       [autflg]
-            Etat courant de la commande AUTO
+            État courant de la commande AUTO
 $4885       [autlin]
             Ligne courante de la commande AUTO
 $4887       [autinc]
             Incrément du mode AUTO
 $4889       [allflg]
-            Execution de la boucle BASIC (0 to execute BASIC control loop)
+            Exécution de la boucle BASIC (0 to execute BASIC control loop)
 $488a       [linlen]
 $488b       [clmlst]
 $488c       [curlin]
             Ligne courante du BASIC
 $488e       [txttab]
 $4890       [frgglg]
-            Messages en anglais (1) ou francais (0)
+            Messages en anglais (1) ou français (0)
 $4891       [kbdtbl]
             Table de transcription du clavier
 $4893       [tmpsav]
@@ -9487,7 +9487,7 @@ $4893       [tmpsav]
 $4894       [octsav]
             Octave actuel pour le générateur de son.
 $4895       [stktop]
-            Addresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
+            Adresse de départ (maximale) pour la pile. Initialisée tout en haut de la RAM.
 $4897       [bufmin]
             Zone précédent la zone de tokenisation. Mis dans HL après avoir mis NUL en fin de chaîne à traiter.
 $4898       [buf]
