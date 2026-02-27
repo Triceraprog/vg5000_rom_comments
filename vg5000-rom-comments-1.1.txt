@@ -1887,6 +1887,7 @@ $08ca       [exptab_2]
 $08ca       0.00965065136551857
 $08ce       [exptab_3]
 $08ce       0.055496565997600555
+$08ce       %NOSTRING
 $08d2       [exptab_4]
 $08d2       0.2402271330356598
 $08d6       [exptab_5]
@@ -2310,6 +2311,7 @@ $0bbf       [sound_data]
             Les deux premiers octets de chaque note est sauvé dans `sonsav`, il s'agit des périodes qui forment les deux phases du son.
             Le troisième octet est un facteur multiplicatif pour obtenir la longueur de la note.
 
+$0bbf-$0c69 %NOSTRING
 $0c6a       [inst_sound]
             %CODE
 $0c6a       Appel le `hook` pour l'instruction SOUND.
@@ -3259,6 +3261,7 @@ $11f9       [keybfr_0]
             == DEBUT DE SECTION TXTFIL (messages textuels) ==
 
 $1201       [keybfr_1]
+$1201-$1378 %NOSTRING
 $1209       [keybfr_2]
 $1211       [keybfr_3]
 $1219       [keybfr_4]
@@ -4176,7 +4179,7 @@ $1e9a       Réinitialise le moniteur après avoir affiché "Ok!"
 
 $1e9d       [k7_1200]
 $1e9d       Paramètre K7 pour 1200 bauds
-
+$1e9d       %NOSTRING
 $1ea2       [k7_2400]
 $1ea2       Paramètre K7 pour 2400 bauds
 
@@ -4383,11 +4386,14 @@ $2000       [instr_table]
 
             Le dernier pointeur d'instruction, sur `NEW`, est modifié entre la ROM 1.0 et la ROM 1.1
 
+$2000-$209c %NOSTRING
 $2064       [funct_table]
 $209d       [prekeywords]
 $209e       [keywords]
+$209e-$21fd %NOSTRING
 $21fd       [keywstop]
 $21fe       [prio_table]
+$21fe-$2212 %NOSTRING
 $2213       [null_str]
 $2214       [ok_str]
 $2219       [back_stack]

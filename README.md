@@ -17,6 +17,7 @@ Ces fichiers ont le format suivant :
     - `CHAR` indique que le paramètre numérique de l'opcode est un caractère.
     - `NOT\_LABEL` indique que le paramètre numérique de l'opcode n'est pas une adresse de label, même si une adresse correspond.
     - `DATASKIP` indique que l'octet n'est pas une instruction et doit être ignoré. C'est le cas après chaque `rst $8`, qui cherche son paramètre dans l'octet qui suit.
+    - `NOSTRING` empêche la détection automatique de chaînes de caractères dans les zones de données.
 - Lorsqu'un commentaire est associé à un label, il indique un commentaire général, qui s'affiche typiquement avant la routine.
 - Lorsqu'un commentaire n'est pas associé à un label, il indique un commentaire sur les lignes indiquées par l'adresse ou la plage d'adresses.
 Exemple :
